@@ -32,6 +32,7 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
+    - libprotobuf
   host:
     - python
     - pip
