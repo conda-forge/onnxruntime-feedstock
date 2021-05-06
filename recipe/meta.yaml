@@ -43,6 +43,7 @@ requirements:
     - python
     - pip
     - wheel
+    - cub    # [cuda_compiler_version != "None"]
     - cudnn  # [cuda_compiler_version != "None"]
     - boost_mp11
     - flake8
