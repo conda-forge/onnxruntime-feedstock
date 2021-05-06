@@ -19,7 +19,7 @@ source:
     folder: eigen
 
 build:
-  number: 0
+  number: 1
   skip: true  # [win]
 
 requirements:
@@ -49,6 +49,9 @@ requirements:
     - nsync
     - nlohmann_json
     - libprotobuf
+    # We need to statically link protobuf until we link against a system libonnx
+    # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
+    - libprotobuf-static
     - numpy
     - pybind11
     - safeint
