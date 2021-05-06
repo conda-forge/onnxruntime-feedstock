@@ -1,4 +1,6 @@
 {% set name = "onnxruntime" %}
+{% set cuda_enabled = cuda_compiler_version != "None" %}
+{% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.7.2" %}
 
 
@@ -19,8 +21,11 @@ source:
     folder: eigen
 
 build:
-  number: 1
+  number: 2
   skip: true  # [win]
+  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+  track_features:
+    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
@@ -30,6 +35,7 @@ requirements:
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
+    - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
     - cmake
     - ninja
     - libprotobuf
@@ -37,6 +43,7 @@ requirements:
     - python
     - pip
     - wheel
+    - cudnn  # [cuda_compiler_version != "None"]
     - boost_mp11
     - flake8
     - flatbuffers
