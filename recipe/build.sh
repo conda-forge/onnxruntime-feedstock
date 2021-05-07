@@ -19,6 +19,13 @@ popd
 # ln -s $PREFIX/include/eigen3 eigen
 # popd
 
+if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
+  BUILD_ARGS="--use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX}"
+else
+  BUILD_ARGS=""
+fi
+
+
 python tools/ci_build/build.py \
     --enable_lto \
     --build_dir build-ci \
@@ -29,7 +36,8 @@ python tools/ci_build/build.py \
     --config Release \
     --update \
     --build \
-    --skip_submodule_sync
+    --skip_submodule_sync \
+    ${BUILD_ARGS}
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
