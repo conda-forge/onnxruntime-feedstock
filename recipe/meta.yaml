@@ -22,7 +22,7 @@ source:
 
 build:
   number: 2
-  skip: true  # [win]
+  skip: true  # [win or (cuda_compiler_version == "10.2")]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   track_features:
     {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
