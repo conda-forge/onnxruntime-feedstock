@@ -1,0 +1,25 @@
+From 33119f1e706f96df454e1559d3e618244779353f Mon Sep 17 00:00:00 2001
+From: "Uwe L. Korn" <uwe.korn@quantco.com>
+Date: Sun, 27 Jun 2021 09:50:29 +0200
+Subject: [PATCH] Don't install deps on Windows
+
+---
+ tools/ci_build/build.py | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index c580ef6..e3c5012 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -1899,8 +1899,6 @@ def main():
+                     "currently through this script")
+             if not is_docker() and not args.use_acl and not args.use_armnn:
+                 install_python_deps()
+-        if args.enable_pybind and is_windows():
+-            install_python_deps(args.numpy_version)
+         if args.enable_onnx_tests:
+             setup_test_data(build_dir, configs)
+         generate_build_tree(
+-- 
+2.30.1 (Apple Git-130)
+
