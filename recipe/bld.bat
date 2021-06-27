@@ -25,7 +25,11 @@ popd
 
 pushd cmake\external\json
 if errorlevel 1 exit 1
-copy %LIBRARY_PREFIX%\include single_include
+md single_include
+if errorlevel 1 exit 1
+md single_include\nlohmann
+if errorlevel 1 exit 1
+copy %LIBRARY_PREFIX%\include\nlohmann\json.hpp single_include\nlohmann\json.hpp
 if errorlevel 1 exit 1
 popd
 
