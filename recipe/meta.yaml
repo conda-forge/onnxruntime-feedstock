@@ -21,6 +21,9 @@ source:
   - url: https://github.com/google/googletest/archive/703bd9caab50b139428cea1aaff9974ebee5742e.tar.gz  # [win]
     sha256: d17b1b83a57b3933565a6d0616fe261107326d47de20288d0949ed038e1c342d  # [win]
     folder: googletest  # [win]
+  - url: https://github.com/microsoft/wil/archive/e8c599bca6c56c44b6730ad93f6abbc9ecd60fc1.tar.gz
+    sha256: 388156309853aaa6e01d177f9b68bd2c6943e5fc073ac6786f9383c1b4438812
+    folder: wil
 
 build:
   number: 4
@@ -54,7 +57,7 @@ requirements:
     - libprotobuf
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static
+    - libprotobuf-static  # [not win]
     - numpy
     - pybind11
     - safeint
