@@ -27,6 +27,7 @@ source:
 
 build:
   number: 4
+  skip: true  # [not (win and py==38)]
 
 requirements:
   build:
