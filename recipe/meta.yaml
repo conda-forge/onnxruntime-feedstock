@@ -54,10 +54,10 @@ requirements:
     - optional-lite
     - nsync
     - nlohmann_json
-    - libprotobuf
+    - libprotobuf  # [not win]
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static  # [not win]
+    - libprotobuf-static
     - numpy
     - pybind11
     - safeint

@@ -6,6 +6,9 @@ popd
 
 rd /s /q cmake\external\onnx
 if errorlevel 1 exit 1
+
+dir
+
 move onnx cmake\external\onnx
 if errorlevel 1 exit 1
 rd /s /q cmake\external\eigen
