@@ -7,7 +7,7 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v1.7.2.tar.gz
+  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
     sha256: ef0135c49922d854b2d1ccac3759d7baf895df537c5f15386ce49fe2430ac688
     patches:
       - 0001-Use-more-system-libraries.patch
@@ -19,7 +19,7 @@ source:
     folder: eigen
 
 build:
-  number: 4
+  number: 5
   skip: true  # [win]
 
 requirements:
