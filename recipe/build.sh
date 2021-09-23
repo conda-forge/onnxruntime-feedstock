@@ -2,28 +2,47 @@
 
 set -exuo pipefail
 
-rm -r cmake/external/onnx cmake/external/eigen
-mv onnx eigen cmake/external/
+# When checking out onnxruntime using git, these would be put in cmake/external
+# as submodules. We replicate that behavior using the "source"s from meta.yaml.
+readonly external_dirs=( "eigen" "json" "onnx" "pytorch_cpuinfo" )
+readonly external_root="cmake/external"
+for external_dir in "${external_dirs[@]}"
+do
+    dest="${external_root}/${external_dir}"
+    if [[ -e "${dest}" ]]; then
+        rm -r "${dest}"
+    fi
+    mv "${external_dir}" "${dest}"
+done
 
-pushd cmake/external/SafeInt/safeint
+
+pushd "${external_root}/SafeInt/safeint"
 ln -s $PREFIX/include/SafeInt.hpp
 popd
 
-pushd cmake/external/json
-ln -s $PREFIX/include single_include
-popd
+cmake_extra_defines=( "Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
+                      "Protobuf_INCLUDE_DIR=$PREFIX/include" \
+                      "onnxruntime_PREFER_SYSTEM_LIB=ON" \
+                      "onnxruntime_USE_COREML=OFF" \
+                      "CMAKE_PREFIX_PATH=$PREFIX" )
 
-# Needs eigen 3.4
-# rm -rf cmake/external/eigen
-# pushd cmake/external
-# ln -s $PREFIX/include/eigen3 eigen
-# popd
+# Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
+# into --cmake_extra_defines.
+read -a CMAKE_ARGS_ARRAY <<< "${CMAKE_ARGS}"
+for cmake_arg in "${CMAKE_ARGS_ARRAY[@]}"
+do
+    if [[ "${cmake_arg}" == -DCMAKE_SYSTEM_* ]]; then
+        # Strip -D prefix
+        cmake_extra_defines+=( "${cmake_arg#"-D"}" )
+    fi
+done
+
 
 python tools/ci_build/build.py \
     --enable_lto \
     --build_dir build-ci \
     --use_full_protobuf \
-    --cmake_extra_defines Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc Protobuf_INCLUDE_DIR=$PREFIX/include "onnxruntime_PREFER_SYSTEM_LIB=ON" onnxruntime_USE_COREML=OFF CMAKE_PREFIX_PATH=$PREFIX CMAKE_INSTALL_PREFIX=$PREFIX \
+    --cmake_extra_defines "${cmake_extra_defines[@]}" \
     --cmake_generator Ninja \
     --build_wheel \
     --config Release \
