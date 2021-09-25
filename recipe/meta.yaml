@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.7.2" %}
+{% set version = "1.9.0" %}
 
 
 package:
@@ -7,19 +7,24 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v1.7.2.tar.gz
-    sha256: ef0135c49922d854b2d1ccac3759d7baf895df537c5f15386ce49fe2430ac688
+  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v1.9.0.tar.gz
+    sha256: 671440949c55adbe0088c4b91d5738dca071a8e4f2e0fc37a8d802757f42ddbd
     patches:
       - 0001-Use-more-system-libraries.patch
-  - url: https://github.com/onnx/onnx/archive/971632833036c576cf95499291f689f8bb3519e1.zip
-    sha256: 340999131688d6ab7a7939df587057cc9e49d326fc112ff65b58e121a0afad92
+  - url: https://github.com/onnx/onnx/archive/refs/tags/v1.10.1.zip
+    sha256: ea664f36b86289ff5ce3f7643c5f05ec25b14d5a8c0e1ccd90828cf6399ca08c
     folder: onnx
   - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
     sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
     folder: eigen
-
+  - url: https://github.com/pytorch/cpuinfo/archive/5916273f79a21551890fd3d56fc5375a78d1598d.zip
+    sha256: 2a160c527d3c58085ce260f34f9e2b161adc009b34186a2baf24e74376e89e6d
+    folder: pytorch_cpuinfo
+  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.9.1.tar.gz
+    sha256: 4cf0df69731494668bdd6460ed8cb269b68de9c19ad8c27abc24cd72605b2d5b
+    folder: json
 build:
-  number: 6
+  number: 0
   skip: true  # [win]
 
 requirements:
@@ -47,7 +52,6 @@ requirements:
     - re2
     - optional-lite
     - nsync
-    - nlohmann_json
     - libprotobuf
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
@@ -57,6 +61,7 @@ requirements:
     - safeint
   run:
     - python
+    - python-flatbuffers
     - {{ pin_compatible('numpy') }}
     - protobuf
 
