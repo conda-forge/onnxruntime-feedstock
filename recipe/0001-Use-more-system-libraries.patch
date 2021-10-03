@@ -1,17 +1,31 @@
-From fa1afb348504a15372f95ea4dba2072c0fc4d51f Mon Sep 17 00:00:00 2001
-From: Jan-Benedikt Jagusch <jan.jagusch@quantco.com>
-Date: Wed, 1 Sep 2021 11:00:22 +0300
-Subject: [PATCH] Use more system libraries
+From 2216b40a3c3fa7b7fbb4c13d0081cde2f385d52d Mon Sep 17 00:00:00 2001
+From: Gary Miguel <garymiguel@microsoft.com>
+Date: Thu, 23 Sep 2021 22:07:37 +0000
+Subject: [PATCH] use more system libraries
 
 ---
- cmake/CMakeLists.txt | 23 ++++++++++++++++++++---
- 1 file changed, 20 insertions(+), 3 deletions(-)
+ cmake/CMakeLists.txt | 30 ++++++++++++++++++++----------
+ 1 file changed, 20 insertions(+), 10 deletions(-)
 
 diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
-index 35822e2..d98cf08 100644
+index 2534b99ff..c0c9fe0cc 100644
 --- a/cmake/CMakeLists.txt
 +++ b/cmake/CMakeLists.txt
-@@ -761,7 +761,13 @@ get_filename_component(ORTTRAINING_ROOT "${ORTTRAINING_ROOT}" ABSOLUTE)
+@@ -746,13 +746,6 @@ if(Protobuf_FOUND OR Protobuf_FOUND)
+   message("Use protobuf from preinstalled system lib")
+   if (onnxruntime_USE_FULL_PROTOBUF)
+     set(PROTOBUF_LIB protobuf::libprotobuf)
+-    #We have a check here but most of the cmake users don't know the Protobuf_USE_STATIC_LIBS
+-    # variable exists and may leave it in a wrong state.
+-    if(NOT Protobuf_USE_STATIC_LIBS)
+-      # ONNX Runtime itself can work in such a setting but it may cause compatibility issues
+-      # when ONNX Runtime is integrated with the other ONNX ecosystem softwares.
+-      message(WARNING "Use Protobuf_USE_STATIC_LIBS to ensure compatibility with other ONNX ecosystem components.")
+-    endif()
+   else()
+     set(PROTOBUF_LIB protobuf::libprotobuf-lite)
+   endif()
+@@ -833,7 +826,13 @@ get_filename_component(ORTTRAINING_ROOT "${ORTTRAINING_ROOT}" ABSOLUTE)
  get_filename_component(REPO_ROOT "${REPO_ROOT}" ABSOLUTE)
  set(ONNXRUNTIME_INCLUDE_DIR ${REPO_ROOT}/include/onnxruntime)
  
@@ -26,7 +40,7 @@ index 35822e2..d98cf08 100644
  
  set(SAFEINT_INCLUDE_DIR ${REPO_ROOT}/cmake/external/SafeInt)
  add_library(safeint_interface INTERFACE)
-@@ -772,7 +778,12 @@ if(onnxruntime_DISABLE_EXCEPTIONS)
+@@ -844,7 +843,12 @@ if(onnxruntime_DISABLE_EXCEPTIONS)
    add_compile_definitions(optional_CONFIG_NO_EXCEPTIONS=1)
  endif()
  
@@ -40,7 +54,7 @@ index 35822e2..d98cf08 100644
  
  set(JSON_BuildTests OFF CACHE INTERNAL "")
  set(JSON_Install OFF CACHE INTERNAL "")
-@@ -1269,7 +1280,13 @@ set(FLATBUFFERS_INSTALL OFF CACHE BOOL "FLATBUFFERS_INSTALL" FORCE)
+@@ -1414,7 +1418,13 @@ set(FLATBUFFERS_INSTALL OFF CACHE BOOL "FLATBUFFERS_INSTALL" FORCE)
  set(FLATBUFFERS_BUILD_FLATHASH OFF CACHE BOOL "FLATBUFFERS_BUILD_FLATHASH" FORCE)
  set(FLATBUFFERS_BUILD_FLATLIB ON CACHE BOOL "FLATBUFFERS_BUILD_FLATLIB" FORCE)
  set_msvc_c_cpp_compiler_warning_level(4)
@@ -56,4 +70,5 @@ index 35822e2..d98cf08 100644
  list(APPEND onnxruntime_EXTERNAL_DEPENDENCIES flatbuffers)
  list(APPEND onnxruntime_EXTERNAL_LIBRARIES flatbuffers)
 -- 
-2.30.1
+2.33.0
+
