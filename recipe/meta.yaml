@@ -7,7 +7,7 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v1.9.0.tar.gz
+  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
     sha256: 671440949c55adbe0088c4b91d5738dca071a8e4f2e0fc37a8d802757f42ddbd
     patches:
       - 0001-Use-more-system-libraries.patch
@@ -84,3 +84,4 @@ about:
 extra:
   recipe-maintainers:
     - xhochy
+    - janjagusch
