@@ -1,5 +1,5 @@
 MACOSX_DEPLOYMENT_TARGET:
-- '10.14'
+- '10.9'
 MACOSX_SDK_VERSION:
 - '10.14'
 c_compiler:
@@ -7,7 +7,7 @@ c_compiler:
 c_compiler_version:
 - '11'
 channel_sources:
-- conda-forge,defaults
+- conda-forge
 channel_targets:
 - conda-forge main
 cxx_compiler:
@@ -15,7 +15,7 @@ cxx_compiler:
 cxx_compiler_version:
 - '11'
 libprotobuf:
-- '3.18'
+- '3.19'
 macos_machine:
 - x86_64-apple-darwin13.4.0
 numpy:
@@ -27,7 +27,7 @@ pin_run_as_build:
 python:
 - 3.8.* *_cpython
 re2:
-- 2021.09.01
+- 2021.11.01
 target_platform:
 - osx-64
 zip_keys:
