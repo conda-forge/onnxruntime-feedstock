@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.9.0" %}
+{% set version = "1.10.0" %}
 
 
 package:
@@ -8,11 +8,9 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 671440949c55adbe0088c4b91d5738dca071a8e4f2e0fc37a8d802757f42ddbd
-    patches:
-      - 0001-Use-more-system-libraries.patch
-  - url: https://github.com/onnx/onnx/archive/refs/tags/v1.10.1.zip
-    sha256: ea664f36b86289ff5ce3f7643c5f05ec25b14d5a8c0e1ccd90828cf6399ca08c
+    sha256: 04284491563d2b50e27d463d9b2ebb6a8ed61ce70ec1eb3d55267be557c0bccb
+  - url: https://github.com/onnx/onnx/archive/refs/tags/v1.10.2.zip
+    sha256: 4fd0a9adabfc0968fff7c36602059bca4e42fde5db9e55f34c2c930212215e8f
     folder: onnx
   - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
     sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
