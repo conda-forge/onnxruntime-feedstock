@@ -42,7 +42,7 @@ requirements:
     - wheel
     - boost_mp11
     - flake8
-    - flatbuffers
+    - flatbuffers !=2.0.6
     - gmock
     - gtest
     - libdate
