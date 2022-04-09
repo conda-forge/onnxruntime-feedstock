@@ -24,6 +24,8 @@ source:
 build:
   number: 0
   skip: true  # [win]
+  # Since 1.11, power9 seems to be required.
+  skip: true  # [ppc64le]
 
 requirements:
   build:
