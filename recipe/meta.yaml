@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.10.0" %}
+{% set version = "1.11.0" %}
 
 
 package:
@@ -8,9 +8,9 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 04284491563d2b50e27d463d9b2ebb6a8ed61ce70ec1eb3d55267be557c0bccb
-  - url: https://github.com/onnx/onnx/archive/refs/tags/v1.10.2.zip
-    sha256: 4fd0a9adabfc0968fff7c36602059bca4e42fde5db9e55f34c2c930212215e8f
+    sha256: f12753d00b1b398e96b9080b3f709d175e2469a3914a0b578ee4ce7a1ca08109
+  - url: https://github.com/onnx/onnx/archive/850a81b0b77786bf99ea90580242b084f86a6235.tar.gz
+    sha256: 3b09259ec93b2b1d33e7321977038c4fd73eaac9fd0632765978f896da905f3f
     folder: onnx
   - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
     sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
@@ -22,8 +22,10 @@ source:
     sha256: 4cf0df69731494668bdd6460ed8cb269b68de9c19ad8c27abc24cd72605b2d5b
     folder: json
 build:
-  number: 4
+  number: 0
   skip: true  # [win]
+  # Since 1.11, power9 seems to be required.
+  skip: true  # [ppc64le]
 
 requirements:
   build:
