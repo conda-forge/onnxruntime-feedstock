@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.11.0" %}
+{% set version = "1.11.1" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: f12753d00b1b398e96b9080b3f709d175e2469a3914a0b578ee4ce7a1ca08109
+    sha256: 307ba492dc6a35992ca561fa1c90ad919ed6bd40adef578a07725b5e88ccf633
   - url: https://github.com/onnx/onnx/archive/850a81b0b77786bf99ea90580242b084f86a6235.tar.gz
     sha256: 3b09259ec93b2b1d33e7321977038c4fd73eaac9fd0632765978f896da905f3f
     folder: onnx
