@@ -31,6 +31,7 @@ cmake_extra_defines=( "Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
                       "onnxruntime_PREFER_SYSTEM_LIB=ON" \
                       "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
+                      "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "CMAKE_PREFIX_PATH=$PREFIX" )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
@@ -59,3 +60,11 @@ python tools/ci_build/build.py \
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
+mkdir -p "${PREFIX}/include"
+cp -pr include/onnxruntime "${PREFIX}/include/"
+
+if [[ -n "${OSX_ARCH}" ]]; then
+    install build-ci/Release/libonnxruntime.*dylib "${PREFIX}/lib"
+else
+    install build-ci/Release/libonnxruntime.so* "${PREFIX}/lib"
+fi
