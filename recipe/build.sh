@@ -63,7 +63,7 @@ python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
 mkdir -p "${PREFIX}/include"
 cp -pr include/onnxruntime "${PREFIX}/include/"
 
-if [[ -n "${OSX_ARCH}" ]]; then
+if [[ -n "${OSX_ARCH:+yes}" ]]; then
     install build-ci/Release/libonnxruntime.*dylib "${PREFIX}/lib"
 else
     install build-ci/Release/libonnxruntime.so* "${PREFIX}/lib"
