@@ -60,11 +60,3 @@ python tools/ci_build/build.py \
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
-mkdir -p "${PREFIX}/include"
-cp -pr include/onnxruntime "${PREFIX}/include/"
-
-if [[ -n "${OSX_ARCH:+yes}" ]]; then
-    install build-ci/Release/libonnxruntime.*dylib "${PREFIX}/lib"
-else
-    install build-ci/Release/libonnxruntime.so* "${PREFIX}/lib"
-fi
