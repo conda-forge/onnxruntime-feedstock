@@ -19,15 +19,17 @@ libprotobuf:
 macos_machine:
 - x86_64-apple-darwin13.4.0
 numpy:
-- '1.21'
+- '1.19'
 pin_run_as_build:
   python:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.10.* *_cpython
+- 3.7.* *_cpython
 re2:
 - 2022.06.01
+suffix:
+- ''
 target_platform:
 - osx-64
 zip_keys:
