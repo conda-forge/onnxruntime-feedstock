@@ -3,7 +3,7 @@
 
 
 package:
-  name: {{ name|lower }}
+  name: {{ name|lower }}{{ suffix }}
   version: {{ version }}
 
 source:
@@ -28,8 +28,6 @@ build:
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  script_env:
-    - DONT_VECTORIZE=ON
 
 requirements:
   build:

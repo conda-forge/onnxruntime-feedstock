@@ -20,6 +20,12 @@ pushd "${external_root}/SafeInt/safeint"
 ln -s $PREFIX/include/SafeInt.hpp
 popd
 
+if [[ "${PKG_NAME}" == 'onnxruntime-novec' ]]; then
+    DONT_VECTORIZE="ON"
+else
+    DONT_VECTORIZE="OFF"
+fi
+
 cmake_extra_defines=( "Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
                       "Protobuf_INCLUDE_DIR=$PREFIX/include" \
                       "onnxruntime_PREFER_SYSTEM_LIB=ON" \
