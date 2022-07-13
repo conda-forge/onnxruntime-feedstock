@@ -67,7 +67,7 @@ requirements:
     - {{ pin_compatible('numpy') }}
     - protobuf
   run_constrained:
-    - onnxruntime <0a0  # [suffix == "-no-vec"]
+    - onnxruntime <0a0  # [suffix == "-novec"]
 
 test:
   imports:
