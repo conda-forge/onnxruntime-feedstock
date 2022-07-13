@@ -24,7 +24,7 @@ source:
     sha256: 4cf0df69731494668bdd6460ed8cb269b68de9c19ad8c27abc24cd72605b2d5b
     folder: json
 build:
-  number: 2
+  number: 3
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
