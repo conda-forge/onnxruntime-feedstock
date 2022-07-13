@@ -66,6 +66,8 @@ requirements:
     - python-flatbuffers
     - {{ pin_compatible('numpy') }}
     - protobuf
+  run_constrained:
+    - onnxruntime <0a0  # [suffix == "-no-vec"]
 
 test:
   imports:
