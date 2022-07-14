@@ -29,7 +29,7 @@ pin_run_as_build:
 python:
 - 3.10.* *_cpython
 re2:
-- 2022.06.01
+- 2022.04.01
 suffix:
 - -novec
 target_platform:
