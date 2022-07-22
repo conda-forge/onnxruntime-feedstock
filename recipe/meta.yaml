@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.11.1" %}
+{% set version = "1.12.0" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 307ba492dc6a35992ca561fa1c90ad919ed6bd40adef578a07725b5e88ccf633
+    sha256: de3b79ead1aa6387fe2828f0f94239c98cb4f08b4b6855219872aac19f07a5e3
     patches:
       - 0001_dont_vectorize.patch
   - url: https://github.com/onnx/onnx/archive/850a81b0b77786bf99ea90580242b084f86a6235.tar.gz
@@ -24,7 +24,7 @@ source:
     sha256: 4cf0df69731494668bdd6460ed8cb269b68de9c19ad8c27abc24cd72605b2d5b
     folder: json
 build:
-  number: 2
+  number: 0
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
