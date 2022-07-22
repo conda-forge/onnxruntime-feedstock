@@ -367,5 +367,6 @@ Feedstock Maintainers
 =====================
 
 * [@janjagusch](https://github.com/janjagusch/)
+* [@jtilly](https://github.com/jtilly/)
 * [@xhochy](https://github.com/xhochy/)
 
