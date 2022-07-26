@@ -4,7 +4,7 @@ set -exuo pipefail
 
 # When checking out onnxruntime using git, these would be put in cmake/external
 # as submodules. We replicate that behavior using the "source"s from meta.yaml.
-readonly external_dirs=( "eigen" "json" "onnx" "pytorch_cpuinfo" )
+readonly external_dirs=( "eigen" "json" "onnx" "pytorch_cpuinfo" "nsync" )
 readonly external_root="cmake/external"
 for external_dir in "${external_dirs[@]}"
 do
@@ -31,6 +31,7 @@ cmake_extra_defines=( "Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
                       "onnxruntime_PREFER_SYSTEM_LIB=ON" \
                       "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
+                      "onnxruntime_DISABLE_ABSEIL=ON" \
                       "CMAKE_PREFIX_PATH=$PREFIX" )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
