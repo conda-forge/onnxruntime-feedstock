@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.11.1" %}
+{% set version = "1.12.0" %}
 
 
 package:
@@ -8,11 +8,12 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 307ba492dc6a35992ca561fa1c90ad919ed6bd40adef578a07725b5e88ccf633
+    sha256: de3b79ead1aa6387fe2828f0f94239c98cb4f08b4b6855219872aac19f07a5e3
     patches:
       - 0001_dont_vectorize.patch
-  - url: https://github.com/onnx/onnx/archive/850a81b0b77786bf99ea90580242b084f86a6235.tar.gz
-    sha256: 3b09259ec93b2b1d33e7321977038c4fd73eaac9fd0632765978f896da905f3f
+      - 0002_use_system_nsync.patch
+  - url: https://github.com/onnx/onnx/archive/f7ee1ac60d06abe8e26c9b6bbe1e3db5286b614b.tar.gz
+    sha256: 0624860bc300fada6c0f2b5fd18043528bd0e149aad9b3c329d478ab185f17d3
     folder: onnx
   - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
     sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
@@ -20,11 +21,11 @@ source:
   - url: https://github.com/pytorch/cpuinfo/archive/5916273f79a21551890fd3d56fc5375a78d1598d.zip
     sha256: 2a160c527d3c58085ce260f34f9e2b161adc009b34186a2baf24e74376e89e6d
     folder: pytorch_cpuinfo
-  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.9.1.tar.gz
-    sha256: 4cf0df69731494668bdd6460ed8cb269b68de9c19ad8c27abc24cd72605b2d5b
+  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz
+    sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 2
+  number: 0
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
@@ -62,10 +63,13 @@ requirements:
     - pybind11
     - safeint
   run:
+    - coloredlogs
+    - packaging
+    - protobuf
     - python
     - python-flatbuffers
+    - sympy
     - {{ pin_compatible('numpy') }}
-    - protobuf
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
 
