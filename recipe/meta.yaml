@@ -25,7 +25,7 @@ source:
     sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 0
+  number: 1
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
@@ -40,7 +40,7 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
-    - libprotobuf
+    - libprotobuf=3.19.1
   host:
     - python
     - pip
@@ -55,17 +55,16 @@ requirements:
     - re2
     - optional-lite
     - nsync
-    - libprotobuf
+    - libprotobuf=3.19.1
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static
+    - libprotobuf-static=3.19.1
     - numpy
     - pybind11
     - safeint
   run:
     - coloredlogs
     - packaging
-    - protobuf
     - python
     - python-flatbuffers
     - sympy
