@@ -40,7 +40,7 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
-    - libprotobuf=3.19.1
+    - libprotobuf 3.19.1
   host:
     - python
     - pip
@@ -55,10 +55,10 @@ requirements:
     - re2
     - optional-lite
     - nsync
-    - libprotobuf=3.19.1
+    - libprotobuf 3.19.1
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static=3.19.1
+    - libprotobuf-static 3.19.1
     - numpy
     - pybind11
     - safeint
