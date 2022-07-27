@@ -63,10 +63,13 @@ requirements:
     - pybind11
     - safeint
   run:
+    - coloredlogs
+    - packaging
+    - protobuf
     - python
     - python-flatbuffers
+    - sympy
     - {{ pin_compatible('numpy') }}
-    - protobuf
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
 
