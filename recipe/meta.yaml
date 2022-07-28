@@ -12,6 +12,7 @@ source:
     patches:
       - 0001_dont_vectorize.patch
       - 0002_use_system_nsync.patch
+      - 0003_remove_protobuf.patch
   - url: https://github.com/onnx/onnx/archive/f7ee1ac60d06abe8e26c9b6bbe1e3db5286b614b.tar.gz
     sha256: 0624860bc300fada6c0f2b5fd18043528bd0e149aad9b3c329d478ab185f17d3
     folder: onnx
