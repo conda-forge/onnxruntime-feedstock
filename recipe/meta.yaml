@@ -89,6 +89,8 @@ outputs:
       run:
         - protobuf
         - {{ pin_compatible('re2') }}
+      run_constrained:
+        - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
       requires:
         - {{ compiler('cxx') }}
