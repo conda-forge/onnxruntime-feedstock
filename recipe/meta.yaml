@@ -81,6 +81,26 @@ test:
   requires:
     - pip
 
+outputs:
+  - name: {{ name|lower }}{{ suffix }}
+  - name: {{ name|lower }}{{ suffix }}-cpp
+    script: install-cpp.sh
+    requirements:
+      run:
+        - protobuf
+        - {{ pin_compatible('re2') }}
+      run_constrained:
+        - onnxruntime-cpp <0a0  # [suffix == "-novec"]
+    test:
+      requires:
+        - {{ compiler('cxx') }}
+      files:
+        - test.cpp
+      commands:
+        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
+        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
+        - ./a.out
+
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
