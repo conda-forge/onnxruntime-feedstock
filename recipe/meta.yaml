@@ -25,7 +25,7 @@ source:
     sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 0
+  number: 1
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
@@ -80,6 +80,26 @@ test:
     - pip check
   requires:
     - pip
+
+outputs:
+  - name: {{ name|lower }}{{ suffix }}
+  - name: {{ name|lower }}{{ suffix }}-cpp
+    script: install-cpp.sh
+    requirements:
+      run:
+        - protobuf
+        - {{ pin_compatible('re2') }}
+      run_constrained:
+        - onnxruntime-cpp <0a0  # [suffix == "-novec"]
+    test:
+      requires:
+        - {{ compiler('cxx') }}
+      files:
+        - test.cpp
+      commands:
+        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
+        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
+        - ./a.out
 
 about:
   home: https://github.com/microsoft/onnxruntime/
