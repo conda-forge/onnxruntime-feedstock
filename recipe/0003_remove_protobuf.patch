@@ -1,0 +1,10 @@
+diff --git a/requirements.txt.in b/requirements.txt.in
+index 89242061f..708f1f482 100644
+--- a/requirements.txt.in
++++ b/requirements.txt.in
+@@ -2,5 +2,4 @@ coloredlogs
+ flatbuffers
+ numpy >= @Python_NumPy_VERSION@
+ packaging
+-protobuf
+ sympy

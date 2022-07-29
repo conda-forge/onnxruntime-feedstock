@@ -12,6 +12,7 @@ source:
     patches:
       - 0001_dont_vectorize.patch
       - 0002_use_system_nsync.patch
+      - 0003_remove_protobuf.patch
   - url: https://github.com/onnx/onnx/archive/f7ee1ac60d06abe8e26c9b6bbe1e3db5286b614b.tar.gz
     sha256: 0624860bc300fada6c0f2b5fd18043528bd0e149aad9b3c329d478ab185f17d3
     folder: onnx
@@ -25,7 +26,7 @@ source:
     sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 1
+  number: 3
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
@@ -40,7 +41,7 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
-    - libprotobuf
+    - libprotobuf 3.19.1
   host:
     - python
     - pip
@@ -55,17 +56,16 @@ requirements:
     - re2
     - optional-lite
     - nsync
-    - libprotobuf
+    - libprotobuf 3.19.1
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static
+    - libprotobuf-static 3.19.1
     - numpy
     - pybind11
     - safeint
   run:
     - coloredlogs
     - packaging
-    - protobuf
     - python
     - python-flatbuffers
     - sympy
