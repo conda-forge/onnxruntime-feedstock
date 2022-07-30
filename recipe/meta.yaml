@@ -86,9 +86,7 @@ outputs:
   - name: {{ name|lower }}{{ suffix }}-cpp
     script: install-cpp.sh
     requirements:
-      run:
-        - protobuf
-        - {{ pin_compatible('re2') }}
+      run: []  # no run requirements, because protobuf was statically linked
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
