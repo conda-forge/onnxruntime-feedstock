@@ -67,9 +67,9 @@ requirements:
   run:
     - coloredlogs
     - packaging
+    - protobuf
     - python
     - python-flatbuffers
-    - protobuf
     - sympy
     - {{ pin_compatible('numpy') }}
   run_constrained:
@@ -88,7 +88,9 @@ outputs:
   - name: {{ name|lower }}{{ suffix }}-cpp
     script: install-cpp.sh
     requirements:
-      run: []  # no run requirements, because protobuf was statically linked
+      run:
+        - protobuf
+        - {{ pin_compatible('re2') }}
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
