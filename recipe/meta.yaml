@@ -12,7 +12,6 @@ source:
     patches:
       - 0001_dont_vectorize.patch
       - 0002_use_system_nsync.patch
-      - 0003_remove_protobuf.patch
   - url: https://github.com/onnx/onnx/archive/f7ee1ac60d06abe8e26c9b6bbe1e3db5286b614b.tar.gz
     sha256: 0624860bc300fada6c0f2b5fd18043528bd0e149aad9b3c329d478ab185f17d3
     folder: onnx
@@ -26,10 +25,12 @@ source:
     sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 3
+  number: 2
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
+  ignore_run_exports_from:
+    - libprotobuf
 
 requirements:
   build:
@@ -68,6 +69,7 @@ requirements:
     - packaging
     - python
     - python-flatbuffers
+    - protobuf
     - sympy
     - {{ pin_compatible('numpy') }}
   run_constrained:
