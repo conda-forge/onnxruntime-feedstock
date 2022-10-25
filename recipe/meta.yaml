@@ -53,6 +53,7 @@ requirements:
     - gtest
     - libdate
     - python-flatbuffers
+    - packaging
     - re2
     - optional-lite
     - nsync
