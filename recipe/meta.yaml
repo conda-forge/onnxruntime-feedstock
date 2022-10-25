@@ -10,10 +10,9 @@ source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
     sha256: 6be548d789acdc99cf585c47e4a5571d3007fe0c5a9234ab8cb0d390896cf954
     patches:
-      - 0001_dont_vectorize.patch
-      - 0002_use_system_nsync.patch
-  - url: https://github.com/onnx/onnx/archive/f7ee1ac60d06abe8e26c9b6bbe1e3db5286b614b.tar.gz
-    sha256: 0624860bc300fada6c0f2b5fd18043528bd0e149aad9b3c329d478ab185f17d3
+      - 0001-Use-system-nsync.patch
+  - url: https://github.com/onnx/onnx/archive/5a5f8a5935762397aa68429b5493084ff970f774.tar.gz
+    sha256: bc019741dbe8ce0e0d93468766f58d334cfcfa03550820df4ee70459dd46ba73
     folder: onnx
   - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
     sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
