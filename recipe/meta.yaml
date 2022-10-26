@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.12.1" %}
+{% set version = "1.13.1" %}
 
 
 package:
@@ -8,12 +8,11 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 302e5a0f368c7d048a9acd1227ac226148ed9c944f8b67d1077ca1b3bb3dcc5b
+    sha256: 6be548d789acdc99cf585c47e4a5571d3007fe0c5a9234ab8cb0d390896cf954
     patches:
-      - 0001_dont_vectorize.patch
-      - 0002_use_system_nsync.patch
-  - url: https://github.com/onnx/onnx/archive/f7ee1ac60d06abe8e26c9b6bbe1e3db5286b614b.tar.gz
-    sha256: 0624860bc300fada6c0f2b5fd18043528bd0e149aad9b3c329d478ab185f17d3
+      - 0001-Use-system-nsync.patch
+  - url: https://github.com/onnx/onnx/archive/5a5f8a5935762397aa68429b5493084ff970f774.tar.gz
+    sha256: bc019741dbe8ce0e0d93468766f58d334cfcfa03550820df4ee70459dd46ba73
     folder: onnx
   - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
     sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
@@ -25,7 +24,7 @@ source:
     sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 1
+  number: 0
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
@@ -36,7 +35,8 @@ requirements:
   build:
     - python                                 # [build_platform != target_platform]
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - numpy                                  # [build_platform != target_platform]
+    - numpy 1.21.6                           # [(build_platform != target_platform) and py<310]
+    - numpy                                  # [(build_platform != target_platform) and py>=310]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
@@ -49,11 +49,12 @@ requirements:
     - wheel
     - boost_mp11
     - flake8
-    - flatbuffers !=2.0.6
+    - flatbuffers <2
     - gmock
     - gtest
     - libdate
     - python-flatbuffers
+    - packaging
     - re2
     - optional-lite
     - nsync
@@ -61,7 +62,8 @@ requirements:
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
     - libprotobuf-static 3.19.1
-    - numpy
+    - numpy 1.21.6  # [py<310]
+    - numpy         # [py>=310]
     - pybind11
     - safeint
   run:
