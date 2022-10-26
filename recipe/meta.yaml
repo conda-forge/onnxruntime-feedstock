@@ -61,7 +61,8 @@ requirements:
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
     - libprotobuf-static 3.19.1
-    - numpy
+    - numpy 1.21.6  # [py<310]
+    - numpy         # [py>=310]
     - pybind11
     - safeint
   run:
