@@ -35,7 +35,8 @@ requirements:
   build:
     - python                                 # [build_platform != target_platform]
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - numpy                                  # [build_platform != target_platform]
+    - numpy 1.21.6                           # [(build_platform != target_platform) and py<310]
+    - numpy                                  # [(build_platform != target_platform) and py>=310]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
