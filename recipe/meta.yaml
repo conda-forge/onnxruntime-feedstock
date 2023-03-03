@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.13.1" %}
+{% set version = "1.14.1" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 6be548d789acdc99cf585c47e4a5571d3007fe0c5a9234ab8cb0d390896cf954
+    sha256: f998352b131bb89fa7dd1f1d87ddbafe647dfaddd11929b6b5168b3f4ef857de
     patches:
       - 0001-Use-system-nsync.patch
   - url: https://github.com/onnx/onnx/archive/5a5f8a5935762397aa68429b5493084ff970f774.tar.gz
@@ -24,7 +24,7 @@ source:
     sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
     folder: json
 build:
-  number: 1
+  number: 0
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
