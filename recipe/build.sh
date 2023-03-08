@@ -2,24 +2,6 @@
 
 set -exuo pipefail
 
-# When checking out onnxruntime using git, these would be put in cmake/external
-# as submodules. We replicate that behavior using the "source"s from meta.yaml.
-readonly external_dirs=( "eigen" "json" "onnx" "pytorch_cpuinfo" )
-readonly external_root="cmake/external"
-for external_dir in "${external_dirs[@]}"
-do
-    dest="${external_root}/${external_dir}"
-    if [[ -e "${dest}" ]]; then
-        rm -r "${dest}"
-    fi
-    mv "${external_dir}" "${dest}"
-done
-
-
-pushd "${external_root}/SafeInt/safeint"
-ln -s $PREFIX/include/SafeInt.hpp
-popd
-
 if [[ "${PKG_NAME}" == 'onnxruntime-novec' ]]; then
     DONT_VECTORIZE="ON"
 else
@@ -47,6 +29,7 @@ done
 
 
 python tools/ci_build/build.py \
+    --compile_no_warning_as_error \
     --enable_lto \
     --build_dir build-ci \
     --use_full_protobuf \

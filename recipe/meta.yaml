@@ -1,5 +1,5 @@
 {% set name = "onnxruntime" %}
-{% set version = "1.14.0" %}
+{% set version = "1.14.1" %}
 
 
 package:
@@ -8,21 +8,8 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: f61e63941df6399d5e8d6b02a86768c5d9e05575979ba2bc3f9ddc4948cba168
-    patches:
-      - 0001-Use-system-nsync.patch
-  - url: https://github.com/onnx/onnx/archive/5a5f8a5935762397aa68429b5493084ff970f774.tar.gz
-    sha256: bc019741dbe8ce0e0d93468766f58d334cfcfa03550820df4ee70459dd46ba73
-    folder: onnx
-  - url: https://gitlab.com/libeigen/eigen/-/archive/d10b27fe37736d2944630ecd7557cefa95cf87c9/eigen-d10b27fe37736d2944630ecd7557cefa95cf87c9.tar.gz
-    sha256: a3c10a8c14f55e9f09f98b0a0ac6874c21bda91f65b7469d9b1f6925990e867b
-    folder: eigen
-  - url: https://github.com/pytorch/cpuinfo/archive/5916273f79a21551890fd3d56fc5375a78d1598d.zip
-    sha256: 2a160c527d3c58085ce260f34f9e2b161adc009b34186a2baf24e74376e89e6d
-    folder: pytorch_cpuinfo
-  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz
-    sha256: 5daca6ca216495edf89d167f808d1d03c4a4d929cef7da5e10f135ae1540c7e4
-    folder: json
+    sha256: f998352b131bb89fa7dd1f1d87ddbafe647dfaddd11929b6b5168b3f4ef857de
+
 build:
   number: 0
   skip: true  # [win]
@@ -47,31 +34,31 @@ requirements:
     - python
     - pip
     - wheel
-    - boost_mp11
+    # - boost_mp11
     - flake8
-    - flatbuffers <2
+    # - flatbuffers <2
     - gmock
-    - gtest
+    # - gtest
     - libdate
-    - python-flatbuffers
+    # - python-flatbuffers
     - packaging
-    - re2
+    # - re2
     - optional-lite
-    - nsync
-    - libprotobuf 3.19.1
+    # - nsync
+    - libprotobuf 3.20
     # We need to statically link protobuf until we link against a system libonnx
     # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static 3.19.1
+    - libprotobuf-static 3.20
     - numpy 1.21.6  # [py<310]
     - numpy         # [py>=310]
     - pybind11
-    - safeint
+    # - safeint
   run:
     - coloredlogs
     - packaging
-    - protobuf
+    # - protobuf
     - python
-    - python-flatbuffers
+    # - python-flatbuffers
     - sympy
     - {{ pin_compatible('numpy') }}
   run_constrained:
@@ -111,7 +98,6 @@ about:
   license: MIT
   license_file:
     - LICENSE
-    - cmake/external/onnx/LICENSE
 
 extra:
   recipe-maintainers:
