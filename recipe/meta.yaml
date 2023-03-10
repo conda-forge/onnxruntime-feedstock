@@ -15,8 +15,6 @@ build:
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  ignore_run_exports_from:
-    - libprotobuf
 
 requirements:
   build:
@@ -29,36 +27,24 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
-    - libprotobuf 3.19.1
   host:
     - python
     - pip
     - wheel
-    # - boost_mp11
     - flake8
-    # - flatbuffers <2
     - gmock
-    # - gtest
     - libdate
-    # - python-flatbuffers
     - packaging
-    # - re2
     - optional-lite
-    # - nsync
-    - libprotobuf 3.20
-    # We need to statically link protobuf until we link against a system libonnx
-    # See: https://github.com/conda-forge/onnxruntime-feedstock/issues/5
-    - libprotobuf-static 3.20
     - numpy 1.21.6  # [py<310]
     - numpy         # [py>=310]
     - pybind11
-    # - safeint
   run:
     - coloredlogs
     - packaging
-    # - protobuf
+    - protobuf
     - python
-    # - python-flatbuffers
+    - python-flatbuffers
     - sympy
     - {{ pin_compatible('numpy') }}
   run_constrained:
