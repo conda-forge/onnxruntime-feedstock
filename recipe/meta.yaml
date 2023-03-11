@@ -55,7 +55,7 @@ requirements:
     - libdate
     - python-flatbuffers
     - packaging
-    - re2
+    - re2 2022.06.01
     - optional-lite
     - nsync
     - libprotobuf 3.19.1
