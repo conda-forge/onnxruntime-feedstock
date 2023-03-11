@@ -37,7 +37,8 @@ python tools/ci_build/build.py \
     --config Release \
     --update \
     --build \
-    --skip_submodule_sync
+    --skip_submodule_sync \
+    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
