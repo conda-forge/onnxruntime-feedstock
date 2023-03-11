@@ -40,6 +40,7 @@ requirements:
     - gmock
     - libdate
     - packaging
+    - python-flatbuffers
     - optional-lite
     - zlib
     - libprotobuf 3.20
