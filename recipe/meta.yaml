@@ -30,7 +30,8 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
-    - libprotobuf 3.20  # we need protoc
+    # we need protoc in the build environment
+    - libprotobuf 3.20
   host:
     - python
     - pip
