@@ -15,6 +15,8 @@ build:
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
+  ignore_run_exports_from:
+    - libprotobuf
 
 requirements:
   build:
@@ -27,6 +29,7 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
+    - libprotobuf 3.20
   host:
     - python
     - pip
@@ -36,6 +39,9 @@ requirements:
     - libdate
     - packaging
     - optional-lite
+    - zlib
+    - libprotobuf 3.20
+    - libprotobuf-static 3.20
     - numpy 1.21.6  # [py<310]
     - numpy         # [py>=310]
     - pybind11

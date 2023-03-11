@@ -8,9 +8,7 @@ else
     DONT_VECTORIZE="OFF"
 fi
 
-cmake_extra_defines=( "Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
-                      "Protobuf_INCLUDE_DIR=$PREFIX/include" \
-                      "onnxruntime_PREFER_SYSTEM_LIB=ON" \
+cmake_extra_defines=( "ONNX_CUSTOM_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
                       "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
