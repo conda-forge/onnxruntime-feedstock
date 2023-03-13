@@ -8,10 +8,23 @@ else
     DONT_VECTORIZE="OFF"
 fi
 
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
+    BUILD_UNIT_TESTS="OFF"
+else
+    BUILD_UNIT_TESTS="ON"
+fi
+
+if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
+    ARM="--arm"
+else
+    ARM=""
+fi
+
 cmake_extra_defines=( "ONNX_CUSTOM_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
                       "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
+                      "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
@@ -38,7 +51,9 @@ python tools/ci_build/build.py \
     --update \
     --build \
     --skip_submodule_sync \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
+    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
+    $ARM
+
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
