@@ -15,7 +15,7 @@ else
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
-    ARM="--arm"
+    ARM="--arm64"
 else
     ARM=""
 fi
