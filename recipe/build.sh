@@ -15,9 +15,9 @@ else
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
-    ARM="--arm"
+    OSX_ARCH="arm64"
 else
-    ARM=""
+    OSX_ARCH="x86_64"
 fi
 
 cmake_extra_defines=( "ONNX_CUSTOM_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
@@ -52,7 +52,7 @@ python tools/ci_build/build.py \
     --build \
     --skip_submodule_sync \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
-    $ARM
+    --osx_arch $OSX_ARCH
 
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
