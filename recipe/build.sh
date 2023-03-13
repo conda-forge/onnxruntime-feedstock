@@ -15,9 +15,9 @@ else
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
-    ARM="--arm64"
+    ARM_CMAKE="CMAKE_OSX_ARCHITECTURES=arm64"
 else
-    ARM=""
+    ARM_CMAKE=""
 fi
 
 cmake_extra_defines=( "ONNX_CUSTOM_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
@@ -25,6 +25,7 @@ cmake_extra_defines=( "ONNX_CUSTOM_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
+		      ${ARM_CMAKE}
                       "CMAKE_PREFIX_PATH=$PREFIX" )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
@@ -51,8 +52,7 @@ python tools/ci_build/build.py \
     --update \
     --build \
     --skip_submodule_sync \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
-    $ARM
+    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
 
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
