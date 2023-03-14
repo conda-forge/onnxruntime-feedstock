@@ -44,7 +44,6 @@ python tools/ci_build/build.py \
     --compile_no_warning_as_error \
     --enable_lto \
     --build_dir build-ci \
-    --use_full_protobuf \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
     --cmake_generator Ninja \
     --build_wheel \
