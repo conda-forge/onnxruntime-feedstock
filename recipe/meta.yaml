@@ -86,9 +86,7 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license:
-      - MIT
-      - BSL-1.0  # mp11
+  license: MIT  # BSL-1.0  # mp11
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
