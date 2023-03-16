@@ -69,8 +69,6 @@ outputs:
   - name: {{ name|lower }}{{ suffix }}-cpp
     script: install-cpp.sh
     requirements:
-      run:
-        - {{ pin_compatible('re2') }}
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
@@ -86,7 +84,7 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT  # BSL-1.0  # mp11
+  license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
