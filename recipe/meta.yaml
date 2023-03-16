@@ -11,7 +11,7 @@ source:
     sha256: f998352b131bb89fa7dd1f1d87ddbafe647dfaddd11929b6b5168b3f4ef857de
 
 build:
-  number: 0
+  number: 1
   skip: true  # [win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
