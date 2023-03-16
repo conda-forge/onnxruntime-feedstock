@@ -69,6 +69,9 @@ outputs:
   - name: {{ name|lower }}{{ suffix }}-cpp
     script: install-cpp.sh
     requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
