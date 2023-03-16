@@ -14,8 +14,6 @@ cxx_compiler:
 - clangxx
 cxx_compiler_version:
 - '14'
-libprotobuf:
-- '3.20'
 macos_machine:
 - x86_64-apple-darwin13.4.0
 numpy:
@@ -26,8 +24,6 @@ pin_run_as_build:
     max_pin: x.x
 python:
 - 3.9.* *_cpython
-re2:
-- 2022.06.01
 suffix:
 - ''
 target_platform:
@@ -37,3 +33,5 @@ zip_keys:
   - cxx_compiler_version
 - - python
   - numpy
+zlib:
+- '1.2'

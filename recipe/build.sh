@@ -2,36 +2,29 @@
 
 set -exuo pipefail
 
-# When checking out onnxruntime using git, these would be put in cmake/external
-# as submodules. We replicate that behavior using the "source"s from meta.yaml.
-readonly external_dirs=( "eigen" "json" "onnx" "pytorch_cpuinfo" )
-readonly external_root="cmake/external"
-for external_dir in "${external_dirs[@]}"
-do
-    dest="${external_root}/${external_dir}"
-    if [[ -e "${dest}" ]]; then
-        rm -r "${dest}"
-    fi
-    mv "${external_dir}" "${dest}"
-done
-
-
-pushd "${external_root}/SafeInt/safeint"
-ln -s $PREFIX/include/SafeInt.hpp
-popd
-
 if [[ "${PKG_NAME}" == 'onnxruntime-novec' ]]; then
     DONT_VECTORIZE="ON"
 else
     DONT_VECTORIZE="OFF"
 fi
 
-cmake_extra_defines=( "Protobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc" \
-                      "Protobuf_INCLUDE_DIR=$PREFIX/include" \
-                      "onnxruntime_PREFER_SYSTEM_LIB=ON" \
-                      "onnxruntime_USE_COREML=OFF" \
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
+    BUILD_UNIT_TESTS="OFF"
+else
+    BUILD_UNIT_TESTS="ON"
+fi
+
+if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
+    OSX_ARCH="arm64"
+else
+    OSX_ARCH="x86_64"
+fi
+
+cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
+		      "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
+                      "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
@@ -47,16 +40,19 @@ done
 
 
 python tools/ci_build/build.py \
+    --compile_no_warning_as_error \
     --enable_lto \
     --build_dir build-ci \
-    --use_full_protobuf \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
     --cmake_generator Ninja \
     --build_wheel \
     --config Release \
     --update \
     --build \
-    --skip_submodule_sync
+    --skip_submodule_sync \
+    --osx_arch $OSX_ARCH \
+    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
+
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl

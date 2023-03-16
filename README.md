@@ -1,11 +1,11 @@
-About onnxruntime
-=================
+About onnxruntime-feedstock
+===========================
+
+Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/onnxruntime-feedstock/blob/main/LICENSE.txt)
 
 Home: https://github.com/microsoft/onnxruntime/
 
 Package license: MIT
-
-Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/onnxruntime-feedstock/blob/main/LICENSE.txt)
 
 Summary: cross-platform, high performance ML inferencing and training accelerator
 
@@ -382,6 +382,7 @@ In order to produce a uniquely identifiable distribution:
 Feedstock Maintainers
 =====================
 
+* [@cbourjau](https://github.com/cbourjau/)
 * [@janjagusch](https://github.com/janjagusch/)
 * [@jtilly](https://github.com/jtilly/)
 * [@xhochy](https://github.com/xhochy/)
