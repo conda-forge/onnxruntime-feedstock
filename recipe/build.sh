@@ -26,7 +26,6 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
-		      "CMAKE_COMPILE_WARNING_AS_ERRO=OFF" \
                       "CMAKE_PREFIX_PATH=$PREFIX"
 		    )
 
@@ -43,17 +42,19 @@ done
 
 
 python tools/ci_build/build.py \
-    --build_dir build-ci \
-    --skip_submodule_sync \
     --compile_no_warning_as_error \
     --enable_lto \
+    --build_dir build-ci \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
     --cmake_generator Ninja \
     --build_wheel \
     --config Release \
     --update \
     --build \
-    --osx_arch $OSX_ARCH
+    --skip_submodule_sync \
+    --osx_arch $OSX_ARCH \
+    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
+
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
