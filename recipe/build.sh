@@ -21,11 +21,14 @@ else
 fi
 
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
-		      "onnxruntime_USE_COREML=OFF" \
+		      "FLATBUFFERS_BUILD_FLATC=OFF" \
+	              "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
-                      "CMAKE_PREFIX_PATH=$PREFIX" )
+		      "CMAKE_COMPILE_WARNING_AS_ERRO=OFF" \
+                      "CMAKE_PREFIX_PATH=$PREFIX"
+		    )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
 # into --cmake_extra_defines.
@@ -40,19 +43,17 @@ done
 
 
 python tools/ci_build/build.py \
+    --build_dir build-ci \
+    --skip_submodule_sync \
     --compile_no_warning_as_error \
     --enable_lto \
-    --build_dir build-ci \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
     --cmake_generator Ninja \
     --build_wheel \
     --config Release \
     --update \
     --build \
-    --skip_submodule_sync \
-    --osx_arch $OSX_ARCH \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
-
+    --osx_arch $OSX_ARCH
 
 cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl

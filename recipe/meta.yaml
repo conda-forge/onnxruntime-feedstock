@@ -29,8 +29,6 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - ninja
-    # we need protoc in the build environment for cross compilations
-    - libprotobuf 3.21
   host:
     - python
     - pip
@@ -48,7 +46,6 @@ requirements:
   run:
     - coloredlogs
     - packaging
-    - protobuf
     - python
     - python-flatbuffers
     - sympy
