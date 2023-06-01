@@ -21,11 +21,13 @@ else
 fi
 
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
-		      "onnxruntime_USE_COREML=OFF" \
+		      "FLATBUFFERS_BUILD_FLATC=OFF" \
+	              "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
-                      "CMAKE_PREFIX_PATH=$PREFIX" )
+                      "CMAKE_PREFIX_PATH=$PREFIX"
+		    )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
 # into --cmake_extra_defines.
