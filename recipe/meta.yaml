@@ -90,6 +90,7 @@ outputs:
         - {{ compiler('cxx') }}
       files:
         - test.cpp
+        - run_cpp_test.bat  # [win]
       commands:
         - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
         - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
