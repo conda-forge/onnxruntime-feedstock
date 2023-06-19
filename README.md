@@ -55,6 +55,20 @@ Current build status
                 </a>
               </td>
             </tr><tr>
+              <td>linux_64_python3.8.____73_pypysuffix</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_64_python3.8.____73_pypysuffix" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>linux_64_python3.8.____73_pypysuffix-novec</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_64_python3.8.____73_pypysuffix-novec" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
               <td>linux_64_python3.8.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
@@ -66,6 +80,20 @@ Current build status
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
                   <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_64_python3.8.____cpythonsuffix-novec" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>linux_64_python3.9.____73_pypysuffix</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_64_python3.9.____73_pypysuffix" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>linux_64_python3.9.____73_pypysuffix-novec</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_64_python3.9.____73_pypysuffix-novec" alt="variant">
                 </a>
               </td>
             </tr><tr>
@@ -111,6 +139,20 @@ Current build status
                 </a>
               </td>
             </tr><tr>
+              <td>linux_aarch64_python3.8.____73_pypysuffix</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_python3.8.____73_pypysuffix" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>linux_aarch64_python3.8.____73_pypysuffix-novec</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_python3.8.____73_pypysuffix-novec" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
               <td>linux_aarch64_python3.8.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
@@ -122,6 +164,20 @@ Current build status
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
                   <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_python3.8.____cpythonsuffix-novec" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>linux_aarch64_python3.9.____73_pypysuffix</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_python3.9.____73_pypysuffix" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>linux_aarch64_python3.9.____73_pypysuffix-novec</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_python3.9.____73_pypysuffix-novec" alt="variant">
                 </a>
               </td>
             </tr><tr>
@@ -167,6 +223,20 @@ Current build status
                 </a>
               </td>
             </tr><tr>
+              <td>osx_64_python3.8.____73_pypysuffix</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_64_python3.8.____73_pypysuffix" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>osx_64_python3.8.____73_pypysuffix-novec</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_64_python3.8.____73_pypysuffix-novec" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
               <td>osx_64_python3.8.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
@@ -178,6 +248,20 @@ Current build status
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
                   <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_64_python3.8.____cpythonsuffix-novec" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>osx_64_python3.9.____73_pypysuffix</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_64_python3.9.____73_pypysuffix" alt="variant">
+                </a>
+              </td>
+            </tr><tr>
+              <td>osx_64_python3.9.____73_pypysuffix-novec</td>
+              <td>
+                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_64_python3.9.____73_pypysuffix-novec" alt="variant">
                 </a>
               </td>
             </tr><tr>
@@ -195,59 +279,59 @@ Current build status
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.10.____cpythonsuffix</td>
+              <td>osx_arm64_numpy1.21python3.10.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.10.____cpythonsuffix" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.21python3.10.____cpythonsuffix" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.10.____cpythonsuffix-novec</td>
+              <td>osx_arm64_numpy1.21python3.10.____cpythonsuffix-novec</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.10.____cpythonsuffix-novec" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.21python3.10.____cpythonsuffix-novec" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.11.____cpythonsuffix</td>
+              <td>osx_arm64_numpy1.21python3.8.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.11.____cpythonsuffix" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.21python3.8.____cpythonsuffix" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.11.____cpythonsuffix-novec</td>
+              <td>osx_arm64_numpy1.21python3.8.____cpythonsuffix-novec</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.11.____cpythonsuffix-novec" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.21python3.8.____cpythonsuffix-novec" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.8.____cpythonsuffix</td>
+              <td>osx_arm64_numpy1.21python3.9.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.8.____cpythonsuffix" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.21python3.9.____cpythonsuffix" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.8.____cpythonsuffix-novec</td>
+              <td>osx_arm64_numpy1.21python3.9.____cpythonsuffix-novec</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.8.____cpythonsuffix-novec" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.21python3.9.____cpythonsuffix-novec" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.9.____cpythonsuffix</td>
+              <td>osx_arm64_numpy1.23python3.11.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.9.____cpythonsuffix" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.23python3.11.____cpythonsuffix" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>osx_arm64_python3.9.____cpythonsuffix-novec</td>
+              <td>osx_arm64_numpy1.23python3.11.____cpythonsuffix-novec</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_python3.9.____cpythonsuffix-novec" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=osx&configuration=osx%20osx_arm64_numpy1.23python3.11.____cpythonsuffix-novec" alt="variant">
                 </a>
               </td>
             </tr>
