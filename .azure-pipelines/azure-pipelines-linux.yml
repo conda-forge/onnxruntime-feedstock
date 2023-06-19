@@ -8,68 +8,68 @@ jobs:
     vmImage: ubuntu-latest
   strategy:
     matrix:
-      linux_64_numpy1.21python3.10.____cpythonsuffix:
-        CONFIG: linux_64_numpy1.21python3.10.____cpythonsuffix
+      linux_64_python3.10.____cpythonsuffix:
+        CONFIG: linux_64_python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.21python3.10.____cpythonsuffix-novec:
-        CONFIG: linux_64_numpy1.21python3.10.____cpythonsuffix-novec
+      linux_64_python3.10.____cpythonsuffix-novec:
+        CONFIG: linux_64_python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.21python3.8.____cpythonsuffix:
-        CONFIG: linux_64_numpy1.21python3.8.____cpythonsuffix
+      linux_64_python3.11.____cpythonsuffix:
+        CONFIG: linux_64_python3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.21python3.8.____cpythonsuffix-novec:
-        CONFIG: linux_64_numpy1.21python3.8.____cpythonsuffix-novec
+      linux_64_python3.11.____cpythonsuffix-novec:
+        CONFIG: linux_64_python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.21python3.9.____cpythonsuffix:
-        CONFIG: linux_64_numpy1.21python3.9.____cpythonsuffix
+      linux_64_python3.8.____cpythonsuffix:
+        CONFIG: linux_64_python3.8.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.21python3.9.____cpythonsuffix-novec:
-        CONFIG: linux_64_numpy1.21python3.9.____cpythonsuffix-novec
+      linux_64_python3.8.____cpythonsuffix-novec:
+        CONFIG: linux_64_python3.8.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.23python3.11.____cpythonsuffix:
-        CONFIG: linux_64_numpy1.23python3.11.____cpythonsuffix
+      linux_64_python3.9.____cpythonsuffix:
+        CONFIG: linux_64_python3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_64_numpy1.23python3.11.____cpythonsuffix-novec:
-        CONFIG: linux_64_numpy1.23python3.11.____cpythonsuffix-novec
+      linux_64_python3.9.____cpythonsuffix-novec:
+        CONFIG: linux_64_python3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.21python3.10.____cpythonsuffix:
-        CONFIG: linux_aarch64_numpy1.21python3.10.____cpythonsuffix
+      linux_aarch64_python3.10.____cpythonsuffix:
+        CONFIG: linux_aarch64_python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.21python3.10.____cpythonsuffix-novec:
-        CONFIG: linux_aarch64_numpy1.21python3.10.____cpythonsuffix-novec
+      linux_aarch64_python3.10.____cpythonsuffix-novec:
+        CONFIG: linux_aarch64_python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.21python3.8.____cpythonsuffix:
-        CONFIG: linux_aarch64_numpy1.21python3.8.____cpythonsuffix
+      linux_aarch64_python3.11.____cpythonsuffix:
+        CONFIG: linux_aarch64_python3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.21python3.8.____cpythonsuffix-novec:
-        CONFIG: linux_aarch64_numpy1.21python3.8.____cpythonsuffix-novec
+      linux_aarch64_python3.11.____cpythonsuffix-novec:
+        CONFIG: linux_aarch64_python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.21python3.9.____cpythonsuffix:
-        CONFIG: linux_aarch64_numpy1.21python3.9.____cpythonsuffix
+      linux_aarch64_python3.8.____cpythonsuffix:
+        CONFIG: linux_aarch64_python3.8.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.21python3.9.____cpythonsuffix-novec:
-        CONFIG: linux_aarch64_numpy1.21python3.9.____cpythonsuffix-novec
+      linux_aarch64_python3.8.____cpythonsuffix-novec:
+        CONFIG: linux_aarch64_python3.8.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.23python3.11.____cpythonsuffix:
-        CONFIG: linux_aarch64_numpy1.23python3.11.____cpythonsuffix
+      linux_aarch64_python3.9.____cpythonsuffix:
+        CONFIG: linux_aarch64_python3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-      linux_aarch64_numpy1.23python3.11.____cpythonsuffix-novec:
-        CONFIG: linux_aarch64_numpy1.23python3.11.____cpythonsuffix-novec
+      linux_aarch64_python3.9.____cpythonsuffix-novec:
+        CONFIG: linux_aarch64_python3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
   timeoutInMinutes: 360
