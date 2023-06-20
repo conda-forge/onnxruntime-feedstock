@@ -68,7 +68,6 @@ test:
   imports:
     - onnxruntime
   commands:
-    - python -c "import onnxruntime" 
     - pip check
     - onnxruntime_test --help
   requires:
