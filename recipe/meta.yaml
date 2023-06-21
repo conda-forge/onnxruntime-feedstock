@@ -9,14 +9,22 @@ package:
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
     sha256: 93a9b6f148639938ccbaa48d0f641d8f33312fdfcc69ee9466e11362b43917c4
+    patches:
+      - never_call_install_python_deps.patch
+      # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
+      - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
+      - 16337.patch
 
 build:
-  number: 0
-  skip: true  # [win]
+  number: 1
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   ignore_run_exports_from:
     - zlib
+  # This needs to be coherent with the entry_points list defined around
+  # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
+  entry_points:
+    - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
 
 requirements:
   build:
@@ -61,13 +69,15 @@ test:
     - onnxruntime
   commands:
     - pip check
+    - onnxruntime_test --help
   requires:
     - pip
 
 outputs:
   - name: {{ name|lower }}{{ suffix }}
   - name: {{ name|lower }}{{ suffix }}-cpp
-    script: install-cpp.sh
+    script: install-cpp.sh  # [unix]
+    script: install-cpp.bat  # [win]
     requirements:
       build:
         - {{ compiler('c') }}
@@ -79,10 +89,12 @@ outputs:
         - {{ compiler('cxx') }}
       files:
         - test.cpp
+        - run_cpp_test.bat  # [win]
       commands:
         - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
         - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
-        - ./a.out
+        - ./a.out  # [unix]
+        - call .\run_cpp_test.bat  # [win]
 
 about:
   home: https://github.com/microsoft/onnxruntime/
@@ -94,7 +106,7 @@ about:
     - build-ci/Release/_deps/date-src/LICENSE.txt
     - build-ci/Release/_deps/eigen-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE.txt
-    - build-ci/Release/_deps/google_nsync-src/LICENSE
+    - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/microsoft_wil-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
