@@ -51,6 +51,7 @@ python tools/ci_build/build.py \
     --config Release \
     --update \
     --build \
+    --test \
     --skip_submodule_sync \
     --osx_arch $OSX_ARCH \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
