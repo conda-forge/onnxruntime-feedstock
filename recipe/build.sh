@@ -9,15 +9,15 @@ else
 fi
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
-  (
-    export BUILD_UNIT_TESTS="OFF"
-    export RUN_TESTS_BUILD_PY_OPTIONS=""
-  )   
+    BUILD_UNIT_TESTS="OFF"
 else
-  (
-    export BUILD_UNIT_TESTS="ON"
-    export RUN_TESTS_BUILD_PY_OPTIONS="--test"
-  )
+    BUILD_UNIT_TESTS="ON"
+fi
+
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
+    RUN_TESTS_BUILD_PY_OPTIONS=""
+else
+    RUN_TESTS_BUILD_PY_OPTIONS="--test"
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
