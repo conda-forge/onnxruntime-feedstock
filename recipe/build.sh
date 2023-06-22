@@ -10,13 +10,13 @@ fi
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
   (
-    BUILD_UNIT_TESTS="OFF"
-    RUN_TESTS_BUILD_PY_OPTIONS=""
+    export BUILD_UNIT_TESTS="OFF"
+    export RUN_TESTS_BUILD_PY_OPTIONS=""
   )   
 else
   (
-    BUILD_UNIT_TESTS="ON"
-    RUN_TESTS_BUILD_PY_OPTIONS="--test"
+    export BUILD_UNIT_TESTS="ON"
+    export RUN_TESTS_BUILD_PY_OPTIONS="--test"
   )
 fi
 
