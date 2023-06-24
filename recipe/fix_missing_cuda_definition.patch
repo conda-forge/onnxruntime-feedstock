@@ -1,0 +1,24 @@
+From 6f101187040f098ac0738d1b7f92ea41aa7cbd01 Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Tue, 27 Jun 2023 10:42:22 +0200
+Subject: [PATCH] Fix compilation error due to missing ORT_UNUSED_VARIABLE
+ definition
+
+See https://github.com/microsoft/onnxruntime/issues/16000#issuecomment-1562265152 for details
+---
+ onnxruntime/contrib_ops/cuda/bert/attention.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/onnxruntime/contrib_ops/cuda/bert/attention.cc b/onnxruntime/contrib_ops/cuda/bert/attention.cc
+index bd1498c0f9de..ada7bc5fa259 100644
+--- a/onnxruntime/contrib_ops/cuda/bert/attention.cc
++++ b/onnxruntime/contrib_ops/cuda/bert/attention.cc
+@@ -164,7 +164,7 @@ Status Attention<T>::ComputeInternal(OpKernelContext* context) const {
+                                         has_memory_efficient_attention(sm, sizeof(T) == 2);
+ #else
+   constexpr bool use_memory_efficient_attention = false;
+-  ORT_UNUSED_VARIABLE(is_mask_1d_key_seq_len_start);
++  ORT_UNUSED_PARAMETER(is_mask_1d_key_seq_len_start);
+ #endif
+ 
+   cublasHandle_t cublas = GetCublasHandle(context);

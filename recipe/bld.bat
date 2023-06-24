@@ -1,5 +1,12 @@
 @echo on
 
+:: Enable CUDA support
+if "%cuda_compiler_version%"=="None" (
+    set "BUILD_ARGS="
+) else (
+    set "BUILD_ARGS=--use_cuda --cudnn_home %PREFIX%\Library"
+)
+
 :: We set CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON as currently we do not want to use
 :: protobuf from conda-forge, see https://github.com/conda-forge/onnxruntime-feedstock/issues/57#issuecomment-1518033552
 python tools/ci_build/build.py ^
@@ -11,11 +18,14 @@ python tools/ci_build/build.py ^
     --config Release ^
     --update ^
     --build ^
-    --skip_submodule_sync
+    --skip_submodule_sync ^
+    %BUILD_ARGS%
 if errorlevel 1 exit 1
 
-python tools/ci_build/build.py --test  --config Release --cmake_generator Ninja --build_dir build-ci
-if errorlevel 1 exit 1
+if "%cuda_compiler_version%"=="None" (
+    python tools/ci_build/build.py --test  --config Release --cmake_generator Ninja --build_dir build-ci
+    if errorlevel 1 exit 1
+)
 
 :: In theory there should be only one wheel
 for %%F in (build-ci\Release\dist\onnxruntime-*.whl) do (

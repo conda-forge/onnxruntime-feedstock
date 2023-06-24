@@ -1,6 +1,7 @@
 {% set name = "onnxruntime" %}
+{% set cuda_enabled = cuda_compiler_version != "None" %}
+{% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.15.1" %}
-
 
 package:
   name: {{ name|lower }}{{ suffix }}
@@ -14,19 +15,28 @@ source:
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       - 16337.patch
+      # Temporary fix for CUDA compilation, see https://github.com/microsoft/onnxruntime/issues/16000#issuecomment-1562265152
+      # this can be removed once we bump to 1.16 release
+      - fix_missing_cuda_definition.patch
       # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
       - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
 
+
 build:
-  number: 1
+  number: 2
   # Since 1.11, power9 seems to be required.
-  skip: true  # [ppc64le]
+  skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1")]
+  # Undo these skips after debugging
+  skip: true  # [py!=39]
+  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
   # This needs to be coherent with the entry_points list defined around
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+  track_features:
+    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
@@ -37,6 +47,7 @@ requirements:
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
+    - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
     - cmake
     - ninja
     # we need protoc in the build environment for cross compilations
@@ -45,6 +56,7 @@ requirements:
     - python
     - pip
     - wheel
+    - cudnn  # [cuda_compiler_version != "None"]
     - flake8
     - gmock
     - libdate
