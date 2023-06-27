@@ -28,7 +28,7 @@ if "%cuda_compiler_version%"=="None" (
 )
 
 :: In theory there should be only one wheel
-for %%F in (build-ci\Release\dist\onnxruntime-*.whl) do (
+for %%F in (build-ci\Release\dist\onnxruntime*.whl) do (
     python -m pip install %%F
     if errorlevel 1 exit 1
 )
