@@ -8,38 +8,22 @@ jobs:
     vmImage: windows-2022
   strategy:
     matrix:
-      win_64_numpy1.21python3.10.____cpythonsuffix:
-        CONFIG: win_64_numpy1.21python3.10.____cpythonsuffix
+      win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.21python3.10.____cpythonsuffix
-      win_64_numpy1.21python3.10.____cpythonsuffix-novec:
-        CONFIG: win_64_numpy1.21python3.10.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_h3a969c920e
+      win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.21python3.10.____cpyt_h48c193e632
-      win_64_numpy1.21python3.8.____cpythonsuffix:
-        CONFIG: win_64_numpy1.21python3.8.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_hb1e5dbf99a
+      win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.21python3.8.____cpythonsuffix
-      win_64_numpy1.21python3.8.____cpythonsuffix-novec:
-        CONFIG: win_64_numpy1.21python3.8.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_he8401b3310
+      win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.21python3.8.____cpyth_h4ab32c87d0
-      win_64_numpy1.21python3.9.____cpythonsuffix:
-        CONFIG: win_64_numpy1.21python3.9.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.21python3.9.____cpythonsuffix
-      win_64_numpy1.21python3.9.____cpythonsuffix-novec:
-        CONFIG: win_64_numpy1.21python3.9.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.21python3.9.____cpyth_h57b24b475f
-      win_64_numpy1.23python3.11.____cpythonsuffix:
-        CONFIG: win_64_numpy1.23python3.11.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.23python3.11.____cpythonsuffix
-      win_64_numpy1.23python3.11.____cpythonsuffix-novec:
-        CONFIG: win_64_numpy1.23python3.11.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_numpy1.23python3.11.____cpyt_h24f6c0a5c6
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_h3154eaca26
   timeoutInMinutes: 360
   variables:
     CONDA_BLD_PATH: D:\\bld\\
