@@ -70,5 +70,5 @@ python tools/ci_build/build.py \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
     ${BUILD_ARGS}
 
-cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
+cp build-ci/Release/dist/onnxruntime*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
 python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
