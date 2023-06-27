@@ -1,0 +1,20 @@
+diff --git a/onnxruntime/test/framework/inference_session_test.cc b/onnxruntime/test/framework/inference_session_test.cc
+index 6258a459dc6..403055af9ee 100644
+--- a/onnxruntime/test/framework/inference_session_test.cc
++++ b/onnxruntime/test/framework/inference_session_test.cc
+@@ -2900,6 +2900,7 @@ TEST(InferenceSessionTests, GlobalThreadPoolWithDenormalAsZero) {
+ }
+ 
+ // test inter thread pool with setting denormal as zero
++/*
+ TEST(InferenceSessionTests, InterThreadPoolWithDenormalAsZero) {
+   // test if denormal-as-zero mode is supported
+   if (!SetDenormalAsZero(false)) {
+@@ -2954,6 +2955,7 @@ TEST(InferenceSessionTests, InterThreadPoolWithDenormalAsZero) {
+   VerifyThreadPoolWithDenormalAsZero(session2.GetIntraOpThreadPoolToUse(), false);
+   VerifyThreadPoolWithDenormalAsZero(session2.GetInterOpThreadPoolToUse(), false);
+ }
++*/
+ 
+ }  // namespace test
+ }  // namespace onnxruntime

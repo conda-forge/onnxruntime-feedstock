@@ -14,6 +14,12 @@ else
     BUILD_UNIT_TESTS="ON"
 fi
 
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
+    RUN_TESTS_BUILD_PY_OPTIONS=""
+else
+    RUN_TESTS_BUILD_PY_OPTIONS="--test"
+fi
+
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     OSX_ARCH="arm64"
 else
@@ -50,7 +56,7 @@ python tools/ci_build/build.py \
     --build_wheel \
     --config Release \
     --update \
-    --build \
+    --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
     --skip_submodule_sync \
     --osx_arch $OSX_ARCH \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
