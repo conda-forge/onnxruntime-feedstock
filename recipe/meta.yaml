@@ -101,6 +101,7 @@ outputs:
     test:
       requires:
         - {{ compiler('cxx') }}
+        - sysroot_linux-64 2.17  # [linux64 and cdt_name!='cos6']
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
