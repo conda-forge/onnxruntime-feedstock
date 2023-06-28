@@ -70,5 +70,6 @@ python tools/ci_build/build.py \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
     ${BUILD_ARGS}
 
-cp build-ci/Release/dist/onnxruntime*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
-python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
+for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
+    python -m pip install "$whl_file"
+done
