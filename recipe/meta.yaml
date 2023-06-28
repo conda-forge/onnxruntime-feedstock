@@ -26,8 +26,6 @@ build:
   number: 2
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1")]
-  # Undo these skips after debugging
-  skip: true  # [py!=39]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
