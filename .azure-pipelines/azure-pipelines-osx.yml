@@ -16,6 +16,14 @@ jobs:
         CONFIG: osx_64_numpy1.21python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         SHORT_CONFIG: osx_64_numpy1.21python3.10.____cpyt_h0c1c0721f2
+      osx_64_numpy1.21python3.8.____73_pypysuffix:
+        CONFIG: osx_64_numpy1.21python3.8.____73_pypysuffix
+        UPLOAD_PACKAGES: 'True'
+        SHORT_CONFIG: osx_64_numpy1.21python3.8.____73_pypysuffix
+      osx_64_numpy1.21python3.8.____73_pypysuffix-novec:
+        CONFIG: osx_64_numpy1.21python3.8.____73_pypysuffix-novec
+        UPLOAD_PACKAGES: 'True'
+        SHORT_CONFIG: osx_64_numpy1.21python3.8.____73_py_hac3504ae0a
       osx_64_numpy1.21python3.8.____cpythonsuffix:
         CONFIG: osx_64_numpy1.21python3.8.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
@@ -24,6 +32,14 @@ jobs:
         CONFIG: osx_64_numpy1.21python3.8.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         SHORT_CONFIG: osx_64_numpy1.21python3.8.____cpyth_h3e53454faf
+      osx_64_numpy1.21python3.9.____73_pypysuffix:
+        CONFIG: osx_64_numpy1.21python3.9.____73_pypysuffix
+        UPLOAD_PACKAGES: 'True'
+        SHORT_CONFIG: osx_64_numpy1.21python3.9.____73_pypysuffix
+      osx_64_numpy1.21python3.9.____73_pypysuffix-novec:
+        CONFIG: osx_64_numpy1.21python3.9.____73_pypysuffix-novec
+        UPLOAD_PACKAGES: 'True'
+        SHORT_CONFIG: osx_64_numpy1.21python3.9.____73_py_hc5e0c4b25f
       osx_64_numpy1.21python3.9.____cpythonsuffix:
         CONFIG: osx_64_numpy1.21python3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
@@ -72,6 +88,7 @@ jobs:
         CONFIG: osx_arm64_numpy1.23python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         SHORT_CONFIG: osx_arm64_numpy1.23python3.11.____c_h9e6418c27a
+    maxParallel: 18
   timeoutInMinutes: 360
 
   steps:
