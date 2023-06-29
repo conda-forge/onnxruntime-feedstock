@@ -89,6 +89,7 @@ test:
 outputs:
   - name: {{ name|lower }}{{ suffix }}
   - name: {{ name|lower }}{{ suffix }}-cpp
+    string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
     script: install-cpp.sh  # [unix]
     script: install-cpp.bat  # [win]
     requirements:
