@@ -15,7 +15,7 @@ else
 fi
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || (! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None") ]]; then
-    echo "Test are disabled"
+    echo "Tests are disabled"
     RUN_TESTS_BUILD_PY_OPTIONS=""
 else
     echo "Tests are enabled"
