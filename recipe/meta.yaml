@@ -73,7 +73,6 @@ requirements:
     - python-flatbuffers
     - sympy
     - {{ pin_compatible('numpy') }}
-    - __cuda  # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
 
