@@ -23,7 +23,7 @@ source:
 
 
 build:
-  number: 2
+  number: 3
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1")]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
