@@ -14,9 +14,11 @@ else
     BUILD_UNIT_TESTS="ON"
 fi
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || (! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None") ]]; then
+    echo "Tests are disabled"
     RUN_TESTS_BUILD_PY_OPTIONS=""
 else
+    echo "Tests are enabled"
     RUN_TESTS_BUILD_PY_OPTIONS="--test"
 fi
 
@@ -24,6 +26,12 @@ if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     OSX_ARCH="arm64"
 else
     OSX_ARCH="x86_64"
+fi
+
+if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
+  BUILD_ARGS="--use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX}"
+else
+  BUILD_ARGS=""
 fi
 
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
@@ -59,8 +67,9 @@ python tools/ci_build/build.py \
     --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
     --skip_submodule_sync \
     --osx_arch $OSX_ARCH \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc
+    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
+    ${BUILD_ARGS}
 
-
-cp build-ci/Release/dist/onnxruntime-*.whl onnxruntime-${PKG_VERSION}-py3-none-any.whl
-python -m pip install onnxruntime-${PKG_VERSION}-py3-none-any.whl
+for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
+    python -m pip install "$whl_file"
+done

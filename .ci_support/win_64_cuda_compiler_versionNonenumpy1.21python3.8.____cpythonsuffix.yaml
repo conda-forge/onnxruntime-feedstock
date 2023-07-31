@@ -4,6 +4,12 @@ channel_sources:
 - conda-forge
 channel_targets:
 - conda-forge main
+cuda_compiler:
+- None
+cuda_compiler_version:
+- None
+cudnn:
+- undefined
 cxx_compiler:
 - vs2019
 numpy:
@@ -13,12 +19,15 @@ pin_run_as_build:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.9.* *_cpython
+- 3.8.* *_cpython
 suffix:
 - ''
 target_platform:
 - win-64
 zip_keys:
+- - cudnn
+  - cuda_compiler
+  - cuda_compiler_version
 - - python
   - numpy
 zlib:
