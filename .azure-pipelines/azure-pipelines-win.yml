@@ -8,70 +8,70 @@ jobs:
     vmImage: windows-2022
   strategy:
     matrix:
-      win_64_cuda_compiler_version11.2numpy1.21python3.10.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.21python3.10.____cpythonsuffix
+      win_64_cuda_compiler_version11.2python3.10.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version11.2python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_hc25927c687
-      win_64_cuda_compiler_version11.2numpy1.21python3.10.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.21python3.10.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_h1eb50918cc
+      win_64_cuda_compiler_version11.2python3.10.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version11.2python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_h69335d7a5c
-      win_64_cuda_compiler_version11.2numpy1.21python3.8.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.21python3.8.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_ha4e82d3fe0
+      win_64_cuda_compiler_version11.2python3.11.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version11.2python3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_h125104056e
-      win_64_cuda_compiler_version11.2numpy1.21python3.8.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.21python3.8.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_h2cbb503e73
+      win_64_cuda_compiler_version11.2python3.11.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version11.2python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_hf19a0415d9
-      win_64_cuda_compiler_version11.2numpy1.21python3.9.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.21python3.9.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_hf348d0dfad
+      win_64_cuda_compiler_version11.2python3.8.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version11.2python3.8.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_hf553628a53
-      win_64_cuda_compiler_version11.2numpy1.21python3.9.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.21python3.9.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_h9b3d325ce3
+      win_64_cuda_compiler_version11.2python3.8.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version11.2python3.8.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_h17e4638d7d
-      win_64_cuda_compiler_version11.2numpy1.23python3.11.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.23python3.11.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_hf7587a0fde
+      win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_h35e4189eff
-      win_64_cuda_compiler_version11.2numpy1.23python3.11.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_version11.2numpy1.23python3.11.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_h3a969c920e
+      win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version11.2python3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_version11.2num_h61382ff25d
-      win_64_cuda_compiler_versionNonenumpy1.21python3.10.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.21python3.10.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_version11.2pyt_hb1e5dbf99a
+      win_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_hada91e18b1
-      win_64_cuda_compiler_versionNonenumpy1.21python3.10.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.21python3.10.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_h9b8b909e18
+      win_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_h8dfceae391
-      win_64_cuda_compiler_versionNonenumpy1.21python3.8.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.21python3.8.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_hb247aadede
+      win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_he459c754e5
-      win_64_cuda_compiler_versionNonenumpy1.21python3.8.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.21python3.8.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_h6928eed6a8
+      win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_h437fa94345
-      win_64_cuda_compiler_versionNonenumpy1.21python3.9.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.21python3.9.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_h4390b1c138
+      win_64_cuda_compiler_versionNonepython3.8.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.8.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_h420f98138f
-      win_64_cuda_compiler_versionNonenumpy1.21python3.9.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.21python3.9.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_hb06443a961
+      win_64_cuda_compiler_versionNonepython3.8.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.8.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_h82ee9f90ad
-      win_64_cuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_ha9f3986a36
+      win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_hcf77421007
-      win_64_cuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix-novec
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_he8401b3310
+      win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_versionNonepython3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-        SHORT_CONFIG: win_64_cuda_compiler_versionNonenum_haf7715aeab
+        SHORT_CONFIG: win_64_cuda_compiler_versionNonepyt_h3154eaca26
     maxParallel: 14
   timeoutInMinutes: 360
   variables:
@@ -122,7 +122,10 @@ jobs:
         if EXIST LICENSE.txt (
           copy LICENSE.txt "recipe\\recipe-scripts-license.txt"
         )
-        conda.exe mambabuild "recipe" -m .ci_support\%CONFIG%.yaml --suppress-variables
+        if NOT [%HOST_PLATFORM%] == [%BUILD_PLATFORM%] (
+          set "EXTRA_CB_OPTIONS=%EXTRA_CB_OPTIONS% --no-test"
+        )
+        conda.exe mambabuild "recipe" -m .ci_support\%CONFIG%.yaml --suppress-variables %EXTRA_CB_OPTIONS%
       displayName: Build recipe
       env:
         PYTHONUNBUFFERED: 1
