@@ -13,7 +13,7 @@ cuda_compiler:
 cuda_compiler_version:
 - None
 cudnn:
-- undefined
+- '8'
 cxx_compiler:
 - gxx
 cxx_compiler_version:
