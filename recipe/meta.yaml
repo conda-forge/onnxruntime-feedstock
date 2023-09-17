@@ -55,6 +55,7 @@ requirements:
     - pip
     - wheel
     - cudnn  # [cuda_compiler_version != "None"]
+    - cuda-cccl-impl  # [cuda_compiler_version != "None"]
     - flake8
     - gmock
     - libdate
