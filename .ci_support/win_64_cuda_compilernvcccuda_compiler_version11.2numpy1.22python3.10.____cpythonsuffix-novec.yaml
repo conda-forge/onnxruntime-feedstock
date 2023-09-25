@@ -1,5 +1,5 @@
 c_compiler:
-- vs2019
+- vs2023
 channel_sources:
 - conda-forge
 channel_targets:
@@ -11,17 +11,17 @@ cuda_compiler_version:
 cudnn:
 - '8'
 cxx_compiler:
-- vs2019
+- vs2023
 numpy:
-- '1.23'
+- '1.22'
 pin_run_as_build:
   python:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.11.* *_cpython
+- 3.10.* *_cpython
 suffix:
-- ''
+- -novec
 target_platform:
 - win-64
 zip_keys:
