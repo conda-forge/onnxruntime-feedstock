@@ -33,7 +33,8 @@ build:
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features: {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
+  track_features:
+    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
