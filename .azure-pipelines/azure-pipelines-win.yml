@@ -8,17 +8,17 @@ jobs:
     vmImage: windows-2022
   strategy:
     matrix:
-      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix:
-        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix
+      win_64_cuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec
+      win_64_cuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix:
-        CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix
+      win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix-novec
+      win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
   timeoutInMinutes: 360
   variables:
