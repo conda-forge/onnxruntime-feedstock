@@ -27,31 +27,17 @@ Current build status
         <table>
           <thead><tr><th>Variant</th><th>Status</th></tr></thead>
           <tbody><tr>
-              <td>win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix</td>
+              <td>win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=win&configuration=win%20win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=win&configuration=win%20win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix" alt="variant">
                 </a>
               </td>
             </tr><tr>
-              <td>win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec</td>
+              <td>win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec</td>
               <td>
                 <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=win&configuration=win%20win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec" alt="variant">
-                </a>
-              </td>
-            </tr><tr>
-              <td>win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=win&configuration=win%20win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix" alt="variant">
-                </a>
-              </td>
-            </tr><tr>
-              <td>win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix-novec</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=win&configuration=win%20win_64_cuda_compilernvcccuda_compiler_version11.2numpy1.22python3.10.____cpythonsuffix-novec" alt="variant">
+                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=win&configuration=win%20win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec" alt="variant">
                 </a>
               </td>
             </tr>
