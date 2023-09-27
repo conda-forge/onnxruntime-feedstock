@@ -20,9 +20,12 @@ source:
 
 build:
   number: 0
+  # skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1" or win or osx or py!=3.9 or (win and cuda_compiler_version == "11.2"))]
   # Since 1.11, power9 seems to be required.
-  # onnxruntime >=1.16.0 requires vs2022 to build, but cuda 11.2 does not support it.
-  skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1" or (win and cuda_compiler_version == "11.2"))]
+  skip: true  # [ppc64le]
+  skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
+  skip: true  # [win and cuda_compiler_version == "11.2"] onnxruntime >=1.16.0 requires vs2022 to build, but cuda 11.2 does not support it.
+  skip: true  # [win or osx or py!=310]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
