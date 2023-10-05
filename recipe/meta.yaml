@@ -1,7 +1,7 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.15.1" %}
+{% set version = "1.16.0" %}
 
 package:
   name: {{ name|lower }}{{ suffix }}
@@ -9,23 +9,22 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 93a9b6f148639938ccbaa48d0f641d8f33312fdfcc69ee9466e11362b43917c4
+    sha256: 3a4e57d454bce4349e11e2262fc47728a78b86ef1e0754514bbbc7d709e0a80d
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
-      - 16337.patch
-      # Temporary fix for CUDA compilation, see https://github.com/microsoft/onnxruntime/issues/16000#issuecomment-1562265152
-      # this can be removed once we bump to 1.16 release
-      - fix_missing_cuda_definition.patch
       # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
       - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
 
 
 build:
-  number: 3
+  number: 0
+  # skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1" or win or osx or py!=3.9 or (win and cuda_compiler_version == "11.2"))]
   # Since 1.11, power9 seems to be required.
-  skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1")]
+  skip: true  # [ppc64le]
+  skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
+  skip: true  # [win and cuda_compiler_version == "11.2"] onnxruntime >=1.16.0 requires vs2022 to build, but cuda 11.2 does not support it.
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -97,7 +96,7 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
       run:
-          - __cuda  # [cuda_compiler_version != "None"]
+        - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
@@ -136,7 +135,6 @@ about:
     - build-ci/Release/_deps/flatbuffers-src/LICENSE.txt
     - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
     - build-ci/Release/_deps/gsl-src/LICENSE
-    - build-ci/Release/_deps/microsoft_wil-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/protobuf-src/LICENSE
