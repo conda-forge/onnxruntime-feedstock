@@ -19,7 +19,7 @@ source:
 
 
 build:
-  number: 0
+  number: 1
   # skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1" or win or osx or py!=3.9 or (win and cuda_compiler_version == "11.2"))]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
