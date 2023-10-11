@@ -1,7 +1,7 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.16.0" %}
+{% set version = "1.16.1" %}
 
 package:
   name: {{ name|lower }}{{ suffix }}
@@ -9,7 +9,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 3a4e57d454bce4349e11e2262fc47728a78b86ef1e0754514bbbc7d709e0a80d
+    sha256: 197c6ce4f2de9176402fb8a634c390e757b729ff48a30e8038a0f7d71ff1f1ae
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
@@ -24,7 +24,7 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
-  skip: true  # [win and cuda_compiler_version == "11.2"] onnxruntime >=1.16.0 requires vs2022 to build, but cuda 11.2 does not support it.
+  skip: true  # [win and cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -32,8 +32,7 @@ build:
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features:
-    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
+  track_features: {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
