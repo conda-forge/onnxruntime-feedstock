@@ -20,7 +20,6 @@ source:
 
 build:
   number: 0
-  # skip: true  # [ppc64le or (cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1" or win or osx or py!=3.9 or (win and cuda_compiler_version == "11.2"))]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
@@ -32,7 +31,8 @@ build:
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features: {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
+  track_features:
+    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
