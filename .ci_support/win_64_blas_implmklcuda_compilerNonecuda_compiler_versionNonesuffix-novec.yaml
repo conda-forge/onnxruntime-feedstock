@@ -1,7 +1,5 @@
 blas_impl:
-- blis
 - mkl
-- openblas
 c_compiler:
 - vs2022
 channel_sources:
@@ -9,15 +7,15 @@ channel_sources:
 channel_targets:
 - conda-forge main
 cuda_compiler:
-- nvcc
+- None
 cuda_compiler_version:
-- '11.8'
+- None
 cxx_compiler:
 - vs2022
 libprotobuf:
 - 4.24.3
 suffix:
-- ''
+- -novec
 target_platform:
 - win-64
 zip_keys:

@@ -1,11 +1,9 @@
 blas_impl:
-- blis
 - mkl
-- openblas
 c_compiler:
 - gcc
 c_compiler_version:
-- '10'
+- '12'
 cdt_name:
 - cos7
 channel_sources:
@@ -13,19 +11,19 @@ channel_sources:
 channel_targets:
 - conda-forge main
 cuda_compiler:
-- nvcc
+- None
 cuda_compiler_version:
-- '11.2'
+- None
 cxx_compiler:
 - gxx
 cxx_compiler_version:
-- '10'
+- '12'
 docker_image:
-- quay.io/condaforge/linux-anvil-cuda:11.2
+- quay.io/condaforge/linux-anvil-cos7-x86_64
 libprotobuf:
 - 4.24.3
 suffix:
-- -novec
+- ''
 target_platform:
 - linux-64
 zip_keys:
