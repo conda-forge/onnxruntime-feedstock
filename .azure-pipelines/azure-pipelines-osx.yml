@@ -8,55 +8,30 @@ jobs:
     vmImage: macOS-11
   strategy:
     matrix:
-      osx_64_python3.10.____cpythonsuffix:
-        CONFIG: osx_64_python3.10.____cpythonsuffix
+      osx_64_blas_implblissuffix:
+        CONFIG: osx_64_blas_implblissuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.10.____cpythonsuffix-novec:
-        CONFIG: osx_64_python3.10.____cpythonsuffix-novec
+      osx_64_blas_implblissuffix-novec:
+        CONFIG: osx_64_blas_implblissuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.11.____cpythonsuffix:
-        CONFIG: osx_64_python3.11.____cpythonsuffix
+      osx_64_blas_implmklsuffix:
+        CONFIG: osx_64_blas_implmklsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.11.____cpythonsuffix-novec:
-        CONFIG: osx_64_python3.11.____cpythonsuffix-novec
+      osx_64_blas_implmklsuffix-novec:
+        CONFIG: osx_64_blas_implmklsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.8.____cpythonsuffix:
-        CONFIG: osx_64_python3.8.____cpythonsuffix
+      osx_64_blas_implopenblassuffix:
+        CONFIG: osx_64_blas_implopenblassuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.8.____cpythonsuffix-novec:
-        CONFIG: osx_64_python3.8.____cpythonsuffix-novec
+      osx_64_blas_implopenblassuffix-novec:
+        CONFIG: osx_64_blas_implopenblassuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.9.____cpythonsuffix:
-        CONFIG: osx_64_python3.9.____cpythonsuffix
+      osx_arm64_suffix:
+        CONFIG: osx_arm64_suffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.9.____cpythonsuffix-novec:
-        CONFIG: osx_64_python3.9.____cpythonsuffix-novec
+      osx_arm64_suffix-novec:
+        CONFIG: osx_arm64_suffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.10.____cpythonsuffix:
-        CONFIG: osx_arm64_python3.10.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.10.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_python3.10.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.11.____cpythonsuffix:
-        CONFIG: osx_arm64_python3.11.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.11.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_python3.11.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.8.____cpythonsuffix:
-        CONFIG: osx_arm64_python3.8.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.8.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_python3.8.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.9.____cpythonsuffix:
-        CONFIG: osx_arm64_python3.9.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.9.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_python3.9.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
-    maxParallel: 10
   timeoutInMinutes: 360
 
   steps:
