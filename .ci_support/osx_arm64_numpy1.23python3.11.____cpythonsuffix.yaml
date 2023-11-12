@@ -8,6 +8,8 @@ channel_sources:
 - conda-forge
 channel_targets:
 - conda-forge main
+cuda_compiler:
+- None
 cuda_compiler_version:
 - None
 cxx_compiler:
@@ -17,15 +19,15 @@ cxx_compiler_version:
 macos_machine:
 - arm64-apple-darwin20.0.0
 numpy:
-- '1.22'
+- '1.23'
 pin_run_as_build:
   python:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.9.* *_cpython
+- 3.11.* *_cpython
 suffix:
-- -novec
+- ''
 target_platform:
 - osx-arm64
 zip_keys:

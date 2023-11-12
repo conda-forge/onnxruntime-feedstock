@@ -1,13 +1,23 @@
+MACOSX_DEPLOYMENT_TARGET:
+- '11.0'
 c_compiler:
-- vs2022
+- clang
+c_compiler_version:
+- '16'
 channel_sources:
 - conda-forge
 channel_targets:
 - conda-forge main
+cuda_compiler:
+- None
 cuda_compiler_version:
 - None
 cxx_compiler:
-- vs2022
+- clangxx
+cxx_compiler_version:
+- '16'
+macos_machine:
+- arm64-apple-darwin20.0.0
 numpy:
 - '1.22'
 pin_run_as_build:
@@ -17,10 +27,12 @@ pin_run_as_build:
 python:
 - 3.10.* *_cpython
 suffix:
-- ''
+- -novec
 target_platform:
-- win-64
+- osx-arm64
 zip_keys:
+- - c_compiler_version
+  - cxx_compiler_version
 - - python
   - numpy
 zlib:
