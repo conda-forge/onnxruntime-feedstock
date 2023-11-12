@@ -3,6 +3,12 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.16.1" %}
 
+{% set build = 1 %}
+
+{% if cuda_compiler_version != "None" %}
+{% set build = build + 200 %}
+{% endif %}
+
 package:
   name: {{ name|lower }}{{ suffix }}
   version: {{ version }}
@@ -19,7 +25,7 @@ source:
 
 
 build:
-  number: 0
+  number: {{ build }}
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
