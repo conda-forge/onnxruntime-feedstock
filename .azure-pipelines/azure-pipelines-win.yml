@@ -8,17 +8,17 @@ jobs:
     vmImage: windows-2022
   strategy:
     matrix:
-      win_64_blas_implmklcuda_compilerNonecuda_compiler_versionNonesuffix:
-        CONFIG: win_64_blas_implmklcuda_compilerNonecuda_compiler_versionNonesuffix
+      win_64_cuda_compilerNonecuda_compiler_versionNonesuffix:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonesuffix
         UPLOAD_PACKAGES: 'True'
-      win_64_blas_implmklcuda_compilerNonecuda_compiler_versionNonesuffix-novec:
-        CONFIG: win_64_blas_implmklcuda_compilerNonecuda_compiler_versionNonesuffix-novec
+      win_64_cuda_compilerNonecuda_compiler_versionNonesuffix-novec:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonesuffix-novec
         UPLOAD_PACKAGES: 'True'
-      win_64_blas_implmklcuda_compilernvcccuda_compiler_version11.8suffix:
-        CONFIG: win_64_blas_implmklcuda_compilernvcccuda_compiler_version11.8suffix
+      win_64_cuda_compilernvcccuda_compiler_version11.8suffix:
+        CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.8suffix
         UPLOAD_PACKAGES: 'True'
-      win_64_blas_implmklcuda_compilernvcccuda_compiler_version11.8suffix-novec:
-        CONFIG: win_64_blas_implmklcuda_compilernvcccuda_compiler_version11.8suffix-novec
+      win_64_cuda_compilernvcccuda_compiler_version11.8suffix-novec:
+        CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.8suffix-novec
         UPLOAD_PACKAGES: 'True'
   timeoutInMinutes: 360
   variables:

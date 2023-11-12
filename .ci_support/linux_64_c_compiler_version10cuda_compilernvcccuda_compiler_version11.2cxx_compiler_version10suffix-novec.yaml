@@ -1,9 +1,7 @@
-blas_impl:
-- mkl
 c_compiler:
 - gcc
 c_compiler_version:
-- '12'
+- '10'
 cdt_name:
 - cos7
 channel_sources:
@@ -11,19 +9,19 @@ channel_sources:
 channel_targets:
 - conda-forge main
 cuda_compiler:
-- None
+- nvcc
 cuda_compiler_version:
-- None
+- '11.2'
 cxx_compiler:
 - gxx
 cxx_compiler_version:
-- '12'
+- '10'
 docker_image:
-- quay.io/condaforge/linux-anvil-cos7-x86_64
+- quay.io/condaforge/linux-anvil-cuda:11.2
 libprotobuf:
 - 4.24.3
 suffix:
-- ''
+- -novec
 target_platform:
 - linux-64
 zip_keys:

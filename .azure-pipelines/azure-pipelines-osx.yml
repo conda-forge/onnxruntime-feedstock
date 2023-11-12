@@ -8,11 +8,17 @@ jobs:
     vmImage: macOS-11
   strategy:
     matrix:
-      osx_64_blas_implmklsuffix:
-        CONFIG: osx_64_blas_implmklsuffix
+      osx_64_suffix:
+        CONFIG: osx_64_suffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_blas_implmklsuffix-novec:
-        CONFIG: osx_64_blas_implmklsuffix-novec
+      osx_64_suffix-novec:
+        CONFIG: osx_64_suffix-novec
+        UPLOAD_PACKAGES: 'True'
+      osx_arm64_suffix:
+        CONFIG: osx_arm64_suffix
+        UPLOAD_PACKAGES: 'True'
+      osx_arm64_suffix-novec:
+        CONFIG: osx_arm64_suffix-novec
         UPLOAD_PACKAGES: 'True'
   timeoutInMinutes: 360
 
