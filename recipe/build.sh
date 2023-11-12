@@ -1,5 +1,6 @@
 #!/bin/bash
 
+pushd onnxruntime
 set -exuo pipefail
 
 if [[ "${PKG_NAME}" == 'onnxruntime-novec' ]]; then

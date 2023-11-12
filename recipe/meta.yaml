@@ -1,126 +1,141 @@
-{% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
-{% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.16.1" %}
+{% set version = "1.16.2" %}
+
+{% set build = 0 %}
+
+{% if cuda_compiler_version != "None" %}
+{% set build = build + 200 %}
+{% endif %}
+
 
 package:
-  name: {{ name|lower }}{{ suffix }}
+  # name: onnxruntime{{ suffix }}-split
+  name: onnxruntime{{ suffix }}-cpp
   version: {{ version }}
 
 source:
-  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 197c6ce4f2de9176402fb8a634c390e757b729ff48a30e8038a0f7d71ff1f1ae
-    patches:
-      - never_call_install_python_deps.patch
-      # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
-      - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
-      # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
-      - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
-
+  folder: onnxruntime
+  url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 609a9d31fd9445eb2e737cbb6420100fa7d4e1180b594c1a62505b26f730bfd5
+  patches:
+    - never_call_install_python_deps.patch
+    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
+    - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
+    # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
+    - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
 
 build:
-  number: 0
+  number: {{ build }}
+
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
+  skip: true  # [cuda_compiler_version == "10.2"]
+  skip: true  # [cuda_compiler_version == "11.0"]
+  skip: true  # [cuda_compiler_version == "11.1"]
   skip: true  # [win and cuda_compiler_version == "11.2"]
-  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
-  ignore_run_exports_from:
-    - zlib
-  # This needs to be coherent with the entry_points list defined around
-  # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
-  entry_points:
-    - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features:
-    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                # [cuda_compiler_version == "None"]
+  run_exports:
+    - {{ pin_subpackage('onnxruntime' + suffix + '-cpp', max_pin='x.x') }}
+
+
+    # outputs:
+    #   - name: onnxruntime{{ suffix }}
+    #     build:
+    #       string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+    #       string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
+    #
+    #       # This needs to be coherent with the entry_points list defined around
+    #       # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
+    #       entry_points:
+    #         - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+    #     requirements:
+    #       build:
+    #         - {{ compiler('c') }}
+    #         - {{ compiler('cxx') }}
+    #         - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
+    #         - python                                 # [build_platform != target_platform]
+    #         - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    #         - numpy 1.21.6                           # [(build_platform != target_platform) and py<310]
+    #         - numpy                                  # [(build_platform != target_platform) and py>=310]
+    #         - pybind11                               # [build_platform != target_platform]
+    #       host:
+    #         - python
+    #         - pip
+    #         - wheel
+    #         - flake8
+    #         - packaging
+    #         - python-flatbuffers
+    #         - optional-lite
+    #         - numpy
+    #         - pybind11
+    #       run:
+    #         - coloredlogs
+    #         - packaging
+    #         - protobuf
+    #         - python
+    #         - python-flatbuffers
+    #         - sympy
+    #         - {{ pin_compatible('numpy') }}
+    #       run_constrained:
+    #         - onnxruntime <0a0  # [suffix == "-novec"]
+    #
+    #     test:
+    #       imports:
+    #         - onnxruntime
+    #       commands:
+    #         - pip check
+    #         - onnxruntime_test --help
+    #       requires:
+    #         - pip
+    # - name: onnxruntime{{ suffix }}-cpp
+    # build:
+    #   string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+    #   string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
+    #   run_exports:
+    #     - {{ pin_subpackage('onnxruntime' + suffix + '-cpp', max_pin='x.x') }}
+    # script: build_cpp.sh  # [unix]
+    # script: bld_cpp.bat   # [win]
 requirements:
   build:
-    - python                                 # [build_platform != target_platform]
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - numpy 1.21.6                           # [(build_platform != target_platform) and py<310]
-    - numpy                                  # [(build_platform != target_platform) and py>=310]
-    - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
     - cmake
     - ninja
     # we need protoc in the build environment for cross compilations
-    - libprotobuf 3.21
-  host:
-    - python
-    - pip
-    - wheel
+    - libprotobuf
+  run:
     - cudnn  # [cuda_compiler_version != "None"]
-    - flake8
+    - libprotobuf
     - gmock
     - libdate
-    - packaging
-    - python-flatbuffers
-    - optional-lite
     - zlib
-    - numpy 1.21.6  # [py<310]
-    - numpy         # [py>=310]
-    - pybind11
-  run:
-    - coloredlogs
-    - packaging
-    - protobuf
-    - python
-    - python-flatbuffers
-    - sympy
-    - {{ pin_compatible('numpy') }}
-  run_constrained:
-    - onnxruntime <0a0  # [suffix == "-novec"]
-
+    - __cuda    # [cuda_compiler_version != "None"]
 test:
-  imports:
-    - onnxruntime
-  commands:
-    - pip check
-    - onnxruntime_test --help
   requires:
-    - pip
-
-outputs:
-  - name: {{ name|lower }}{{ suffix }}
-  - name: {{ name|lower }}{{ suffix }}-cpp
-    build:
-      string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
-    script: install-cpp.sh  # [unix]
-    script: install-cpp.bat  # [win]
-    requirements:
-      build:
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-      run:
-        - __cuda    # [cuda_compiler_version != "None"]
-      run_constrained:
-        - onnxruntime-cpp <0a0  # [suffix == "-novec"]
-    test:
-      requires:
-        - {{ compiler('cxx') }}
-        - sysroot_linux-64 2.17  # [linux64 and cdt_name!='cos6']
-      files:
-        - test.cpp
-        - run_cpp_test.bat  # [win]
-      commands:
-        - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
-        - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
-        - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
-        - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_INC%\\onnxruntime\\core\\session\\onnxruntime_cxx_api.h exit 1  # [win]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_conda.lib exit 1  # [win]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_conda.dll exit 1  # [win]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_providers_shared.lib exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_providers_shared.dll exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_providers_cuda.lib exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_providers_cuda.dll exit 1  # [win and cuda_compiler_version != "None"]
-        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
-        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
-        - ./a.out  # [unix]
-        - call .\run_cpp_test.bat  # [win]
+    - {{ compiler('cxx') }}
+    - sysroot_linux-64 2.17  # [linux64]
+  files:
+    - test.cpp
+    - run_cpp_test.bat  # [win]
+  commands:
+    - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
+    - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
+    - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
+    - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_INC%\\onnxruntime\\core\\session\\onnxruntime_cxx_api.h exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\onnxruntime_conda.lib exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\\onnxruntime_conda.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\onnxruntime_providers_shared.lib exit 1  # [win and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_BIN%\\onnxruntime_providers_shared.dll exit 1  # [win and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_LIB%\\onnxruntime_providers_cuda.lib exit 1  # [win and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_BIN%\\onnxruntime_providers_cuda.dll exit 1  # [win and cuda_compiler_version != "None"]
+    - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
+    - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
+    - ./a.out  # [unix]
+    - call .\run_cpp_test.bat  # [win]
 
 about:
   home: https://github.com/microsoft/onnxruntime/
