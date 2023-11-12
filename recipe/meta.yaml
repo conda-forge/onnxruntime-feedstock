@@ -34,6 +34,8 @@ build:
   skip: true  # [cuda_compiler_version == "11.1"]
   skip: true  # [win and cuda_compiler_version == "11.2"]
 
+  skip: true  # [blas_impl != "mkl"]
+
   string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
   run_exports:
@@ -113,8 +115,6 @@ requirements:
     - libdate
     - zlib
     - __cuda    # [cuda_compiler_version != "None"]
-  run_constrained:
-    - onnxruntime-cpp <0a0  # [suffix == "-novec"]
 test:
   requires:
     - {{ compiler('cxx') }}
