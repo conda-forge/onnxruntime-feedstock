@@ -34,10 +34,8 @@ build:
   skip: true  # [cuda_compiler_version == "11.1"]
   skip: true  # [win and cuda_compiler_version == "11.2"]
 
-  skip: true  # [blas_impl != "mkl"]
-
   string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-  string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
+  string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                # [cuda_compiler_version == "None"]
   run_exports:
     - {{ pin_subpackage('onnxruntime' + suffix + '-cpp', max_pin='x.x') }}
 
@@ -46,8 +44,8 @@ build:
     #   - name: onnxruntime{{ suffix }}
     #     build:
     #       string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-    #       string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
-    # 
+    #       string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
+    #
     #       # This needs to be coherent with the entry_points list defined around
     #       # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
     #       entry_points:
@@ -82,7 +80,7 @@ build:
     #         - {{ pin_compatible('numpy') }}
     #       run_constrained:
     #         - onnxruntime <0a0  # [suffix == "-novec"]
-    # 
+    #
     #     test:
     #       imports:
     #         - onnxruntime
@@ -94,7 +92,7 @@ build:
     # - name: onnxruntime{{ suffix }}-cpp
     # build:
     #   string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-    #   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
+    #   string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                # [cuda_compiler_version == "None"]
     #   run_exports:
     #     - {{ pin_subpackage('onnxruntime' + suffix + '-cpp', max_pin='x.x') }}
     # script: build_cpp.sh  # [unix]
