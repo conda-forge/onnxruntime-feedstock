@@ -24,6 +24,7 @@ build:
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
   skip: true  # [win and cuda_compiler_version == "11.2"]
+  skip: true  # [py!=310]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -31,7 +32,8 @@ build:
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features: {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
+  track_features:
+    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
