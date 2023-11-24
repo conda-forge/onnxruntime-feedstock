@@ -4,8 +4,12 @@ channel_sources:
 - conda-forge
 channel_targets:
 - conda-forge main
+cuda_compiler:
+- None
 cuda_compiler_version:
 - None
+cudnn:
+- '8'
 cxx_compiler:
 - vs2022
 numpy:
@@ -21,6 +25,8 @@ suffix:
 target_platform:
 - win-64
 zip_keys:
+- - cuda_compiler
+  - cuda_compiler_version
 - - python
   - numpy
 zlib:

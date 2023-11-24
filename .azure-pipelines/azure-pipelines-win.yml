@@ -8,6 +8,30 @@ jobs:
     vmImage: windows-2022
   strategy:
     matrix:
+      win_64_cuda_compiler_version12.0numpy1.22python3.10.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.22python3.10.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.22python3.10.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.22python3.10.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.22python3.8.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.22python3.8.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.22python3.8.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.22python3.8.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.22python3.9.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.22python3.9.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.22python3.9.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.22python3.9.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.23python3.11.____cpythonsuffix:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.23python3.11.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compiler_version12.0numpy1.23python3.11.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compiler_version12.0numpy1.23python3.11.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
       win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix:
         CONFIG: win_64_cuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
@@ -32,7 +56,7 @@ jobs:
       win_64_cuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix-novec:
         CONFIG: win_64_cuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-    maxParallel: 7
+    maxParallel: 10
   timeoutInMinutes: 360
   variables:
     CONDA_BLD_PATH: D:\\bld\\
