@@ -5,17 +5,7 @@ MACOSX_SDK_VERSION:        # [osx and x86_64]
 suffix:
   - ""
   - "-novec"
-cudnn:                                            # [linux64]
-  - "8"                                           # [linux64]
-cuda_compiler_version:                            # [linux64]
-  - None                                          # [linux64]
-docker_image:                                     # [linux64]
-  - quay.io/condaforge/linux-anvil-cos7-x86_64    # [linux64]
-cdt_name:                                         # [linux64]
-  - cos7                                          # [linux64]
 c_compiler:                # [win]
   - vs2022                 # [win]
 cxx_compiler:              # [win]
   - vs2022                 # [win]
-cudnn:                                            # [linux64]
-  - undefined                                     # [linux64]
