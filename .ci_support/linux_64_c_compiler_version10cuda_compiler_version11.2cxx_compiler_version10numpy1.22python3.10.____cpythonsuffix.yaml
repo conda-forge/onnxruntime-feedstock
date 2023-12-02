@@ -13,7 +13,7 @@ cuda_compiler:
 cuda_compiler_version:
 - '11.2'
 cudnn:
-- '8'
+- undefined
 cxx_compiler:
 - gxx
 cxx_compiler_version:
@@ -29,7 +29,7 @@ pin_run_as_build:
 python:
 - 3.10.* *_cpython
 suffix:
-- -novec
+- ''
 target_platform:
 - linux-64
 zip_keys:
