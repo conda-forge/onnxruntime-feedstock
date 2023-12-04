@@ -8,18 +8,14 @@ else
     DONT_VECTORIZE="OFF"
 fi
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' ]]; then
-    BUILD_UNIT_TESTS="OFF"
-else
-    BUILD_UNIT_TESTS="ON"
-fi
-
-if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || (! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None") ]]; then
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || "${cuda_compiler_version:-None}" != "None" ]]; then
     echo "Tests are disabled"
     RUN_TESTS_BUILD_PY_OPTIONS=""
+    BUILD_UNIT_TESTS="OFF"
 else
     echo "Tests are enabled"
     RUN_TESTS_BUILD_PY_OPTIONS="--test"
+    BUILD_UNIT_TESTS="ON"
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
