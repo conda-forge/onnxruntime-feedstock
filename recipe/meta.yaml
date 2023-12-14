@@ -2,6 +2,7 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.16.3" %}
+{% set suffix = "" %}  # [suffix == None] # help the linter
 
 package:
   name: {{ name|lower }}{{ suffix }}
