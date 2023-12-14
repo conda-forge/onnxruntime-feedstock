@@ -1,0 +1,24 @@
+diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
+index 82a4547..0d09299 100644
+--- a/cmake/CMakeLists.txt
++++ b/cmake/CMakeLists.txt
+@@ -510,6 +510,7 @@ set(ORTTRAINING_ROOT ${PROJECT_SOURCE_DIR}/../orttraining)
+ set(ORTTRAINING_SOURCE_DIR ${ORTTRAINING_ROOT}/orttraining)
+ 
+ file (STRINGS "${REPO_ROOT}/VERSION_NUMBER" ORT_VERSION)
++string(REGEX MATCH "[^.]+\\.[^.]+" ORT_VER_MAJ_MIN "${ORT_VERSION}")
+ 
+ find_package(Threads)
+ # On Windows we directly use Windows APIs to do the job
+diff --git a/cmake/onnxruntime.cmake b/cmake/onnxruntime.cmake
+index 59ebf8e..d22aa05 100644
+--- a/cmake/onnxruntime.cmake
++++ b/cmake/onnxruntime.cmake
+@@ -247,6 +247,7 @@ set_target_properties(onnxruntime PROPERTIES
+   PUBLIC_HEADER "${ONNXRUNTIME_PUBLIC_HEADERS}"
+   LINK_DEPENDS ${SYMBOL_FILE}
+   VERSION ${ORT_VERSION}
++  SOVERSION ${ORT_VER_MAJ_MIN}
+   FOLDER "ONNXRuntime"
+ )
+ 
