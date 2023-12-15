@@ -2,6 +2,7 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.16.3" %}
+{% set suffix = "" %}  # [suffix == None] # help the linter
 
 package:
   name: {{ name|lower }}{{ suffix }}
@@ -12,6 +13,7 @@ source:
     sha256: d26b8a7eed1df4440aa3d8eac5049980cbe585514ccedfda809712051a4b1721
     patches:
       - never_call_install_python_deps.patch
+      - soname_fix.patch  # [unix]
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
@@ -19,7 +21,7 @@ source:
 
 
 build:
-  number: 1
+  number: 2
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
@@ -89,6 +91,8 @@ outputs:
   - name: {{ name|lower }}{{ suffix }}-cpp
     build:
       string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+      run_exports:
+        - {{ pin_subpackage((name|lower) + suffix + '-cpp', min_pin='x.x', max_pin='x') }}
     script: install-cpp.sh  # [unix]
     script: install-cpp.bat  # [win]
     requirements:
