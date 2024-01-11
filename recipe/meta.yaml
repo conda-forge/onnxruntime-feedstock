@@ -19,12 +19,11 @@ source:
 
 
 build:
-  number: 1
+  number: 2
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  skip: true  # [cuda_compiler_version == "10.2" or cuda_compiler_version == "11.0" or cuda_compiler_version == "11.1"]
-  skip: true  # [win and cuda_compiler_version == "11.2"]
-  skip: true  # [win or osx or py!=310]
+  # CUDA compilation for Windows goes out-of-memory.
+  skip: true  # [win and cuda_compiler_version in ("11.2", "11.8")]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -95,6 +94,7 @@ outputs:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
+        - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
