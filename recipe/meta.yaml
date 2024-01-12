@@ -53,6 +53,10 @@ requirements:
     - pip
     - wheel
     - cudnn  # [cuda_compiler_version != "None"]
+    - libcublas-dev     # [(cuda_compiler_version or "").startswith("12")]
+    - libcusparse-dev   # [(cuda_compiler_version or "").startswith("12")]
+    - libcurand-dev     # [(cuda_compiler_version or "").startswith("12")]
+    - libcufft-dev      # [(cuda_compiler_version or "").startswith("12")]
     - flake8
     - gmock
     - libdate

@@ -24,7 +24,18 @@ else
     OSX_ARCH="x86_64"
 fi
 
+
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
+  if [[ "${cuda_compiler_version}" == 12* ]]; then
+    if [[ "${target_platform}" == "linux-64" ]]; then
+      export CUDA_HOME="${BUILD_PREFIX}/targets/x86_64-linux"
+    elif [[ "${target_platform}" == "linux-aarch64" ]]; then
+      export CUDA_HOME="${BUILD_PREFIX}/targets/sbsa-linux"
+    else
+      echo "CUDA 12 has not been configured for this architecture"
+      exit 1
+    fi
+  fi
   BUILD_ARGS="--use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --parallel=1"
   export NINJAJOBS=1
 else
