@@ -53,7 +53,7 @@ requirements:
     - pip
     - wheel
     - cudnn                                     # [cuda_compiler_version != "None"]
-    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
     - libcublas-dev     # [(cuda_compiler_version or "").startswith("12")]
     - libcusparse-dev   # [(cuda_compiler_version or "").startswith("12")]
     - libcurand-dev     # [(cuda_compiler_version or "").startswith("12")]
