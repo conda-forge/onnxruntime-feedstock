@@ -23,7 +23,7 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   # CUDA compilation for Windows goes out-of-memory.
-  skip: true  # [win and cuda_compiler_version in ("11.2", "11.8")]
+  skip: true  # [win and cuda_compiler_version in ("11.2", "11.8", "12.0")]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -38,8 +38,7 @@ requirements:
   build:
     - python                                 # [build_platform != target_platform]
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - numpy 1.21.6                           # [(build_platform != target_platform) and py<310]
-    - numpy                                  # [(build_platform != target_platform) and py>=310]
+    - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
@@ -65,8 +64,7 @@ requirements:
     - python-flatbuffers
     - optional-lite
     - zlib
-    - numpy 1.21.6  # [py<310]
-    - numpy         # [py>=310]
+    - numpy
     - pybind11
   run:
     - coloredlogs
