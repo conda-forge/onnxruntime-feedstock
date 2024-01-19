@@ -7,6 +7,7 @@ __migrator:
   build_number:
     1
   paused: false
+  use_local: true
   override_cbc_keys:
     - cuda_compiler_stub
   operation: key_add
@@ -100,4 +101,4 @@ docker_image:                                      # [os.environ.get("BUILD_PLAT
   - quay.io/condaforge/linux-anvil-aarch64         # [aarch64 and os.environ.get("BUILD_PLATFORM") == "linux-aarch64"]
   # case: cross-compilation (build != target)
   - quay.io/condaforge/linux-anvil-cos7-x86_64     # [ppc64le and os.environ.get("BUILD_PLATFORM") == "linux-64"]
-  - quay.io/condaforge/linux-anvil-cos7-x86_64     # [aarch64 and os.environ.get("BUILD_PLATFORM") == "linux-64"]
+  - quay.io/condaforge/linux-anvil-cuda:11.8       # [aarch64 and os.environ.get("BUILD_PLATFORM") == "linux-64"]
