@@ -2,6 +2,7 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.16.3" %}
+{% set suffix = "" %}  # [suffix == None] # help the linter
 
 package:
   name: {{ name|lower }}{{ suffix }}
@@ -19,7 +20,7 @@ source:
 
 
 build:
-  number: 3
+  number: 4
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   # CUDA compilation for Windows goes out-of-memory.
@@ -92,6 +93,8 @@ outputs:
   - name: {{ name|lower }}{{ suffix }}-cpp
     build:
       string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+      run_exports:
+        - {{ pin_subpackage((name|lower) + suffix + '-cpp', max_pin='x.x.x') }}
     script: install-cpp.sh  # [unix]
     script: install-cpp.bat  # [win]
     requirements:
