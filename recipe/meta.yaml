@@ -137,7 +137,6 @@ about:
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
-    - build-ci/Release/_deps/date-src/LICENSE.txt
     - build-ci/Release/_deps/eigen-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE.txt
     - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
