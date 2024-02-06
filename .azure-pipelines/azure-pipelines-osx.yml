@@ -32,6 +32,12 @@ jobs:
       osx_64_numpy1.23python3.11.____cpythonsuffix-novec:
         CONFIG: osx_64_numpy1.23python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
+      osx_64_numpy1.26python3.12.____cpythonsuffix:
+        CONFIG: osx_64_numpy1.26python3.12.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      osx_64_numpy1.26python3.12.____cpythonsuffix-novec:
+        CONFIG: osx_64_numpy1.26python3.12.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
       osx_arm64_numpy1.22python3.10.____cpythonsuffix:
         CONFIG: osx_arm64_numpy1.22python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
@@ -55,6 +61,12 @@ jobs:
         UPLOAD_PACKAGES: 'True'
       osx_arm64_numpy1.23python3.11.____cpythonsuffix-novec:
         CONFIG: osx_arm64_numpy1.23python3.11.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      osx_arm64_numpy1.26python3.12.____cpythonsuffix:
+        CONFIG: osx_arm64_numpy1.26python3.12.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      osx_arm64_numpy1.26python3.12.____cpythonsuffix-novec:
+        CONFIG: osx_arm64_numpy1.26python3.12.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
     maxParallel: 12
   timeoutInMinutes: 360
