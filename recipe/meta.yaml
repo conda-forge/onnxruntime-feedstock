@@ -1,7 +1,7 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.16.3" %}
+{% set version = "1.17.0" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
 
 package:
@@ -10,7 +10,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: d26b8a7eed1df4440aa3d8eac5049980cbe585514ccedfda809712051a4b1721
+    sha256: 54e909392b81cbbae7243024fbb9eba0a7cba0674eb0adc9068566c23b0a57bb
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
@@ -20,12 +20,13 @@ source:
 
 
 build:
-  number: 4
+  number: 0
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   # CUDA compilation for Windows goes out-of-memory.
   skip: true  # [win and cuda_compiler_version in ("11.2", "11.8", "12.0")]
   skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
+  skip: true  # [cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -137,7 +138,6 @@ about:
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
-    - build-ci/Release/_deps/date-src/LICENSE.txt
     - build-ci/Release/_deps/eigen-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE.txt
     - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
