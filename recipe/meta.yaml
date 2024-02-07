@@ -20,7 +20,7 @@ source:
 
 
 build:
-  number: 0
+  number: 1
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   # CUDA compilation for Windows goes out-of-memory.
