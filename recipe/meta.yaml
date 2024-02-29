@@ -1,7 +1,7 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.17.0" %}
+{% set version = "1.17.1" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
 
 package:
@@ -10,7 +10,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 54e909392b81cbbae7243024fbb9eba0a7cba0674eb0adc9068566c23b0a57bb
+    sha256: 88335a1ccbccccb35d5d3aaadee090a9745cf90d97ca87c4a3ac5c4b694b7b17
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
@@ -20,7 +20,7 @@ source:
 
 
 build:
-  number: 1
+  number: 0
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   # CUDA compilation for Windows goes out-of-memory.
@@ -34,7 +34,7 @@ build:
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features:
+  track_features: 
     {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
