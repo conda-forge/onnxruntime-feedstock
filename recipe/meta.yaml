@@ -3,6 +3,11 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.17.1" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
+{% set build = 1 %}
+
+{% if cuda_enabled %}
+{% set build = build + 200 %}
+{% endif %}
 
 package:
   name: {{ name|lower }}{{ suffix }}
@@ -20,7 +25,7 @@ source:
 
 
 build:
-  number: 0
+  number: {{ build }}
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   # CUDA compilation for Windows goes out-of-memory.
