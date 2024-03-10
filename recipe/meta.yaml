@@ -3,7 +3,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.17.1" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
-{% set build = 1 %}
+{% set build = 2 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -45,8 +45,6 @@ build:
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
     - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
-  track_features: 
-    {{ "- onnxruntime-cuda" if cuda_enabled else "" }}
 
 requirements:
   build:
@@ -94,6 +92,8 @@ requirements:
     - python-flatbuffers
     - sympy
     - {{ pin_compatible('numpy') }}
+    # avoid that people without GPUs needlessly download ~0.5-1GB
+    - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
 
