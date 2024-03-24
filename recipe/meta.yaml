@@ -30,8 +30,6 @@ source:
       - patches/comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
       # ported OpenVINO 2024.0 support: https://github.com/microsoft/onnxruntime/pull/19966
       - patches/openvino_2024.0.0_support.patch
-      # ported https://github.com/microsoft/onnxruntime/pull/20053
-      - patches/openvino-ep-macos-compilation.patch
 
 
 build:

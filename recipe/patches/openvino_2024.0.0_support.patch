@@ -1,27 +1,3 @@
-commit bbf7646f1d250b42cf7d5dc4feab0ea114338ce1
-Author: sfatimar <sahar.fatima@intel.com>
-Date:   Fri Mar 22 07:14:00 2024 +0530
-
-    Ort openvino npu 1.17 master (#19966)
-    
-    Add NPU to list of device supported.
-    Added changes for Support to OV 2024.0
-    Nuget packages removes packaging of OpenVINO DLL
-    Bug Fixes with Python API
-    Reverted Dockerfiles not being maintained.
-    
-    NPU Device has been introduced by Intel in latest client systems
-    OpenVINO 2024.0 release is out.
-    
-    ---------
-    
-    Co-authored-by: Suryaprakash Shanmugam <suryaprakash.shanmugam@intel.com>
-    Co-authored-by: Preetha Veeramalai <preetha.veeramalai@intel.com>
-    Co-authored-by: Ubuntu <ubuntu@ubuntu-118727.iind.intel.com>
-    Co-authored-by: hmamidix <hemax.sowjanya.mamidi@intel.com>
-    Co-authored-by: vthaniel <vishnudas.thaniel.s@intel.com>
-    Co-authored-by: saurabhkale17 <saurabh1.kale@intel.com>
-
 diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
 index 94d650f685..bac1a4bbe9 100644
 --- a/cmake/CMakeLists.txt
@@ -85,7 +61,7 @@ index 94d650f685..bac1a4bbe9 100644
      add_definitions(-DOPENVINO_CONFIG_HETERO=1)
      add_definitions(-DDEVICE_NAME="${onnxruntime_USE_OPENVINO_DEVICE}")
 diff --git a/cmake/onnxruntime_providers_openvino.cmake b/cmake/onnxruntime_providers_openvino.cmake
-index e26f0bfc0b..5876b2b5c4 100644
+index e26f0bfc0b..355c4d95aa 100644
 --- a/cmake/onnxruntime_providers_openvino.cmake
 +++ b/cmake/onnxruntime_providers_openvino.cmake
 @@ -16,23 +16,19 @@
@@ -116,6 +92,15 @@ index e26f0bfc0b..5876b2b5c4 100644
    endif()
  
    source_group(TREE ${ONNXRUNTIME_ROOT}/core FILES ${onnxruntime_providers_openvino_cc_srcs})
+@@ -45,7 +41,7 @@
+   if(NOT MSVC)
+     target_compile_options(onnxruntime_providers_openvino PRIVATE "-Wno-parentheses")
+   endif()
+-  add_dependencies(onnxruntime_providers_openvino onnxruntime_providers_shared ${onnxruntime_EXTERNAL_DEPENDENCIES})
++  add_dependencies(onnxruntime_providers_openvino ${onnxruntime_EXTERNAL_DEPENDENCIES})
+   target_include_directories(onnxruntime_providers_openvino SYSTEM PUBLIC ${ONNXRUNTIME_ROOT} ${CMAKE_CURRENT_BINARY_DIR} ${eigen_INCLUDE_DIRS} ${OpenVINO_INCLUDE_DIR} ${OPENVINO_INCLUDE_DIR_LIST} ${PYTHON_INCLUDE_DIRS} $ENV{OPENCL_INCS} $ENV{OPENCL_INCS}/../../cl_headers/)
+   target_link_libraries(onnxruntime_providers_openvino ${ONNXRUNTIME_PROVIDERS_SHARED} Boost::mp11 ${OPENVINO_LIB_LIST} ${ABSEIL_LIBS})
+ 
 @@ -75,7 +71,14 @@
      message(FATAL_ERROR "onnxruntime_providers_openvino unknown platform, need to specify shared library exports for it")
    endif()
