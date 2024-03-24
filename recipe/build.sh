@@ -49,7 +49,8 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
-		      "CMAKE_CUDA_ARCHITECTURES=all-major"
+		      "CMAKE_CUDA_ARCHITECTURES=all-major" \
+		      "NPY_TARGET_VERSION=NPY_1_19_API_VERSION"
 		    )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
