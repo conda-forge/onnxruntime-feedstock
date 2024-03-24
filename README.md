@@ -3,6 +3,46 @@ About onnxruntime-feedstock
 
 Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/onnxruntime-feedstock/blob/main/LICENSE.txt)
 
+
+About onnxruntime
+-----------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
+About onnxruntime
+-----------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
+About onnxruntime-cpp
+---------------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
+About onnxruntime-novec
+-----------------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
+About onnxruntime-novec-cpp
+---------------------------
+
 Home: https://github.com/microsoft/onnxruntime/
 
 Package license: MIT AND BSL-1.0
@@ -719,10 +759,8 @@ Feedstock Maintainers
 =====================
 
 * [@cbourjau](https://github.com/cbourjau/)
+* [@hmaarrfk](https://github.com/hmaarrfk/)
 * [@janjagusch](https://github.com/janjagusch/)
 * [@jtilly](https://github.com/jtilly/)
 * [@xhochy](https://github.com/xhochy/)
-
-
-<!-- dummy commit to enable rerendering -->
 

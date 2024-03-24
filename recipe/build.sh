@@ -70,6 +70,7 @@ python tools/ci_build/build.py \
     --build_dir build-ci \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
     --cmake_generator Ninja \
+    --use_openvino CPU_FP32 \
     --build_wheel \
     --config Release \
     --update \
