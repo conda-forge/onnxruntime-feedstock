@@ -3,7 +3,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.17.1" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
-{% set build = 2 %}
+{% set build = 3 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -23,11 +23,13 @@ source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
     sha256: 88335a1ccbccccb35d5d3aaadee090a9745cf90d97ca87c4a3ac5c4b694b7b17
     patches:
-      - never_call_install_python_deps.patch
+      - patches/never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
-      - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
+      - patches/windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
-      - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
+      - patches/comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
+      # ported OpenVINO 2024.0 support: https://github.com/microsoft/onnxruntime/pull/19966
+      - patches/openvino_2024.0.0_support.patch
 
 
 build:
@@ -84,6 +86,7 @@ requirements:
     - zlib
     - numpy
     - pybind11
+    - libopenvino-dev
   run:
     - coloredlogs
     - packaging
