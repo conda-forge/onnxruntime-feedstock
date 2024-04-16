@@ -1,9 +1,10 @@
+{% set suffix = "" %}
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.17.1" %}
+{% set version = "1.17.3" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
-{% set build = 2 %}
+{% set build = 0 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -21,7 +22,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 88335a1ccbccccb35d5d3aaadee090a9745cf90d97ca87c4a3ac5c4b694b7b17
+    sha256: 908b5b2ee4b1c4580dbc3a3b715d5ae6eda056420eb34d441c56f004cf427e84
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
