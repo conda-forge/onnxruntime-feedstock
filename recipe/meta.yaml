@@ -22,7 +22,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 908b5b2ee4b1c4580dbc3a3b715d5ae6eda056420eb34d441c56f004cf427e84
+    sha256: 4112f6552c17216311be013b9a2621a3c1a17ed9e1268a1142599b6a494517c2
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
