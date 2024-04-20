@@ -3,6 +3,28 @@ About onnxruntime-feedstock
 
 Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/onnxruntime-feedstock/blob/main/LICENSE.txt)
 
+
+About onnxruntime
+-----------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
+About onnxruntime
+-----------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
+About onnxruntime-cpp
+---------------------
+
 Home: https://github.com/microsoft/onnxruntime/
 
 Package license: MIT AND BSL-1.0
@@ -601,8 +623,6 @@ Current release info
 | --- | --- | --- | --- |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime-green.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) |
-| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) |
-| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) |
 
 Installing onnxruntime
 ======================
@@ -614,16 +634,16 @@ conda config --add channels conda-forge
 conda config --set channel_priority strict
 ```
 
-Once the `conda-forge` channel has been enabled, `onnxruntime, onnxruntime-cpp, onnxruntime-novec, onnxruntime-novec-cpp` can be installed with `conda`:
+Once the `conda-forge` channel has been enabled, `onnxruntime, onnxruntime-cpp` can be installed with `conda`:
 
 ```
-conda install onnxruntime onnxruntime-cpp onnxruntime-novec onnxruntime-novec-cpp
+conda install onnxruntime onnxruntime-cpp
 ```
 
 or with `mamba`:
 
 ```
-mamba install onnxruntime onnxruntime-cpp onnxruntime-novec onnxruntime-novec-cpp
+mamba install onnxruntime onnxruntime-cpp
 ```
 
 It is possible to list all of the versions of `onnxruntime` available on your platform with `conda`:
@@ -719,10 +739,8 @@ Feedstock Maintainers
 =====================
 
 * [@cbourjau](https://github.com/cbourjau/)
+* [@hmaarrfk](https://github.com/hmaarrfk/)
 * [@janjagusch](https://github.com/janjagusch/)
 * [@jtilly](https://github.com/jtilly/)
 * [@xhochy](https://github.com/xhochy/)
-
-
-<!-- dummy commit to enable rerendering -->
 
