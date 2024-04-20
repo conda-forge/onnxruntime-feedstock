@@ -12,6 +12,8 @@ cuda_compiler_version:
 - None
 cxx_compiler:
 - vs2022
+libopenvino_dev:
+- 2024.0.0
 numpy:
 - '1.23'
 pin_run_as_build:

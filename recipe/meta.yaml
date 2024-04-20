@@ -4,7 +4,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.17.3" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -85,6 +85,7 @@ requirements:
     - zlib
     - numpy
     - pybind11
+    - libopenvino-dev  # [not osx]
   run:
     - coloredlogs
     - packaging
