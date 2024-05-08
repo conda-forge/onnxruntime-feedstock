@@ -39,6 +39,8 @@ build:
   # skip: true  # [win and cuda_compiler_version in ("11.2", "11.8", "12.0")]
   # Temporary for testing
   skip: true  # [unix]
+  skip: true  # [py != 311]
+  skip: true  # [suffix == "-novec"]
   skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
   skip: true  # [cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
