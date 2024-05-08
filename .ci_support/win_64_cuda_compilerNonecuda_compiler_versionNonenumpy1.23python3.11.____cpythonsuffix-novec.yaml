@@ -1,7 +1,5 @@
 c_compiler:
 - vs2022
-c_stdlib:
-- vs
 channel_sources:
 - conda-forge
 channel_targets:
@@ -10,6 +8,8 @@ cuda_compiler:
 - None
 cuda_compiler_version:
 - None
+cudnn:
+- '8'
 cxx_compiler:
 - vs2022
 numpy:
