@@ -4,7 +4,7 @@
 if "%cuda_compiler_version%"=="None" (
     set "BUILD_ARGS="
 ) else (
-    set "BUILD_ARGS=--use_cuda --cudnn_home %PREFIX%\Library"
+    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX%"
 )
 
 :: We set CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON as currently we do not want to use
