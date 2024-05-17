@@ -4,7 +4,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.17.3" %}
 {% set suffix = "" %}  # [suffix == None] # help the linter
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -54,6 +54,7 @@ requirements:
     - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
+    - {{ stdlib("c") }}
     - {{ compiler('cxx') }}
     - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
     {% if cuda_major >= 12 %}
@@ -92,7 +93,6 @@ requirements:
     - python
     - python-flatbuffers
     - sympy
-    - {{ pin_compatible('numpy') }}
     # avoid that people without GPUs needlessly download ~0.5-1GB
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
@@ -119,6 +119,7 @@ outputs:
     requirements:
       build:
         - {{ compiler('c') }}
+        - {{ stdlib("c") }}
         - {{ compiler('cxx') }}
         - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
       run:
@@ -128,7 +129,6 @@ outputs:
     test:
       requires:
         - {{ compiler('cxx') }}
-        - sysroot_linux-64 2.17  # [linux64 and cdt_name!='cos6']
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
