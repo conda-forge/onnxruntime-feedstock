@@ -29,6 +29,8 @@ source:
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
       - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
+      # https://github.com/microsoft/onnxruntime/pull/20139
+      - 20139-fix-build-errors-from-date_h_cpp20.patch
 
 
 build:
