@@ -128,7 +128,8 @@ outputs:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
       requires:
-        - {{ compiler('cxx') }}
+                - {{ stdlib('c') }}
+                - {{ compiler('cxx') }}
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
