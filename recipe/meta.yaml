@@ -38,7 +38,7 @@ build:
   skip: true  # [win and cuda_compiler_version in ("11.2", "11.8", "12.0")]
   skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
   skip: true  # [cuda_compiler_version == "11.2"]
-  skip: true  # [py!=3.10]
+  skip: true  # [py!=310]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
