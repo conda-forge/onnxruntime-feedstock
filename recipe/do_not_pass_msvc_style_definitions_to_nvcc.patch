@@ -1,0 +1,13 @@
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index 85583e1..22b91fa 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -1525,7 +1525,7 @@ def generate_build_tree(
+                     cuda_compile_flags_str = ""
+                     for compile_flag in cflags:
+                         if compile_flag.startswith("/D"):
+-                            cudaflags.append(compile_flag)
++                            cudaflags.append(compile_flag.replace("/D","-D"))
+                         else:
+                             cuda_compile_flags_str = cuda_compile_flags_str + " " + compile_flag
+                     if len(cuda_compile_flags_str) != 0:
