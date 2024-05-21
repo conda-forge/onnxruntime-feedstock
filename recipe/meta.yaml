@@ -27,8 +27,7 @@ source:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
-      # Workaround for https://github.com/microsoft/onnxruntime/issues/13225
-      - comment_InterThreadPoolWithDenormalAsZero.patch  # [osx]
+      - cxx_17_for_darwin.patch
 
 
 build:
@@ -158,7 +157,7 @@ about:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE.txt
+    - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
