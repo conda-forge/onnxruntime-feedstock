@@ -129,6 +129,7 @@ outputs:
     test:
       requires:
         - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
