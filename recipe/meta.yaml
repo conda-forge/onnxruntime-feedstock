@@ -2,8 +2,8 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.17.3" %}
-{% set suffix = "" %}  # [suffix == None] # help the linter
+{% set version = "1.18.0" %}
+{% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
 {% if cuda_enabled %}
@@ -22,7 +22,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 4112f6552c17216311be013b9a2621a3c1a17ed9e1268a1142599b6a494517c2
+    sha256: 630612317ea9eeba2a8ce57b9b553f86d46b2ee7966dd9c23af9a04629b8087b
     patches:
       - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
@@ -54,6 +54,7 @@ requirements:
     - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
+    - {{ stdlib("c") }}
     - {{ compiler('cxx') }}
     - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
     {% if cuda_major >= 12 %}
@@ -119,6 +120,7 @@ outputs:
     requirements:
       build:
         - {{ compiler('c') }}
+        - {{ stdlib("c") }}
         - {{ compiler('cxx') }}
         - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
       run:
@@ -128,7 +130,6 @@ outputs:
     test:
       requires:
         - {{ compiler('cxx') }}
-        - sysroot_linux-64 2.17  # [linux64 and cdt_name!='cos6']
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
