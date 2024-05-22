@@ -29,7 +29,7 @@ python tools/ci_build/build.py ^
 if errorlevel 1 exit 1
 
 if "%cuda_compiler_version%"=="None" (
-    python tools/ci_build/build.py --config Release --cmake_generator Ninja --build_dir build-ci --cmake_extra_defines "onnxruntime_BUILD_UNIT_TESTS=ON"
+    python tools/ci_build/build.py --config Release --cmake_generator Ninja --build_dir build-ci --cmake_extra_defines "onnxruntime_BUILD_UNIT_TESTS=ON" --update --build --skip_submodule_sync
     python tools/ci_build/build.py --test --config Release --cmake_generator Ninja --build_dir build-ci
     if errorlevel 1 exit 1
 )
