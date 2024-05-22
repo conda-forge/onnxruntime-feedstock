@@ -14,6 +14,31 @@ jobs:
       win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec:
         CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.8.____cpythonsuffix:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.8.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.8.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.8.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.9.____cpythonsuffix:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.9.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.9.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.22python3.9.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.23python3.11.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.26python3.12.____cpythonsuffix:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.26python3.12.____cpythonsuffix
+        UPLOAD_PACKAGES: 'True'
+      win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.26python3.12.____cpythonsuffix-novec:
+        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonenumpy1.26python3.12.____cpythonsuffix-novec
+        UPLOAD_PACKAGES: 'True'
+    maxParallel: 6
   timeoutInMinutes: 360
   variables:
     CONDA_BLD_PATH: D:\\bld\\
