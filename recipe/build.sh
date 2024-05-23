@@ -24,6 +24,10 @@ else
     OSX_ARCH="x86_64"
 fi
 
+if [[ "${target_platform}" == "osx-64" ]]; then
+    export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+fi
+
 
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
   if [[ "${cuda_compiler_version}" == 12* ]]; then

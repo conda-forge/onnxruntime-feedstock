@@ -1,17 +1,12 @@
 diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
-index ed298760f48..6e2e233136f 100644
+index 3df351711a..968f4639f8 100644
 --- a/tools/ci_build/build.py
 +++ b/tools/ci_build/build.py
-@@ -2515,10 +2515,10 @@ def main():
-                     "Only Windows ARM(64) cross-compiled builds supported " "currently through this script"
-                 )
-             if not is_docker() and not args.use_acl and not args.use_armnn:
--                install_python_deps()
-+                pass
+@@ -867,6 +867,7 @@ def update_submodules(source_dir):
  
-         if args.enable_pybind and is_windows():
--            install_python_deps(args.numpy_version)
-+            pass
  
-         if args.use_cuda and args.cuda_version is None:
-             if is_windows():
+ def install_python_deps(numpy_version=""):
++    return
+     dep_packages = ["setuptools", "wheel", "pytest"]
+     dep_packages.append(f"numpy=={numpy_version}" if numpy_version else "numpy>=1.16.6")
+     dep_packages.append("sympy>=1.10")
