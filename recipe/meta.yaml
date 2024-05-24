@@ -4,7 +4,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.18.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -92,7 +92,6 @@ requirements:
     - python
     - python-flatbuffers
     - sympy
-    - {{ pin_compatible('numpy') }}
     # avoid that people without GPUs needlessly download ~0.5-1GB
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
