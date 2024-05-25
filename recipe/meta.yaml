@@ -59,7 +59,6 @@ requirements:
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
-    - psutil                                # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
@@ -92,7 +91,6 @@ requirements:
     - zlib
     - numpy
     - pybind11
-    - psutil
   run:
     - coloredlogs
     - packaging
