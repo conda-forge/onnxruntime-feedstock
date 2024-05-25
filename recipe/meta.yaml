@@ -4,7 +4,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.18.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 1 %}
+{% set build = 2 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -28,14 +28,13 @@ source:
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       - cxx_17_for_darwin.patch
-
+      # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
+      - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
 
 build:
   number: {{ build }}
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  # CUDA compilation for Windows goes out-of-memory.
-  skip: true  # [win and cuda_compiler_version in ("11.2", "11.8", "12.0")]
   skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
   skip: true  # [cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
