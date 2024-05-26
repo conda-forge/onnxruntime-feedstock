@@ -101,7 +101,7 @@ jobs:
     maxParallel: 15
   timeoutInMinutes: 360
   variables:
-    CONDA_BLD_PATH: D:\\bld\\
+    CONDA_BLD_PATH: C:\bld\
     SET_PAGEFILE: 'True'
     UPLOAD_TEMP: D:\\tmp
 
