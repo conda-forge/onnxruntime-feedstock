@@ -30,6 +30,8 @@ source:
       - cxx_17_for_darwin.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
       - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
+      - remove_numpy_version.patch
+
 
 build:
   number: {{ build }}
