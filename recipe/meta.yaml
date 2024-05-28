@@ -110,7 +110,7 @@ test:
     # Test the pip check command with numpy < 2
     # which was included in the requirements file for
     # build time compatibility
-    - numpy 1.26   # [py == 312]
+    - numpy 1.26.*   # [py == 312]
 
 outputs:
   - name: {{ name|lower }}{{ suffix }}
