@@ -208,7 +208,7 @@ jobs:
       : CONFIG: linux_aarch64_c_compiler_version12cuda_compilerNonecuda_compiler_versionNonecxx_compiler_version12numpy2.0python3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
         DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
-    maxParallel: 31
+    maxParallel: 25
   timeoutInMinutes: 360
   variables: {}
 
