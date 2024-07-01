@@ -1,11 +1,11 @@
-diff --git a/requirements.txt.in b/requirements.txt.in
-index 89242061fb..a9c1327b8f 100644
---- a/requirements.txt.in
-+++ b/requirements.txt.in
+diff --git a/requirements.txt b/requirements.txt
+index ccf0a100df..a9c1327b8f 100644
+--- a/requirements.txt
++++ b/requirements.txt
 @@ -1,6 +1,6 @@
  coloredlogs
  flatbuffers
--numpy >= @Python_NumPy_VERSION@
+-numpy>=1.21.6,<2.0
 +numpy
  packaging
  protobuf
