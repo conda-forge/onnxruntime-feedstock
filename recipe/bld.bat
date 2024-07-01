@@ -7,6 +7,7 @@ if "%cuda_compiler_version%"=="None" (
 ) else (
     set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX%"
     set onnxruntime_BUILD_UNIT_TESTS=OFF
+    set NVCC_APPEND_FLAGS="-allow-unsupported-compiler"
 )
 
 :: We set CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON as currently we do not want to use
