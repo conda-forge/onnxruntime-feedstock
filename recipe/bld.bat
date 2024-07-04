@@ -7,6 +7,8 @@ if "%cuda_compiler_version%"=="None" (
 ) else (
     set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX%"
     set onnxruntime_BUILD_UNIT_TESTS=OFF
+    REM it seems the upstream fix didn't have the intended effect
+    REM https://github.com/microsoft/onnxruntime/pull/21004
     set "NVCC_APPEND_FLAGS=-allow-unsupported-compiler"
 )
 
