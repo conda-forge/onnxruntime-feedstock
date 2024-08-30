@@ -3,7 +3,7 @@
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set version = "1.18.1" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
