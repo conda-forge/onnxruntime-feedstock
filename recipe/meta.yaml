@@ -66,6 +66,7 @@ requirements:
   host:
     - python
     - pip
+    - setuptools
     - wheel
     - cudnn                                     # [cuda_compiler_version != "None"]
     - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
