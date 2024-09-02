@@ -14,6 +14,8 @@ cudnn:
 - '9'
 cxx_compiler:
 - vs2022
+cxx_compiler_version:
+- '19.40'
 numpy:
 - '2.0'
 pin_run_as_build:
