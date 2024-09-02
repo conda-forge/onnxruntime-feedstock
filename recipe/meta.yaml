@@ -1,7 +1,7 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.18.1" %}
+{% set version = "1.19.0" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
