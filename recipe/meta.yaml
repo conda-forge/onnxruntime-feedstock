@@ -21,15 +21,13 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 480ff5d2450ff18d02db48908c9c0c6a602993942cb47866b8effe32d0469a2c
+    sha256: dd945b2fb8c2e7df7243e9d96c0293f45350058f0f713f66c519834a49a6c99d
     patches:
-      - never_call_install_python_deps.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       - cxx_17_for_darwin.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
       - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
-      - remove_numpy_version.patch
 
 
 build:
