@@ -23,6 +23,7 @@ source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
     sha256: 870ee3772d265d1c7b0799ac7280071f8ecd55b11ee3f11868a3e79c7f4cab0f
     patches:
+      - dont-call-pip-on-win.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       - cxx_17_for_darwin.patch
