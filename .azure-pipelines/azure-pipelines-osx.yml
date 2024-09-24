@@ -11,14 +11,8 @@ jobs:
       osx_64_python3.9.____cpythonsuffix:
         CONFIG: osx_64_python3.9.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_python3.9.____cpythonsuffix-novec:
-        CONFIG: osx_64_python3.9.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
       osx_arm64_python3.9.____cpythonsuffix:
         CONFIG: osx_arm64_python3.9.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_python3.9.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_python3.9.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
   timeoutInMinutes: 360
   variables: {}
