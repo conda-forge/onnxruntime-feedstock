@@ -37,7 +37,7 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [py>=310]
-  skip: true  # [build_ext == "novec"]
+  skip: true  # [suffix == "-novec"]
   skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
   skip: true  # [cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
