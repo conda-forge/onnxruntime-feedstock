@@ -3,13 +3,17 @@
 :: Enable CUDA support
 if "%cuda_compiler_version%"=="None" (
     set "BUILD_ARGS="
-    set onnxruntime_BUILD_UNIT_TESTS=ON
+    set "onnxruntime_BUILD_UNIT_TESTS=ON"
+    set "CMAKE_CUDA_ARCHITECTURES=all-major"
 ) else (
-    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX%"
+    if "%cuda_compiler_version%"=="12.0" (
+        set "CMAKE_CUDA_ARCHITECTURES=80;86;90"
+    ) else (
+        set "CMAKE_CUDA_ARCHITECTURES=all-major"
+    )
+    set CPU_COUNT=1
+    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1"
     set onnxruntime_BUILD_UNIT_TESTS=OFF
-    REM it seems the upstream fix didn't have the intended effect
-    REM https://github.com/microsoft/onnxruntime/pull/21004
-    set "NVCC_APPEND_FLAGS=-allow-unsupported-compiler"
 )
 
 :: We set CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON as currently we do not want to use
@@ -17,7 +21,7 @@ if "%cuda_compiler_version%"=="None" (
 python tools/ci_build/build.py ^
     --compile_no_warning_as_error ^
     --build_dir build-ci ^
-    --cmake_extra_defines EIGEN_MPL2_ONLY=ON "onnxruntime_USE_COREML=OFF" "onnxruntime_BUILD_SHARED_LIB=ON" "onnxruntime_BUILD_UNIT_TESTS=%onnxruntime_BUILD_UNIT_TESTS%" CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON CMAKE_CUDA_ARCHITECTURES=all-major ^
+    --cmake_extra_defines EIGEN_MPL2_ONLY=ON "onnxruntime_USE_COREML=OFF" "onnxruntime_BUILD_SHARED_LIB=ON" "onnxruntime_BUILD_UNIT_TESTS=%onnxruntime_BUILD_UNIT_TESTS%" CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON CMAKE_CUDA_ARCHITECTURES=%CMAKE_CUDA_ARCHITECTURES% ^
     --cmake_generator Ninja ^
     --build_wheel ^
     --config Release ^

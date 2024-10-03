@@ -30,13 +30,20 @@ source:
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
       - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
 
+      # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
+      - use_first_nvcc_found.patch
+
+      # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
+      # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
+      - 22332.patch
 
 build:
   number: {{ build }}
-  # Since 1.11, power9 seems to be required.
+  skip: true  # [not win]
   skip: true  # [py!=311]
+  skip: true  # [win and suffix == "-novec"]
+  # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
   skip: true  # [cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
