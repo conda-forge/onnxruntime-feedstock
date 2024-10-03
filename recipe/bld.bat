@@ -5,7 +5,7 @@ if "%cuda_compiler_version%"=="None" (
     set "BUILD_ARGS="
     set onnxruntime_BUILD_UNIT_TESTS=ON
 ) else (
-    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX%"
+    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_thread=1"
     set onnxruntime_BUILD_UNIT_TESTS=OFF
     REM it seems the upstream fix didn't have the intended effect
     REM https://github.com/microsoft/onnxruntime/pull/21004
