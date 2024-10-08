@@ -182,8 +182,13 @@ about:
 
 extra:
   recipe-maintainers:
-    - hmaarrfk
     - xhochy
     - janjagusch
+    # jtilly is interested in novec for linux due to numerical discrepancies
+    # between eigen's vectorization and onnx's
     - jtilly
     - cbourjau
+    # General support for GPUs
+    - hmaarrfk
+    # Especially interested in Windows
+    - traversaro
