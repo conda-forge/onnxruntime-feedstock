@@ -16,7 +16,7 @@
 {% endif %}
 
 package:
-  name: {{ name|lower }}{{ suffix }}
+  name: {{ name|lower }}{{ suffix }}-cpp
   version: {{ version }}
 
 source:
@@ -37,30 +37,41 @@ source:
       # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
       - 22332.patch
 
+      # Help find Numpy in splayed builds
+      - find_numpy.patch
+      - find_numpy_more_debug.patch
+
 build:
   number: {{ build }}
-  # no windows user has requested novec (yet)
+  # Nobody requested novec and windows.
+  # If somebody does, we can start to build it
   skip: true  # [win and suffix == "-novec"]
+
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "11.2"]
   # 2024/11/22 -- hmaarrfk -- cuda 11.8 will need a champion to fix compilation issues
   skip: true  # [cuda_compiler_version == "11.8"]
   skip: true  # [py<310]
-  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+  skip: true  # [linux]
+  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
-  # This needs to be coherent with the entry_points list defined around
-  # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
-  entry_points:
-    - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+    - python *                               # [megabuild]
+    - numpy *                                # [megabuild]
+    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+  ignore_run_exports:                        # [megabuild]
+    - python *                               # [megabuild]
+    - numpy *                                # [megabuild]
 
 requirements:
   build:
-    - python                                 # [build_platform != target_platform]
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - numpy                                  # [build_platform != target_platform]
-    - pybind11                               # [build_platform != target_platform]
+    - python 3.12                             # [    megabuild and build_platform != target_platform]
+    - python                                  # [not megabuild and build_platform != target_platform]
+    - cross-python_{{ target_platform }}      # [                  build_platform != target_platform]
+    - numpy  2                                # [    megabuild and build_platform != target_platform]
+    - numpy                                   # [not megabuild and build_platform != target_platform]
+    - pybind11                                # [                  build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
@@ -74,7 +85,10 @@ requirements:
     # we need protoc in the build environment for cross compilations
     - libprotobuf 3.21
   host:
-    - python
+    - python 3.12   # [    megabuild]
+    - python        # [not megabuild]
+    - numpy 2       # [    megabuild]
+    - numpy         # [not megabuild]
     - pip
     - setuptools
     - wheel
@@ -95,76 +109,119 @@ requirements:
     - python-flatbuffers
     - optional-lite
     - zlib
-    - numpy
     - pybind11
   run:
-    - coloredlogs
-    - packaging
-    - protobuf
-    - python
-    - python-flatbuffers
-    - sympy
+    # Only "c++" runtime requirement for -cpp package
+    # They should have run_exports
     # avoid that people without GPUs needlessly download ~0.5-1GB
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
 
 test:
-  imports:
-    - onnxruntime
-  commands:
-    - pip check
-    - onnxruntime_test --help
   requires:
-    - pip
-    # 2024/05 hmaarrfk/jtilly
-    # Test the pip check command with numpy < 2
-    # which was included in the requirements file for
-    # build time compatibility
-    - numpy 1.26.*   # [py == 312]
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+  files:
+    - test.cpp
+    - run_cpp_test.bat  # [win]
+  commands:
+    - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
+    - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
+    - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
+    - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_INC%\\onnxruntime\\core\\session\\onnxruntime_cxx_api.h exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\onnxruntime_conda.lib exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\\onnxruntime_conda.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\onnxruntime_providers_shared.lib exit 1  # [win and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_BIN%\\onnxruntime_providers_shared.dll exit 1  # [win and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_LIB%\\onnxruntime_providers_cuda.lib exit 1  # [win and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_BIN%\\onnxruntime_providers_cuda.dll exit 1  # [win and cuda_compiler_version != "None"]
+    - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
+    - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
+    - ./a.out  # [unix]
+    - call .\run_cpp_test.bat  # [win]
+
 
 outputs:
-  - name: {{ name|lower }}{{ suffix }}
   - name: {{ name|lower }}{{ suffix }}-cpp
+  - name: {{ name|lower }}{{ suffix }}
     build:
-      string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
-      run_exports:
-        - {{ pin_subpackage((name|lower) + suffix + '-cpp', max_pin='x.x.x') }}
-    script: install-cpp.sh  # [unix]
-    script: install-cpp.bat  # [win]
+      string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+      ignore_run_exports_from:
+        - zlib
+      # This needs to be coherent with the entry_points list defined around
+      # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
+      entry_points:
+        - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+    script: build_python.sh   # [unix]
+    script: build_python.bat  # [win]
+
     requirements:
       build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - numpy                                  # [build_platform != target_platform]
+        - pybind11                               # [build_platform != target_platform]
         - {{ compiler('c') }}
-        - {{ stdlib("c") }}
+        - {{ stdlib('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
+        {% if cuda_major >= 12 %}
+        - cuda-cudart-dev                        # [build_platform != target_platform]
+        {% endif %}
+        - cmake
+        - ninja
+        # we need protoc in the build environment for cross compilations
+        - libprotobuf
+      host:
+        - python
+        - numpy
+        - pip
+        - setuptools
+        - wheel
+        - cudnn                                     # [cuda_compiler_version != "None"]
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        {% if cuda_major >= 12 %}
+        - libcublas-dev
+        - libcusparse-dev
+        - libcurand-dev
+        - libcufft-dev
+        - cuda-cudart-dev
+        {% endif %}
+        - flake8
+        - gmock
+        - libdate
+        - packaging
+        - python-flatbuffers
+        - optional-lite
+        - zlib
+        - pybind11
       run:
-        - __cuda    # [cuda_compiler_version != "None"]
+        - coloredlogs
+        - packaging
+        - protobuf
+        - python-flatbuffers
+        - sympy
+        # avoid that people without GPUs needlessly download ~0.5-1GB
+        - __cuda                                    # [cuda_compiler_version != "None"]
+        - {{ name }}{{ suffix }}-cpp {{ version }}
       run_constrained:
-        - onnxruntime-cpp <0a0  # [suffix == "-novec"]
+        - onnxruntime <0a0  # [suffix == "-novec"]
+
     test:
-      requires:
-        - {{ compiler('cxx') }}
-        - {{ stdlib("c") }}
-      files:
-        - test.cpp
-        - run_cpp_test.bat  # [win]
+      imports:
+        - onnxruntime
       commands:
-        - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
-        - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
-        - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
-        - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_INC%\\onnxruntime\\core\\session\\onnxruntime_cxx_api.h exit 1  # [win]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_conda.lib exit 1  # [win]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_conda.dll exit 1  # [win]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_providers_shared.lib exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_providers_shared.dll exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_providers_cuda.lib exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_providers_cuda.dll exit 1  # [win and cuda_compiler_version != "None"]
-        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
-        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
-        - ./a.out  # [unix]
-        - call .\run_cpp_test.bat  # [win]
+        - pip check
+        - onnxruntime_test --help
+      requires:
+        - pip
+        # 2024/05 hmaarrfk/jtilly
+        # Test the pip check command with numpy < 2
+        # which was included in the requirements file for
+        # build time compatibility
+        - numpy 1.26.*   # [py == 312]
 
 about:
   home: https://github.com/microsoft/onnxruntime/

@@ -1,0 +1,21 @@
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index 446b290..eed1a71 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -978,6 +978,7 @@ def generate_build_tree(
+     args,
+     cmake_extra_args,
+ ):
++    import numpy as np
+     log.info("Generating CMake build tree")
+     cmake_dir = os.path.join(source_dir, "cmake")
+     cmake_args = [cmake_path, cmake_dir]
+@@ -998,7 +999,7 @@ def generate_build_tree(
+         # depends on the "PYTHON_EXECUTABLE" variable. The second needs "Python_EXECUTABLE". Here we set both
+         # of them to get the best compatibility.
+         "-DPython_EXECUTABLE=" + sys.executable,
+-        "-DPYTHON_EXECUTABLE=" + sys.executable,
++        "-DPython_NumPy_INCLUDE_DIR=" + np.get_include(),
+         "-Donnxruntime_USE_MIMALLOC=" + ("ON" if args.use_mimalloc else "OFF"),
+         "-Donnxruntime_ENABLE_PYTHON=" + ("ON" if args.enable_pybind else "OFF"),
+         "-Donnxruntime_BUILD_CSHARP=" + ("ON" if args.build_csharp else "OFF"),

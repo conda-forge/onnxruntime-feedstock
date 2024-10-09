@@ -1,0 +1,20 @@
+diff --git a/cmake/onnxruntime_python.cmake b/cmake/onnxruntime_python.cmake
+index 270139c..f661703 100644
+--- a/cmake/onnxruntime_python.cmake
++++ b/cmake/onnxruntime_python.cmake
+@@ -95,7 +95,15 @@ if (MSVC AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+     target_compile_options(onnxruntime_pybind11_state PRIVATE "/wd4244")
+ endif()
+ 
++# Find python with numpy required
++message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
++message(STATUS "Python_NumPy_INCLUDE_DIR: ${Python_NumPy_INCLUDE_DIR}")
++message(STATUS "Python_NumPy_INCLUDE_DIRS: ${Python_NumPy_INCLUDE_DIRS}")
++find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
+ onnxruntime_add_include_to_target(onnxruntime_pybind11_state Python::Module Python::NumPy)
++message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
++message(STATUS "Python_NumPy_INCLUDE_DIRS: ${Python_NumPy_INCLUDE_DIRS}")
++message(STATUS "pybind11_INCLUDE_DIRS: ${pybind11_INCLUDE_DIRS}")
+ target_include_directories(onnxruntime_pybind11_state PRIVATE ${ONNXRUNTIME_ROOT} ${pybind11_INCLUDE_DIRS})
+ if(onnxruntime_USE_CUDA)
+     target_include_directories(onnxruntime_pybind11_state PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

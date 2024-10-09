@@ -7,3 +7,12 @@ c_compiler:                # [win]
   - vs2022                 # [win]
 cxx_compiler:              # [win]
   - vs2022                 # [win]
+
+# Megabuilds help reduce the number of times we recompile the whole
+# cuda parts of the package.
+# They fail to finish in 6 hours which requires CFEP03
+# By having megabuilds, we can run a single build
+# and have all the outputs we need to complete CFEP03
+megabuild:
+  - false   # [linux]
+  - true    # [not linux]
