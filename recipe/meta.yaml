@@ -144,6 +144,8 @@ outputs:
       # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
       entry_points:
         - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+    script: build_python.sh   # [unix]
+    script: build_python.bat  # [win]
 
     requirements:
       build:
