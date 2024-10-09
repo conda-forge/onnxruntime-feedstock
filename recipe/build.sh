@@ -67,6 +67,20 @@ do
     fi
 done
 
+if [[ "$PKG_NAME" != *cpp ]]; then
+    echo "CMakeCache.txt.orig -----------------------------------------"
+    cat build-ci/Release/CMakeCache.txt.orig
+    echo "CMakeCache.txt.orig -----------------------------------------"
+    sed  "s/python3\.12/python${PY_VER}/g" build-ci/Release/CMakeCache.txt.orig > build-ci/Release/CMakeCache.txt
+    sed -i.bak "s/v3\.12/v${PY_VER}/g" build-ci/Release/CMakeCache.txt
+    sed -i.bak "s/PYTHON_VERSION_MINOR:INTERNAL=12/PYTHON_VERSION_MINOR:INTERNAL=${PY_VER#*.}/g" build-ci/Release/CMakeCache.txt
+    sed -i.bak "s/PYTHON_VERSION:INTERNAL=3.12/PYTHON_VERSION:INTERNAL=${PY_VER}/g" build-ci/Release/CMakeCache.txt
+    sed -i.bak "s/cpython-312/cpython-${PY_VER%.*}${PY_VER#*.}/g" build-ci/Release/CMakeCache.txt
+
+    echo "CMakeCache.txt ----------------------------------------------"
+    cat build-ci/Release/CMakeCache.txt
+    echo "CMakeCache.txt ----------------------------------------------"
+fi
 
 python tools/ci_build/build.py \
     --compile_no_warning_as_error \
@@ -83,6 +97,20 @@ python tools/ci_build/build.py \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
     ${BUILD_ARGS}
 
-for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
-    python -m pip install "$whl_file"
-done
+if [[ "$PKG_NAME" == *cpp ]]; then
+    # Copy the original build-ci/Release/CMakeCache.txt so we can modify it
+    cp build-ci/Release/CMakeCache.txt build-ci/Release/CMakeCache.txt.orig
+    mkdir -p "${PREFIX}/include"
+    mkdir -p "${PREFIX}/lib"
+    cp -pr include/onnxruntime "${PREFIX}/include/"
+
+    if [[ "${target_platform}" == osx-* ]]; then
+            install build-ci/Release/libonnxruntime.*dylib "${PREFIX}/lib"
+    else
+        install build-ci/Release/libonnxruntime.so* "${PREFIX}/lib"
+        if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
+            install build-ci/Release/libonnxruntime_providers_shared.so* "${PREFIX}/lib"
+            install build-ci/Release/libonnxruntime_providers_cuda.so* "${PREFIX}/lib"
+        fi
+    fi
+fi
