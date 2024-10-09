@@ -16,7 +16,7 @@
 {% endif %}
 
 package:
-  name: {{ name|lower }}{{ suffix }}
+  name: {{ name|lower }}{{ suffix }}-cpp
   version: {{ version }}
 
 source:
