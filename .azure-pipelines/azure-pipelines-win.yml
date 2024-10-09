@@ -11,51 +11,30 @@ jobs:
       win_64_cuda_compilerNonecuda_compiler_versionNonepython3.11.____cpythonsuffix:
         CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonepython3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      win_64_cuda_compilerNonecuda_compiler_versionNonepython3.11.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compilerNonecuda_compiler_versionNonepython3.11.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
       win_64_cuda_compilercuda-nvcccuda_compiler_version12.0python3.11.____cpythonsuffix:
         CONFIG: win_64_cuda_compilercuda-nvcccuda_compiler_version12.0python3.11.____cpythonsuffix
-        UPLOAD_PACKAGES: 'True'
-      win_64_cuda_compilercuda-nvcccuda_compiler_version12.0python3.11.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compilercuda-nvcccuda_compiler_version12.0python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
       win_64_cuda_compilernvcccuda_compiler_version11.8python3.11.____cpythonsuffix:
         CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.8python3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      win_64_cuda_compilernvcccuda_compiler_version11.8python3.11.____cpythonsuffix-novec:
-        CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.8python3.11.____cpythonsuffix-novec
-        UPLOAD_PACKAGES: 'True'
   timeoutInMinutes: 360
   variables:
     CONDA_BLD_PATH: C:\bld\
+    MINIFORGE_HOME: C:\Miniforge
     SET_PAGEFILE: 'True'
     UPLOAD_TEMP: D:\\tmp
 
   steps:
-    - script: |
-        set CLEANUP_DIRS=^
-        C:\hostedtoolcache\windows;^
-        ;
 
-        mkdir C:\empty
-        for %%f in (%CLEANUP_DIRS:;= %) do (
-            if not [%%f] == [] (
-                echo Removing %%f
-                dir %%f
-                robocopy /mir /mt /zb /ns /nc /nfl /ndl /np /njh /njs C:\empty %%f > nul 2>&1
-                rmdir /q %%f
-            )
-        )
-        rmdir /q C:\empty
-        wmic logicaldisk get size,freespace,caption
-      displayName: Manage disk space
-    - powershell: |
-        Invoke-WebRequest $env:MINIFORGE_URL -OutFile $env:MINIFORGE_PATH
-      displayName: "Download Miniforge"
-      env:
-        MINIFORGE_URL: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
-        MINIFORGE_PATH: $(Build.ArtifactStagingDirectory)/Miniforge.exe
+    - task: PythonScript@0
+      displayName: 'Download Miniforge'
+      inputs:
+        scriptSource: inline
+        script: |
+          import urllib.request
+          url = 'https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe'
+          path = r"$(Build.ArtifactStagingDirectory)/Miniforge.exe"
+          urllib.request.urlretrieve(url, path)
 
     - script: |
         start /wait "" %BUILD_ARTIFACTSTAGINGDIRECTORY%\Miniforge.exe /InstallationType=JustMe /RegisterPython=0 /S /D=C:\Miniforge
