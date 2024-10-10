@@ -1,0 +1,17 @@
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index 587d035541..f0657a430e 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -2811,12 +2811,6 @@ def main():
+             log.info("Activating emsdk...")
+             run_subprocess([emsdk_file, "activate", emsdk_version], cwd=emsdk_dir)
+ 
+-        if args.enable_pybind and is_windows():
+-            run_subprocess(
+-                [sys.executable, "-m", "pip", "install", "-r", "requirements/pybind/requirements.txt"],
+-                cwd=SCRIPT_DIR,
+-            )
+-
+         if args.use_rocm and args.rocm_version is None:
+             args.rocm_version = ""
+ 
