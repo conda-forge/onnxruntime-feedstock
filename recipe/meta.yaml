@@ -37,6 +37,9 @@ source:
       # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
       - 22332.patch
 
+      # Help find Numpy in splayed builds
+      - find_numpy.patch
+
 build:
   number: {{ build }}
   # Nobody requested novec and windows.
