@@ -39,6 +39,7 @@ source:
 
       # Help find Numpy in splayed builds
       - find_numpy.patch
+      - find_numpy_more_debug.patch
 
 build:
   number: {{ build }}

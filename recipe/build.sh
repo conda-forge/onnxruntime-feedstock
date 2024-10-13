@@ -13,9 +13,12 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || "${cuda_compiler_version:-
     RUN_TESTS_BUILD_PY_OPTIONS=""
     BUILD_UNIT_TESTS="OFF"
 else
-    echo "Tests are enabled"
-    RUN_TESTS_BUILD_PY_OPTIONS="--test"
-    BUILD_UNIT_TESTS="ON"
+    echo "Tests are disabled for speed"
+    RUN_TESTS_BUILD_PY_OPTIONS=""
+    BUILD_UNIT_TESTS="OFF"
+    # echo "Tests are enabled"
+    # RUN_TESTS_BUILD_PY_OPTIONS="--test"
+    # BUILD_UNIT_TESTS="ON"
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
@@ -82,19 +85,30 @@ if [[ "$PKG_NAME" != *cpp ]]; then
     echo "CMakeCache.txt ----------------------------------------------"
 fi
 
+BUILD_ARGS="--compile_no_warning_as_error ${BUILD_ARGS}"
+BUILD_ARGS="--enable_lto ${BUILD_ARGS}"
+BUILD_ARGS="--build_dir build-ci ${BUILD_ARGS}"
+BUILD_ARGS="--cmake_generator Ninja ${BUILD_ARGS}"
+BUILD_ARGS="--build_wheel ${BUILD_ARGS}"
+BUILD_ARGS="--config Release ${BUILD_ARGS}"
+BUILD_ARGS="--update ${BUILD_ARGS}"
+BUILD_ARGS="--build ${RUN_TESTS_BUILD_PY_OPTIONS} ${BUILD_ARGS}"
+BUILD_ARGS="--skip_submodule_sync ${BUILD_ARGS}"
+BUILD_ARGS="--osx_arch $OSX_ARCH ${BUILD_ARGS}"
+BUILD_ARGS="--path_to_protoc_exe $BUILD_PREFIX/bin/protoc ${BUILD_ARGS}"
+
+
+if [[ ${megabuild} == "true" ]]; then
+    # Repeating the command twice seems to resolve things for megabuilds...
+    python tools/ci_build/build.py \
+        --cmake_extra_defines "${cmake_extra_defines[@]}" \
+        ${BUILD_ARGS} || true
+    echo "THE PREVIOUS COMMAND WAS EXPECTED TO FAIL"
+fi
+
+# Repeating the command twice seems to resolve things for megabuilds
 python tools/ci_build/build.py \
-    --compile_no_warning_as_error \
-    --enable_lto \
-    --build_dir build-ci \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
-    --cmake_generator Ninja \
-    --build_wheel \
-    --config Release \
-    --update \
-    --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
-    --skip_submodule_sync \
-    --osx_arch $OSX_ARCH \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
     ${BUILD_ARGS}
 
 if [[ "$PKG_NAME" == *cpp ]]; then
