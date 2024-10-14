@@ -17,6 +17,7 @@ jobs:
       win_64_cuda_compilernvcccuda_compiler_version11.8suffix:
         CONFIG: win_64_cuda_compilernvcccuda_compiler_version11.8suffix
         UPLOAD_PACKAGES: 'True'
+    maxParallel: 2
   timeoutInMinutes: 360
   variables:
     CONDA_BLD_PATH: C:\bld\
