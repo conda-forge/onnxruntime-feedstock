@@ -39,8 +39,7 @@ source:
 
 build:
   number: {{ build }}
-  skip: true  # [not win]
-  skip: true  # [py!=311]
+  # no windows user has requested novec (yet)
   skip: true  # [win and suffix == "-novec"]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
