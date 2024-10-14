@@ -98,15 +98,11 @@ BUILD_ARGS="--osx_arch $OSX_ARCH ${BUILD_ARGS}"
 BUILD_ARGS="--path_to_protoc_exe $BUILD_PREFIX/bin/protoc ${BUILD_ARGS}"
 
 
-if [[ ${megabuild} == "true" ]]; then
-    # Repeating the command twice seems to resolve things for megabuilds...
-    python tools/ci_build/build.py \
-        --cmake_extra_defines "${cmake_extra_defines[@]}" \
-        ${BUILD_ARGS} || true
-    echo "THE PREVIOUS COMMAND WAS EXPECTED TO FAIL"
-fi
-
-# Repeating the command twice seems to resolve things for megabuilds
+# Repeating the command twice seems to resolve things for megabuilds...
+# So if it fails the first time, run it again
+python tools/ci_build/build.py \
+    --cmake_extra_defines "${cmake_extra_defines[@]}" \
+    ${BUILD_ARGS} || \
 python tools/ci_build/build.py \
     --cmake_extra_defines "${cmake_extra_defines[@]}" \
     ${BUILD_ARGS}
