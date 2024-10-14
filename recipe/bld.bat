@@ -6,11 +6,7 @@ if "%cuda_compiler_version%"=="None" (
     set "onnxruntime_BUILD_UNIT_TESTS=ON"
     set "CMAKE_CUDA_ARCHITECTURES=all-major"
 ) else (
-    if "%cuda_compiler_version%"=="12.0" (
-        set "CMAKE_CUDA_ARCHITECTURES=80;86;90"
-    ) else (
-        set "CMAKE_CUDA_ARCHITECTURES=all-major"
-    )
+    set "CMAKE_CUDA_ARCHITECTURES=all-major"
     set CPU_COUNT=1
     set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1"
     set onnxruntime_BUILD_UNIT_TESTS=OFF
@@ -42,8 +38,18 @@ if "%cuda_compiler_version%"=="None" (
     if errorlevel 1 exit 1
 )
 
-:: In theory there should be only one wheel
-for %%F in (build-ci\Release\dist\onnxruntime*.whl) do (
-    python -m pip install %%F
-    if errorlevel 1 exit 1
+if "%PKG_NAME%"=="*cpp" (
+    mkdir "%PREFIX%\Library\include\onnxruntime"
+    mkdir "%PREFIX%\Library\lib"
+    mkdir "%PREFIX%\Library\bin"
+    xcopy /E /I include\onnxruntime "%PREFIX%\Library\include\onnxruntime"
+    xcopy /Y build-ci\Release\onnxruntime_conda.lib "%PREFIX%\Library\lib\"
+    xcopy /Y build-ci\Release\onnxruntime_conda.dll "%PREFIX%\Library\bin\"
+
+    if NOT "%cuda_compiler_version%"=="None" (
+        xcopy /Y build-ci\Release\onnxruntime_providers_shared.lib "%PREFIX%\Library\lib\"
+        xcopy /Y build-ci\Release\onnxruntime_providers_shared.dll "%PREFIX%\Library\bin\"
+        xcopy /Y build-ci\Release\onnxruntime_providers_cuda.lib "%PREFIX%\Library\lib\"
+        xcopy /Y build-ci\Release\onnxruntime_providers_cuda.dll "%PREFIX%\Library\bin\"
+    )
 )

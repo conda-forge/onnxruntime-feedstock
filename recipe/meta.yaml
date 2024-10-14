@@ -158,7 +158,7 @@ outputs:
         - numpy                                  # [build_platform != target_platform]
         - pybind11                               # [build_platform != target_platform]
         - {{ compiler('c') }}
-        - {{ stdlib("c") }}
+        - {{ stdlib('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
         {% if cuda_major >= 12 %}
@@ -167,7 +167,7 @@ outputs:
         - cmake
         - ninja
         # we need protoc in the build environment for cross compilations
-        - libprotobuf 3.21
+        - libprotobuf
       host:
         - python
         - numpy
