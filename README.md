@@ -22,6 +22,15 @@ Package license: MIT AND BSL-1.0
 
 Summary: cross-platform, high performance ML inferencing and training accelerator
 
+About onnxruntime
+-----------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
 Current build status
 ====================
 
@@ -521,7 +530,9 @@ Current release info
 
 | Name | Downloads | Version | Platforms |
 | --- | --- | --- | --- |
+| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime-green.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) |
+| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) |
 
 Installing onnxruntime-cpp
@@ -534,41 +545,41 @@ conda config --add channels conda-forge
 conda config --set channel_priority strict
 ```
 
-Once the `conda-forge` channel has been enabled, `onnxruntime-cpp, onnxruntime-novec-cpp` can be installed with `conda`:
+Once the `conda-forge` channel has been enabled, `onnxruntime, onnxruntime-cpp, onnxruntime-novec, onnxruntime-novec-cpp` can be installed with `conda`:
 
 ```
-conda install onnxruntime-cpp onnxruntime-novec-cpp
-```
-
-or with `mamba`:
-
-```
-mamba install onnxruntime-cpp onnxruntime-novec-cpp
-```
-
-It is possible to list all of the versions of `onnxruntime-cpp` available on your platform with `conda`:
-
-```
-conda search onnxruntime-cpp --channel conda-forge
+conda install onnxruntime onnxruntime-cpp onnxruntime-novec onnxruntime-novec-cpp
 ```
 
 or with `mamba`:
 
 ```
-mamba search onnxruntime-cpp --channel conda-forge
+mamba install onnxruntime onnxruntime-cpp onnxruntime-novec onnxruntime-novec-cpp
+```
+
+It is possible to list all of the versions of `onnxruntime` available on your platform with `conda`:
+
+```
+conda search onnxruntime --channel conda-forge
+```
+
+or with `mamba`:
+
+```
+mamba search onnxruntime --channel conda-forge
 ```
 
 Alternatively, `mamba repoquery` may provide more information:
 
 ```
 # Search all versions available on your platform:
-mamba repoquery search onnxruntime-cpp --channel conda-forge
+mamba repoquery search onnxruntime --channel conda-forge
 
-# List packages depending on `onnxruntime-cpp`:
-mamba repoquery whoneeds onnxruntime-cpp --channel conda-forge
+# List packages depending on `onnxruntime`:
+mamba repoquery whoneeds onnxruntime --channel conda-forge
 
-# List dependencies of `onnxruntime-cpp`:
-mamba repoquery depends onnxruntime-cpp --channel conda-forge
+# List dependencies of `onnxruntime`:
+mamba repoquery depends onnxruntime --channel conda-forge
 ```
 
 
