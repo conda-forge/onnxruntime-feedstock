@@ -1,9 +1,9 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.18.1" %}
+{% set version = "1.19.2" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 1 %}
+{% set build = 0 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -21,22 +21,28 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 480ff5d2450ff18d02db48908c9c0c6a602993942cb47866b8effe32d0469a2c
+    sha256: 870ee3772d265d1c7b0799ac7280071f8ecd55b11ee3f11868a3e79c7f4cab0f
     patches:
-      - never_call_install_python_deps.patch
+      - dont-call-pip-on-win.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
       - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
       - cxx_17_for_darwin.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
       - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
-      - remove_numpy_version.patch
 
+      # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
+      - use_first_nvcc_found.patch
+
+      # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
+      # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
+      - 22332.patch
 
 build:
   number: {{ build }}
+  # no windows user has requested novec (yet)
+  skip: true  # [win and suffix == "-novec"]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  skip: true  # [linux and aarch64 and cuda_compiler_version == "12.0"]
   skip: true  # [cuda_compiler_version == "11.2"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
@@ -175,8 +181,13 @@ about:
 
 extra:
   recipe-maintainers:
-    - hmaarrfk
     - xhochy
     - janjagusch
+    # jtilly is interested in novec for linux due to numerical discrepancies
+    # between eigen's vectorization and onnx's
     - jtilly
     - cbourjau
+    # General support for GPUs
+    - hmaarrfk
+    # Especially interested in Windows
+    - traversaro
