@@ -59,11 +59,12 @@ requirements:
     - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
-    - {{ stdlib("c") }}
+    - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
     {% if cuda_major >= 12 %}
     - cuda-cudart-dev                        # [build_platform != target_platform]
+    - cuda-nvrtc-dev                         # [build_platform != target_platform]
     {% endif %}
     - cmake
     - ninja
@@ -82,6 +83,7 @@ requirements:
     - libcurand-dev
     - libcufft-dev
     - cuda-cudart-dev
+    - cuda-nvrtc-dev
     {% endif %}
     - flake8
     - gmock
