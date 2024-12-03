@@ -44,6 +44,7 @@ jobs:
       osx_arm64_python3.12.____cpythonsuffix-novec:
         CONFIG: osx_arm64_python3.12.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
+    maxParallel: 11
   timeoutInMinutes: 360
   variables: {}
 
