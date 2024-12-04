@@ -7,7 +7,7 @@ c_stdlib:
 c_stdlib_version:
 - '2.17'
 cdt_name:
-- cos7
+- conda
 channel_sources:
 - conda-forge
 channel_targets:
@@ -23,17 +23,17 @@ cxx_compiler:
 cxx_compiler_version:
 - '12'
 docker_image:
-- quay.io/condaforge/linux-anvil-alma-x86_64:8
+- quay.io/condaforge/linux-anvil-x86_64:alma9
 numpy:
-- '2.0'
+- '2'
 pin_run_as_build:
   python:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.12.* *_cpython
+- 3.13.* *_cp313
 suffix:
-- ''
+- -novec
 target_platform:
 - linux-aarch64
 zip_keys:
