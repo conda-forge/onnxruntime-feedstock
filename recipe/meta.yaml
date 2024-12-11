@@ -47,6 +47,9 @@ build:
   # 2024/11/22 -- hmaarrfk -- cuda 11.8 will need a champion to fix compilation issues
   skip: true  # [cuda_compiler_version == "11.8"]
   skip: true  # [py<310]
+  # TODO: Remove before merging
+  skip: true  # [not win]
+  skip: true  # [py!=312]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
