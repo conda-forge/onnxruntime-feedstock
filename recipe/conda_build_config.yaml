@@ -14,5 +14,4 @@ cxx_compiler:              # [win]
 # By having megabuilds, we can run a single build
 # and have all the outputs we need to complete CFEP03
 megabuild:
-  - false   # [linux]
-  - true    # [not linux]
+  - true

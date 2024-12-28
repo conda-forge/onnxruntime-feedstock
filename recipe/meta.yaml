@@ -52,8 +52,6 @@ build:
   skip: true  # [cuda_compiler_version == "11.2"]
   # 2024/11/22 -- hmaarrfk -- cuda 11.8 will need a champion to fix compilation issues
   skip: true  # [cuda_compiler_version == "11.8"]
-  skip: true  # [py<310]
-  skip: true  # [linux]
   string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -154,6 +152,7 @@ outputs:
       # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
       entry_points:
         - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+      skip: true  # [py<310]
     script: build_python.sh   # [unix]
     script: build_python.bat  # [win]
 
