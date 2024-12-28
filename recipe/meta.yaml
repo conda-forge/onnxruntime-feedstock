@@ -177,7 +177,7 @@ about:
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
     - build-ci/Release/_deps/gsl-src/LICENSE
-    - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not osx]
+    - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not (osx or (aarch64 and cuda_compiler_version != "None"))]
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
