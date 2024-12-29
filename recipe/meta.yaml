@@ -1,7 +1,7 @@
 {% set name = "onnxruntime" %}
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.19.2" %}
+{% set version = "1.20.1" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
@@ -21,7 +21,7 @@ package:
 
 source:
   - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 870ee3772d265d1c7b0799ac7280071f8ecd55b11ee3f11868a3e79c7f4cab0f
+    sha256: d4c005506a2bbf88a838b14f8d1578406b8be2fb64abb50beeff908fb272529e
     patches:
       - dont-call-pip-on-win.patch
       # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
@@ -44,6 +44,9 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [cuda_compiler_version == "11.2"]
+  # 2024/11/22 -- hmaarrfk -- cuda 11.8 will need a champion to fix compilation issues
+  skip: true  # [cuda_compiler_version == "11.8"]
+  skip: true  # [py<310]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -59,11 +62,12 @@ requirements:
     - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
     - {{ compiler('c') }}
-    - {{ stdlib("c") }}
+    - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
     {% if cuda_major >= 12 %}
     - cuda-cudart-dev                        # [build_platform != target_platform]
+    - cuda-nvrtc-dev                         # [build_platform != target_platform]
     {% endif %}
     - cmake
     - ninja
@@ -82,6 +86,7 @@ requirements:
     - libcurand-dev
     - libcufft-dev
     - cuda-cudart-dev
+    - cuda-nvrtc-dev
     {% endif %}
     - flake8
     - gmock
@@ -172,7 +177,7 @@ about:
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
     - build-ci/Release/_deps/gsl-src/LICENSE
-    - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
+    - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
