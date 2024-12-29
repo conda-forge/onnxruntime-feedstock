@@ -7,3 +7,6 @@ c_compiler:                # [win]
   - vs2022                 # [win]
 cxx_compiler:              # [win]
   - vs2022                 # [win]
+
+github_actions_labels:          # [win]
+- cirun-azure-windows-2xlarge   # [win]
