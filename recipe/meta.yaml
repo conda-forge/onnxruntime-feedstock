@@ -48,8 +48,8 @@ build:
   skip: true  # [cuda_compiler_version == "11.8"]
   skip: true  # [py<310]
   # TODO: Remove before merging
-  skip: true  # [not win]
-  skip: true  # [py!=312]
+  skip: true  # [osx]
+  skip: true  # [suffix == "-novec"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
