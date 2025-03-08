@@ -175,7 +175,6 @@ about:
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
-    - build-ci/Release/_deps/google_nsync-src/LICENSE  # [not win]
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
