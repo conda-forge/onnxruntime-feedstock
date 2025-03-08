@@ -1,12 +1,24 @@
+From 50cf234b9ee1a1861fa670f21e6f56f81aa48b85 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sat, 8 Mar 2025 13:53:09 -0500
+Subject: [PATCH] Use first version of nvcc found
+
+---
+ tools/ci_build/build.py | 1 -
+ 1 file changed, 1 deletion(-)
+
 diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
-index 587d035541..0f8a9b6da2 100644
+index ecdffbe5fd..35cba7ea21 100644
 --- a/tools/ci_build/build.py
 +++ b/tools/ci_build/build.py
-@@ -1148,7 +1148,6 @@ def generate_build_tree(
-                     f"Float 8 types require CUDA>=11.8. They must be disabled on CUDA=={args.cuda_version}. "
-                     f"Add '--disable_types float8' to your command line. See option disable_types."
-                 )
+@@ -1425,7 +1425,6 @@ def generate_build_tree(
+     if args.use_cuda:
+         nvcc_threads = number_of_nvcc_threads(args)
+         cmake_args.append("-Donnxruntime_NVCC_THREADS=" + str(nvcc_threads))
 -        cmake_args.append(f"-DCMAKE_CUDA_COMPILER={cuda_home}/bin/nvcc")
-     if args.use_rocm:
-         cmake_args.append("-Donnxruntime_ROCM_HOME=" + rocm_home)
-         cmake_args.append("-Donnxruntime_ROCM_VERSION=" + args.rocm_version)
+         add_default_definition(cmake_extra_defines, "onnxruntime_USE_CUDA", "ON")
+         if args.cuda_version:
+             add_default_definition(cmake_extra_defines, "onnxruntime_CUDA_VERSION", args.cuda_version)
+-- 
+2.43.0
+
