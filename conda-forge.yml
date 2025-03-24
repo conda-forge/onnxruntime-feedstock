@@ -18,7 +18,14 @@ conda_forge_output_validation: true
 github:
   branch_name: main
   tooling_branch_name: main
+github_actions:
+  self_hosted: true
+  timeout_minutes: 900
+  triggers:
+  - push
+  - pull_request
 provider:
-  linux_aarch64: default
-  linux_ppc64le: default
+  linux_64: github_actions
+  linux_aarch64: azure
+  win_64: github_actions  
 test: native_and_emulated
