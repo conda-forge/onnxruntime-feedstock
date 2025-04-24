@@ -20,22 +20,22 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: b395c72e0e6c6cb28525f4617bc8477c99cf65659c20439fe955c511c2da2cd9
-    patches:
-      - dont-call-pip-on-win.patch
-      # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
-      - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
-      - cxx_17_for_darwin.patch
-      # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
-      - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
+  url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: b395c72e0e6c6cb28525f4617bc8477c99cf65659c20439fe955c511c2da2cd9
+  patches:
+    - dont-call-pip-on-win.patch
+    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
+    - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
+    - cxx_17_for_darwin.patch
+    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
+    - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
 
-      # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
-      - use_first_nvcc_found.patch
+    # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
+    - use_first_nvcc_found.patch
 
-      # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
-      # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
-      - 22332.patch
+    # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
+    # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
+    - 22332.patch
 
 build:
   number: {{ build }}
@@ -69,7 +69,7 @@ requirements:
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     {% endif %}
-    - cmake
+    - cmake <4
     - ninja
     # we need protoc in the build environment for cross compilations
     - libprotobuf 3.21
@@ -135,9 +135,9 @@ outputs:
     requirements:
       build:
         - {{ compiler('c') }}
-        - {{ stdlib("c") }}
+        - {{ stdlib('c') }}
         - {{ compiler('cxx') }}
-        - {{ compiler("cuda") }}  # [cuda_compiler_version != "None"]
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
