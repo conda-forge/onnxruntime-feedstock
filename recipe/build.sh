@@ -28,6 +28,12 @@ if [[ "${target_platform}" == "osx-64" ]]; then
     export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+if [[ "${target_platform}" == "linux-64" || "${target_platform}" == "linux-aarch64" ]]; then
+    # https://github.com/conda-forge/ctng-compiler-activation-feedstock/issues/143
+    # Explicitly force non-executable stack to fix compatibility with glibc 2.41, due to:
+    # onnxruntime/capi/onnxruntime_pybind11_state.so: cannot enable executable stack as shared object requires: Invalid argument
+    LDFLAGS+=" -Wl,-z,noexecstack"
+fi
 
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
   if [[ "${cuda_compiler_version}" == 12* ]]; then
