@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 12693d0a4a9817e1586979ddcb3f2da07ed3fc07536db8b08afa756b0c28e178
+  sha256: afd53e380d534c5285598f0010b9fe99c6c05ea83de11bddf3b9d51686746a03
   patches:
     - dont-call-pip-on-win.patch
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
