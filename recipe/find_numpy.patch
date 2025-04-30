@@ -1,8 +1,8 @@
 diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
-index 446b290..eed1a71 100644
+index eec7c5e33e..4f16e32526 100644
 --- a/tools/ci_build/build.py
 +++ b/tools/ci_build/build.py
-@@ -978,6 +978,7 @@ def generate_build_tree(
+@@ -1121,6 +1121,7 @@ def generate_build_tree(
      args,
      cmake_extra_args,
  ):
@@ -10,12 +10,12 @@ index 446b290..eed1a71 100644
      log.info("Generating CMake build tree")
      cmake_dir = os.path.join(source_dir, "cmake")
      cmake_args = [cmake_path, cmake_dir]
-@@ -998,7 +999,7 @@ def generate_build_tree(
-         # depends on the "PYTHON_EXECUTABLE" variable. The second needs "Python_EXECUTABLE". Here we set both
-         # of them to get the best compatibility.
+@@ -1137,6 +1138,7 @@ def generate_build_tree(
+         "-Donnxruntime_RUN_ONNX_TESTS=" + ("ON" if args.enable_onnx_tests else "OFF"),
+         "-Donnxruntime_GENERATE_TEST_REPORTS=ON",
          "-DPython_EXECUTABLE=" + sys.executable,
--        "-DPYTHON_EXECUTABLE=" + sys.executable,
-+        "-DPython_NumPy_INCLUDE_DIR=" + np.get_include(),
++        "-DPython_NumPy_INCLUDE_DIRS=" + np.get_include(),
+         "-Donnxruntime_USE_VCPKG=" + ("ON" if args.use_vcpkg else "OFF"),
          "-Donnxruntime_USE_MIMALLOC=" + ("ON" if args.use_mimalloc else "OFF"),
          "-Donnxruntime_ENABLE_PYTHON=" + ("ON" if args.enable_pybind else "OFF"),
-         "-Donnxruntime_BUILD_CSHARP=" + ("ON" if args.build_csharp else "OFF"),
+
