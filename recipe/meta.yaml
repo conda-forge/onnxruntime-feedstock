@@ -38,7 +38,7 @@ source:
 
     # Help find Numpy in splayed builds
     - find_numpy.patch
-    - find_numpy_more_debug.patch
+      # - find_numpy_more_debug.patch
 
 build:
   number: {{ build }}
@@ -168,7 +168,7 @@ outputs:
         {% if cuda_major >= 12 %}
         - cuda-cudart-dev                        # [build_platform != target_platform]
         {% endif %}
-        - cmake
+        - cmake <4
         - ninja
         # we need protoc in the build environment for cross compilations
         - libprotobuf
