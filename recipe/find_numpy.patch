@@ -1,0 +1,21 @@
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index eec7c5e33e..4f16e32526 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -1121,6 +1121,7 @@ def generate_build_tree(
+     args,
+     cmake_extra_args,
+ ):
++    import numpy as np
+     log.info("Generating CMake build tree")
+     cmake_dir = os.path.join(source_dir, "cmake")
+     cmake_args = [cmake_path, cmake_dir]
+@@ -1137,6 +1138,7 @@ def generate_build_tree(
+         "-Donnxruntime_RUN_ONNX_TESTS=" + ("ON" if args.enable_onnx_tests else "OFF"),
+         "-Donnxruntime_GENERATE_TEST_REPORTS=ON",
+         "-DPython_EXECUTABLE=" + sys.executable,
++        "-DPython_NumPy_INCLUDE_DIRS=" + np.get_include(),
+         "-Donnxruntime_USE_VCPKG=" + ("ON" if args.use_vcpkg else "OFF"),
+         "-Donnxruntime_USE_MIMALLOC=" + ("ON" if args.use_mimalloc else "OFF"),
+         "-Donnxruntime_ENABLE_PYTHON=" + ("ON" if args.enable_pybind else "OFF"),
+
