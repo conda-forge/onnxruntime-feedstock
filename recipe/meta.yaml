@@ -1,6 +1,6 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.21.1" %}
+{% set version = "1.22.0" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: afd53e380d534c5285598f0010b9fe99c6c05ea83de11bddf3b9d51686746a03
+  sha256: 08b078eb7afbf376064b2b0f1781e3d78151cac0592988a0c0ec78bf72fde810
   patches:
     - dont-call-pip-on-win.patch
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
