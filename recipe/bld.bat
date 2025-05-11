@@ -5,7 +5,7 @@ if "%cuda_compiler_version%"=="None" (
     set "BUILD_ARGS="
     set "onnxruntime_BUILD_UNIT_TESTS=ON"
 ) else (
-    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1"
+    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1 --parallel=0"
     set onnxruntime_BUILD_UNIT_TESTS=OFF
 )
 

@@ -2,6 +2,8 @@
 
 set -exuo pipefail
 
+BUILD_ARGS=""
+
 if [[ "${PKG_NAME}" == 'onnxruntime-novec' ]]; then
     DONT_VECTORIZE="ON"
 else
@@ -19,9 +21,9 @@ else
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
-    OSX_ARCH="arm64"
-else
-    OSX_ARCH="x86_64"
+    BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
+elif [[ "${target_platform:-other}" == 'osx-64' ]]; then
+    BUILD_ARGS="${BUILD_ARGS} --osx_arch x86_64"
 fi
 
 if [[ "${target_platform}" == "osx-64" ]]; then
@@ -46,21 +48,19 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
       exit 1
     fi
   fi
-  BUILD_ARGS="--use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --parallel=1"
+  BUILD_ARGS="${BUILD_ARGS} --use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --parallel=1"
   export NINJAJOBS=1
-else
-  BUILD_ARGS=""
 fi
 
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
-		      "FLATBUFFERS_BUILD_FLATC=OFF" \
-	              "onnxruntime_USE_COREML=OFF" \
+                      "FLATBUFFERS_BUILD_FLATC=OFF" \
+                      "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
-		      "CMAKE_CUDA_ARCHITECTURES=all-major"
-		    )
+                      "CMAKE_CUDA_ARCHITECTURES=all-major"
+)
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
 # into --cmake_extra_defines.
@@ -85,7 +85,6 @@ python tools/ci_build/build.py \
     --update \
     --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
     --skip_submodule_sync \
-    --osx_arch $OSX_ARCH \
     --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
     ${BUILD_ARGS}
 
