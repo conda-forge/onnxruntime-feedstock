@@ -1,9 +1,13 @@
 c_stdlib_version:          # [osx and x86_64]
-  - "10.15"                # [osx and x86_64]
+- '10.15'                  # [osx and x86_64]
 suffix:
-  - ""
-  - "-novec"
+- ''
+- -novec
 c_compiler:                # [win]
-  - vs2022                 # [win]
+- vs2022                   # [win]
 cxx_compiler:              # [win]
-  - vs2022                 # [win]
+- vs2022                   # [win]
+github_actions_labels:
+- cirun-openstack-cpu-medium
+- cirun-openstack-cpu-large
+- cirun-openstack-cpu-xlarge
