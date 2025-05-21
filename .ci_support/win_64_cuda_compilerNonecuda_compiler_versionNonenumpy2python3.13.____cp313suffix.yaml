@@ -14,6 +14,10 @@ cudnn:
 - '9'
 cxx_compiler:
 - vs2022
+github_actions_labels:
+- cirun-openstack-cpu-large
+- cirun-openstack-cpu-medium
+- cirun-openstack-cpu-xlarge
 numpy:
 - '2'
 pin_run_as_build:

@@ -22,6 +22,10 @@ cxx_compiler:
 - clangxx
 cxx_compiler_version:
 - '18'
+github_actions_labels:
+- cirun-openstack-cpu-large
+- cirun-openstack-cpu-medium
+- cirun-openstack-cpu-xlarge
 macos_machine:
 - arm64-apple-darwin20.0.0
 numpy:
