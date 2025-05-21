@@ -56,7 +56,6 @@ jobs:
       osx_arm64_numpy2python3.13.____cp313suffix-novec:
         CONFIG: osx_arm64_numpy2python3.13.____cp313suffix-novec
         UPLOAD_PACKAGES: 'True'
-    maxParallel: 14
   timeoutInMinutes: 360
   variables: {}
 
