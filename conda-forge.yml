@@ -22,9 +22,11 @@ provider:
   linux_aarch64: default
   linux_ppc64le: default
   linux_64: github_actions
+  win_64: github_actions
 test: native_and_emulated
 github_actions:
   self_hosted: true
   triggers:
   - push
   - pull_request
+
