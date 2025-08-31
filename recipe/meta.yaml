@@ -22,18 +22,18 @@ source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
   sha256: 9eacbf624d6f7466da81d9beb4399cb8683808b15c1276b7cd56c6907bf59f77
   patches:
-    - dont-call-pip-on-win.patch
+    - patches/dont-call-pip-on-win.patch
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
-    - windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
-    - cxx_17_for_darwin.patch
+    - patches/windows_workaround_conflict_onnxruntime_dll_system32.patch  # [win]
+    - patches/cxx_17_for_darwin.patch
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
-    - do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
+    - patches/do_not_pass_msvc_style_definitions_to_nvcc.patch  # [win]
 
     # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
-    - use_first_nvcc_found.patch
+    - patches/use_first_nvcc_found.patch
     # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
     # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
-    - 22332.patch
+    - patches/22332.patch
 
 build:
   number: {{ build }}
