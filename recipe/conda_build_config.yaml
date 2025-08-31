@@ -3,10 +3,7 @@ c_stdlib_version:          # [osx and x86_64]
 suffix:
 - ''
 - -novec
-c_compiler:                # [win]
-- vs2022                   # [win]
-cxx_compiler:              # [win]
-- vs2022                   # [win]
+
 github_actions_labels:
 - cirun-openstack-cpu-medium
 - cirun-openstack-cpu-large
