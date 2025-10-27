@@ -1,8 +1,8 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
-{% set version = "1.22.1" %}
+{% set version = "1.23.1" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 1 %}
+{% set build = 0 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 9eacbf624d6f7466da81d9beb4399cb8683808b15c1276b7cd56c6907bf59f77
+  sha256: 517eff0cb35a07637d1cdd4c9ebb3c17c517b2876569ff7f5bf2bf3bfd172506
   patches:
     - patches/dont-call-pip-on-win.patch
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
@@ -33,7 +33,7 @@ source:
     - patches/use_first_nvcc_found.patch
     # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
     # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
-    - patches/22332.patch
+    # - patches/22332.patch
 
 build:
   number: {{ build }}
@@ -140,6 +140,7 @@ outputs:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
     test:
       requires:
+        - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
       files:
