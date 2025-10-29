@@ -26,14 +26,8 @@ source:
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
     - patches/0002-avoid-conflicting-with-onnxruntime.dll-in-system32.patch     # [win]
     - patches/0003-stay-on-C-17-on-osx.patch
-    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/115#issuecomment-2122077816
-    - patches/0004-do-not-pass-msvc-style-definitions-to-nvcc.patch             # [win]
-
     # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
-    - patches/0005-use-first-nvcc-found.patch
-    # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
-    # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
-    - patches/0006-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
+    - patches/0004-use-first-nvcc-found.patch
 
 build:
   number: {{ build }}

@@ -1,17 +1,17 @@
-From 88c520e74c68d009363495ab48178ea02fedefcf Mon Sep 17 00:00:00 2001
+From dd4946cb2d703f16f88764fca3513141bef0831e Mon Sep 17 00:00:00 2001
 From: Christian Bourjau <christian.bourjau@quantco.com>
 Date: Mon, 9 Sep 2024 18:21:45 +0200
-Subject: [PATCH 1/6] Don't call pip on windows
+Subject: [PATCH 1/4] Don't call pip on windows
 
 ---
  tools/ci_build/build.py | 6 ------
  1 file changed, 6 deletions(-)
 
 diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
-index 1835c0b41f..de72cf3b23 100644
+index 1d2f889ff1..cca86d8469 100644
 --- a/tools/ci_build/build.py
 +++ b/tools/ci_build/build.py
-@@ -2406,12 +2406,6 @@ def main():
+@@ -2523,12 +2523,6 @@ def main():
              log.info("Activating emsdk...")
              run_subprocess([emsdk_file, "activate", emsdk_version], cwd=emsdk_dir)
  

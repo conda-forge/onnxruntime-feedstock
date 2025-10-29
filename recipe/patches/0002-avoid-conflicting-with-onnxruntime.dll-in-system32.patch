@@ -1,7 +1,7 @@
-From 1d8f558ea6435e1fbf13a10988b8bd584c417f9c Mon Sep 17 00:00:00 2001
+From 9e51f938dc99c049da59f60bc588b229b04a2655 Mon Sep 17 00:00:00 2001
 From: Silvio Traversaro <silvio@traversaro.it>
 Date: Fri, 14 Apr 2023 15:17:08 +0200
-Subject: [PATCH 2/6] avoid conflicting with onnxruntime.dll in system32
+Subject: [PATCH 2/4] avoid conflicting with onnxruntime.dll in system32
 
 apparently Windows ships a onnxruntime.dll file in C:\Windows\system32\onnxruntime.dll, and according to .dll
 search order in Windows (https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order),
@@ -12,15 +12,15 @@ See microsoft/onnxruntime#11230 for more details.
  1 file changed, 2 insertions(+)
 
 diff --git a/cmake/onnxruntime.cmake b/cmake/onnxruntime.cmake
-index 6c1d4485eb..a9d6a2b041 100644
+index 010696a610..c5f9b7f341 100644
 --- a/cmake/onnxruntime.cmake
 +++ b/cmake/onnxruntime.cmake
-@@ -80,6 +80,8 @@ if(WIN32)
-     "${ONNXRUNTIME_ROOT}/core/dll/delay_load_hook.cc"
-     "${ONNXRUNTIME_ROOT}/core/dll/onnxruntime.rc"
-   )
-+  # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
-+  set_target_properties(onnxruntime PROPERTIES OUTPUT_NAME onnxruntime_conda)
- elseif(onnxruntime_BUILD_APPLE_FRAMEWORK)
-   # apple framework requires the header file be part of the library
-   onnxruntime_add_shared_library(onnxruntime
+@@ -83,6 +83,8 @@ if(onnxruntime_BUILD_SHARED_LIB)
+       "${ONNXRUNTIME_ROOT}/core/dll/delay_load_hook.cc"
+       "${ONNXRUNTIME_ROOT}/core/dll/onnxruntime.rc"
+     )
++    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
++    set_target_properties(onnxruntime PROPERTIES OUTPUT_NAME onnxruntime_conda)
+   elseif(onnxruntime_BUILD_APPLE_FRAMEWORK)
+     # apple framework requires the header file be part of the library
+     onnxruntime_add_shared_library(onnxruntime
