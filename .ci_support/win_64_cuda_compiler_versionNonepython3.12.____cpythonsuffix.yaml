@@ -28,5 +28,8 @@ suffix:
 - ''
 target_platform:
 - win-64
+zip_keys:
+- - cuda_compiler_version
+  - cudnn
 zlib:
 - '1'
