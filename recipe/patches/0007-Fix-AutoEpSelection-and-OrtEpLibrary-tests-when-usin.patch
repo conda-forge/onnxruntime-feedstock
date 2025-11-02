@@ -1,0 +1,23 @@
+From 2c4f954732dbf7255f21ccf382518fa017a5828b Mon Sep 17 00:00:00 2001
+From: quic-hungjuiw <quic_hungjuiw@quicinc.com>
+Date: Sat, 12 Jul 2025 04:33:01 +0800
+Subject: [PATCH 7/7] Fix AutoEpSelection and OrtEpLibrary tests when using
+ AuthenticAMD (#24754)
+
+---
+ onnxruntime/core/common/cpuid_info.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/onnxruntime/core/common/cpuid_info.cc b/onnxruntime/core/common/cpuid_info.cc
+index 91961bf22c..92ada10fc1 100644
+--- a/onnxruntime/core/common/cpuid_info.cc
++++ b/onnxruntime/core/common/cpuid_info.cc
+@@ -154,7 +154,7 @@ std::string CPUIDInfo::GetX86Vendor(int32_t* data) {
+ 
+ uint32_t CPUIDInfo::GetVendorId(const std::string& vendor) {
+   if (vendor == "GenuineIntel") return 0x8086;
+-  if (vendor == "GenuineAMD") return 0x1022;
++  if (vendor == "AuthenticAMD") return 0x1022;
+   if (vendor.find("Qualcomm") == 0) return 'Q' | ('C' << 8) | ('O' << 16) | ('M' << 24);
+   if (vendor.find("NV") == 0) return 0x10DE;
+   return 0;

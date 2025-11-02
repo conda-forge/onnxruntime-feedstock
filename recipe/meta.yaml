@@ -34,6 +34,8 @@ source:
     # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
     # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
     - patches/0006-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
+    # backport https://github.com/microsoft/onnxruntime/pull/24754
+    - patches/0007-Fix-AutoEpSelection-and-OrtEpLibrary-tests-when-usin.patch
 
 build:
   number: {{ build }}

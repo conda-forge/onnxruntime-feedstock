@@ -1,7 +1,7 @@
 From 7bff589b173feeed17ffe905f6ded7e231a1708c Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Wed, 2 Oct 2024 21:47:09 -0400
-Subject: [PATCH 5/6] use first nvcc found
+Subject: [PATCH 5/7] use first nvcc found
 
 ---
  tools/ci_build/build.py | 1 -

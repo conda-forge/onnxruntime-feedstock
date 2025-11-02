@@ -1,7 +1,7 @@
 From 1d8f558ea6435e1fbf13a10988b8bd584c417f9c Mon Sep 17 00:00:00 2001
 From: Silvio Traversaro <silvio@traversaro.it>
 Date: Fri, 14 Apr 2023 15:17:08 +0200
-Subject: [PATCH 2/6] avoid conflicting with onnxruntime.dll in system32
+Subject: [PATCH 2/7] avoid conflicting with onnxruntime.dll in system32
 
 apparently Windows ships a onnxruntime.dll file in C:\Windows\system32\onnxruntime.dll, and according to .dll
 search order in Windows (https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order),

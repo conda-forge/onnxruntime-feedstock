@@ -1,7 +1,7 @@
 From 30010899d3b24cdfc64d043161e039a6f4d4f0ad Mon Sep 17 00:00:00 2001
 From: Christian Bourjau <christian.bourjau@quantco.com>
 Date: Tue, 21 May 2024 12:45:50 +0200
-Subject: [PATCH 3/6] stay on C++17 on osx
+Subject: [PATCH 3/7] stay on C++17 on osx
 
 ---
  cmake/CMakeLists.txt | 2 +-

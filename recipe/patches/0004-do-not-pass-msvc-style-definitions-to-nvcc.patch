@@ -1,7 +1,7 @@
 From 97f36e2a08f4036d0701dd78f1ecbf7d834ece36 Mon Sep 17 00:00:00 2001
 From: Silvio Traversaro <silvio@traversaro.it>
 Date: Sat, 25 May 2024 09:15:37 +0200
-Subject: [PATCH 4/6] do not pass msvc style definitions to nvcc
+Subject: [PATCH 4/7] do not pass msvc style definitions to nvcc
 
 ---
  tools/ci_build/build.py | 2 +-

@@ -1,7 +1,7 @@
 From 280e539f6e4dd75807c851adfc66da55ca29cef5 Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Mon, 7 Oct 2024 09:18:51 -0400
-Subject: [PATCH 6/6] Add _ALLOW_COMPILER_AND_STL_VERSION_MISMATCH for cuda
+Subject: [PATCH 6/7] Add _ALLOW_COMPILER_AND_STL_VERSION_MISMATCH for cuda
  compilation
 
 ---
