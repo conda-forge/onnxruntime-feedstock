@@ -5,5 +5,5 @@ suffix:
 - -novec
 
 github_actions_labels:          # [linux or win]
-- cirun-openstack-cpu-large     # [linux]
+- cirun-openstack-cpu-xlarge    # [linux]
 - cirun-azure-windows-4xlarge   # [win]
