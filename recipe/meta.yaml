@@ -41,6 +41,8 @@ build:
   number: {{ build }}
   # debug: conserve resources while debugging
   skip: true  # [py!=312]
+  # debug: only linux+CUDA was OOM'ing
+  skip: true  # [not (linux and cuda_compiler_version != "None")]
   # no windows user has requested novec (yet)
   skip: true  # [win and suffix == "-novec"]
   # Since 1.11, power9 seems to be required.
