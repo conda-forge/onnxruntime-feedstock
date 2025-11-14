@@ -15,7 +15,7 @@ cuda_compiler:
 cuda_compiler_version:
 - '12.9'
 cudnn:
-- '9.10'
+- '9'
 cxx_compiler:
 - gxx
 cxx_compiler_version:
@@ -23,7 +23,7 @@ cxx_compiler_version:
 docker_image:
 - quay.io/condaforge/linux-anvil-x86_64:alma9
 github_actions_labels:
-- cirun-openstack-cpu-xlarge
+- cirun-openstack-cpu-2xlarge
 numpy:
 - '2'
 pin_run_as_build:
@@ -41,6 +41,5 @@ zip_keys:
   - cxx_compiler_version
   - c_stdlib_version
   - cuda_compiler_version
-  - cudnn
 zlib:
 - '1'
