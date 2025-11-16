@@ -39,10 +39,14 @@ fi
 
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
   if [[ "${cuda_compiler_version}" == 12* ]]; then
+    export CUDA_ARCHES="50-real;60-real;70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
     if [[ "${target_platform}" == "linux-64" ]]; then
       export CUDA_HOME="${BUILD_PREFIX}/targets/x86_64-linux"
     elif [[ "${target_platform}" == "linux-aarch64" ]]; then
       export CUDA_HOME="${BUILD_PREFIX}/targets/sbsa-linux"
+      # drop sm_50 on aarch builds due to linker error:
+      # ` nvlink fatal   : elfLink linker library load error (target: sm_50)`
+      export CUDA_ARCHES="60-real;70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
     else
       echo "CUDA 12 has not been configured for this architecture"
       exit 1
@@ -59,7 +63,7 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
-                      "CMAKE_CUDA_ARCHITECTURES=50-real;60-real;70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
+                      "CMAKE_CUDA_ARCHITECTURES=$CUDA_ARCHES"
 )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
