@@ -39,14 +39,14 @@ fi
 
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
   if [[ "${cuda_compiler_version}" == 12* ]]; then
-    export CUDA_ARCHES="50-real;60-real;70-real;80-real;90-real;100-real;120"
+    export CUDA_ARCHES="all-major"
     if [[ "${target_platform}" == "linux-64" ]]; then
       export CUDA_HOME="${BUILD_PREFIX}/targets/x86_64-linux"
     elif [[ "${target_platform}" == "linux-aarch64" ]]; then
       export CUDA_HOME="${BUILD_PREFIX}/targets/sbsa-linux"
       # drop sm_50/sm_60 on aarch builds due to linker error:
       # ` nvlink fatal   : elfLink linker library load error (target: sm_50)`
-      export CUDA_ARCHES="70-real;80-real;90-real;100-real;120"
+      export CUDA_ARCHES="80-real;90-real;100-real;120"
     else
       echo "CUDA 12 has not been configured for this architecture"
       exit 1
