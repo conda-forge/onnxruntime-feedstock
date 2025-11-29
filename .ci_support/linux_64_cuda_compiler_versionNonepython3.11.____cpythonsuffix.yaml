@@ -14,6 +14,8 @@ cuda_compiler:
 - cuda-nvcc
 cuda_compiler_version:
 - None
+cudnn:
+- '9'
 cxx_compiler:
 - gxx
 cxx_compiler_version:
@@ -29,11 +31,11 @@ pin_run_as_build:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.12.* *_cpython
+- 3.11.* *_cpython
 suffix:
 - ''
 target_platform:
-- linux-aarch64
+- linux-64
 zip_keys:
 - - c_compiler_version
   - cxx_compiler_version
