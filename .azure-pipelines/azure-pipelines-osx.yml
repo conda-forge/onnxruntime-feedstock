@@ -5,58 +5,57 @@
 jobs:
 - job: osx
   pool:
-    vmImage: macOS-13
+    vmImage: macOS-15
   strategy:
     matrix:
-      osx_64_numpy2.0python3.10.____cpythonsuffix:
-        CONFIG: osx_64_numpy2.0python3.10.____cpythonsuffix
+      osx_64_python3.10.____cpythonsuffix:
+        CONFIG: osx_64_python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2.0python3.10.____cpythonsuffix-novec:
-        CONFIG: osx_64_numpy2.0python3.10.____cpythonsuffix-novec
+      osx_64_python3.10.____cpythonsuffix-novec:
+        CONFIG: osx_64_python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2.0python3.11.____cpythonsuffix:
-        CONFIG: osx_64_numpy2.0python3.11.____cpythonsuffix
+      osx_64_python3.11.____cpythonsuffix:
+        CONFIG: osx_64_python3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2.0python3.11.____cpythonsuffix-novec:
-        CONFIG: osx_64_numpy2.0python3.11.____cpythonsuffix-novec
+      osx_64_python3.11.____cpythonsuffix-novec:
+        CONFIG: osx_64_python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2.0python3.12.____cpythonsuffix:
-        CONFIG: osx_64_numpy2.0python3.12.____cpythonsuffix
+      osx_64_python3.12.____cpythonsuffix:
+        CONFIG: osx_64_python3.12.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2.0python3.12.____cpythonsuffix-novec:
-        CONFIG: osx_64_numpy2.0python3.12.____cpythonsuffix-novec
+      osx_64_python3.12.____cpythonsuffix-novec:
+        CONFIG: osx_64_python3.12.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2python3.13.____cp313suffix:
-        CONFIG: osx_64_numpy2python3.13.____cp313suffix
+      osx_64_python3.13.____cp313suffix:
+        CONFIG: osx_64_python3.13.____cp313suffix
         UPLOAD_PACKAGES: 'True'
-      osx_64_numpy2python3.13.____cp313suffix-novec:
-        CONFIG: osx_64_numpy2python3.13.____cp313suffix-novec
+      osx_64_python3.13.____cp313suffix-novec:
+        CONFIG: osx_64_python3.13.____cp313suffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2.0python3.10.____cpythonsuffix:
-        CONFIG: osx_arm64_numpy2.0python3.10.____cpythonsuffix
+      osx_arm64_python3.10.____cpythonsuffix:
+        CONFIG: osx_arm64_python3.10.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2.0python3.10.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_numpy2.0python3.10.____cpythonsuffix-novec
+      osx_arm64_python3.10.____cpythonsuffix-novec:
+        CONFIG: osx_arm64_python3.10.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2.0python3.11.____cpythonsuffix:
-        CONFIG: osx_arm64_numpy2.0python3.11.____cpythonsuffix
+      osx_arm64_python3.11.____cpythonsuffix:
+        CONFIG: osx_arm64_python3.11.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2.0python3.11.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_numpy2.0python3.11.____cpythonsuffix-novec
+      osx_arm64_python3.11.____cpythonsuffix-novec:
+        CONFIG: osx_arm64_python3.11.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2.0python3.12.____cpythonsuffix:
-        CONFIG: osx_arm64_numpy2.0python3.12.____cpythonsuffix
+      osx_arm64_python3.12.____cpythonsuffix:
+        CONFIG: osx_arm64_python3.12.____cpythonsuffix
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2.0python3.12.____cpythonsuffix-novec:
-        CONFIG: osx_arm64_numpy2.0python3.12.____cpythonsuffix-novec
+      osx_arm64_python3.12.____cpythonsuffix-novec:
+        CONFIG: osx_arm64_python3.12.____cpythonsuffix-novec
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2python3.13.____cp313suffix:
-        CONFIG: osx_arm64_numpy2python3.13.____cp313suffix
+      osx_arm64_python3.13.____cp313suffix:
+        CONFIG: osx_arm64_python3.13.____cp313suffix
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_numpy2python3.13.____cp313suffix-novec:
-        CONFIG: osx_arm64_numpy2python3.13.____cp313suffix-novec
+      osx_arm64_python3.13.____cp313suffix-novec:
+        CONFIG: osx_arm64_python3.13.____cp313suffix-novec
         UPLOAD_PACKAGES: 'True'
-    maxParallel: 14
   timeoutInMinutes: 360
   variables: {}
 
