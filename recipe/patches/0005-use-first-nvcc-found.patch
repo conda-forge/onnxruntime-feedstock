@@ -1,0 +1,21 @@
+From 7bff589b173feeed17ffe905f6ded7e231a1708c Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Wed, 2 Oct 2024 21:47:09 -0400
+Subject: [PATCH 5/7] use first nvcc found
+
+---
+ tools/ci_build/build.py | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index 2246c20281..c7979f43dc 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -723,7 +723,6 @@ def generate_build_tree(
+     if args.use_cuda:
+         nvcc_threads = number_of_nvcc_threads(args)
+         cmake_args.append("-Donnxruntime_NVCC_THREADS=" + str(nvcc_threads))
+-        cmake_args.append(f"-DCMAKE_CUDA_COMPILER={cuda_home}/bin/nvcc")
+         add_default_definition(cmake_extra_defines, "onnxruntime_USE_CUDA", "ON")
+         if args.cuda_version:
+             add_default_definition(cmake_extra_defines, "onnxruntime_CUDA_VERSION", args.cuda_version)

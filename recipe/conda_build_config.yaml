@@ -1,9 +1,9 @@
 c_stdlib_version:          # [osx and x86_64]
-  - "10.15"                # [osx and x86_64]
+- '10.15'                  # [osx and x86_64]
 suffix:
-  - ""
-  - "-novec"
-c_compiler:                # [win]
-  - vs2022                 # [win]
-cxx_compiler:              # [win]
-  - vs2022                 # [win]
+- ''
+- -novec
+
+github_actions_labels:          # [linux or win]
+- cirun-openstack-cpu-4xlarge   # [linux]
+- cirun-azure-windows-4xlarge   # [win]
