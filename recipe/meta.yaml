@@ -1,5 +1,5 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
-{% set build_ext = "cuda" ~ cuda_compiler_version.replace(".", "") if cuda_enabled else "cpu" %}
+{% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.22.2" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 1 %}
