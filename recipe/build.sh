@@ -48,7 +48,11 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
       exit 1
     fi
   fi
-  BUILD_ARGS="${BUILD_ARGS} --use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --parallel=1"
+  BUILD_ARGS="${BUILD_ARGS} --use_cuda"
+  BUILD_ARGS="${BUILD_ARGS} --cuda-version ${cuda_compiler_version}"
+  BUILD_ARGS="${BUILD_ARGS} --cuda_home ${CUDA_HOME}"
+  BUILD_ARGS="${BUILD_ARGS} --cudnn_home ${PREFIX}"
+  BUILD_ARGS="${BUILD_ARGS} --parallel=1"
   export NINJAJOBS=1
 fi
 

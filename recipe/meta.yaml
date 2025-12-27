@@ -11,7 +11,7 @@
 {% if cuda_compiler_version in (None, "None", True, False) %}
 {% set cuda_major = 0 %}
 {% else %}
-{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% set cuda_major = environ.get("cuda_compiler_version", "12.6").split(".")[0] | int %}
 {% endif %}
 
 package:
@@ -65,7 +65,9 @@ requirements:
     - cmake <4
     - ninja
     # we need protoc in the build environment for cross compilations
-    - libprotobuf 3.21
+    - libprotobuf
+    # Needed for microsoft to patch their own version of microsot.gsl
+    - patch                                  # [unix]
   host:
     - python
     - pip
@@ -90,6 +92,9 @@ requirements:
     - zlib
     - numpy
     - pybind11
+    - libprotobuf
+    - libabseil
+    - nlohmann_json
   run:
     - coloredlogs
     - packaging
@@ -116,48 +121,48 @@ test:
     # build time compatibility
     - numpy 1.26.*   # [py == 312]
 
-outputs:
-  - name: onnxruntime{{ suffix }}
-  - name: onnxruntime{{ suffix }}-cpp
-    build:
-      string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
-      run_exports:
-        - {{ pin_subpackage('onnxruntime' + suffix + '-cpp', max_pin='x.x.x') }}
-    script: install-cpp.sh  # [unix]
-    script: install-cpp.bat  # [win]
-    requirements:
-      build:
-        - {{ stdlib('c') }}
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
-      run:
-        - __cuda    # [cuda_compiler_version != "None"]
-      run_constrained:
-        - onnxruntime-cpp <0a0  # [suffix == "-novec"]
-    test:
-      requires:
-        - {{ compiler('cxx') }}
-        - {{ stdlib("c") }}
-      files:
-        - test.cpp
-        - run_cpp_test.bat  # [win]
-      commands:
-        - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
-        - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
-        - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
-        - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_INC%\\onnxruntime\\core\\session\\onnxruntime_cxx_api.h exit 1  # [win]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_conda.lib exit 1  # [win]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_conda.dll exit 1  # [win]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_providers_shared.lib exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_providers_shared.dll exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_LIB%\\onnxruntime_providers_cuda.lib exit 1  # [win and cuda_compiler_version != "None"]
-        - if not exist %LIBRARY_BIN%\\onnxruntime_providers_cuda.dll exit 1  # [win and cuda_compiler_version != "None"]
-        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
-        - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
-        - ./a.out  # [unix]
-        - call .\run_cpp_test.bat  # [win]
+      # outputs:
+      #   - name: onnxruntime{{ suffix }}
+      #   - name: onnxruntime{{ suffix }}-cpp
+      #     build:
+      #       string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+      #       run_exports:
+      #         - {{ pin_subpackage('onnxruntime' + suffix + '-cpp', max_pin='x.x.x') }}
+      #     script: install-cpp.sh  # [unix]
+      #     script: install-cpp.bat  # [win]
+      #     requirements:
+      #       build:
+      #         - {{ stdlib('c') }}
+      #         - {{ compiler('c') }}
+      #         - {{ compiler('cxx') }}
+      #         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      #       run:
+      #         - __cuda    # [cuda_compiler_version != "None"]
+      #       run_constrained:
+      #         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
+      #     test:
+      #       requires:
+      #         - {{ compiler('cxx') }}
+      #         - {{ stdlib("c") }}
+      #       files:
+      #         - test.cpp
+      #         - run_cpp_test.bat  # [win]
+      #       commands:
+      #         - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
+      #         - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
+      #         - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
+      #         - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
+      #         - if not exist %LIBRARY_INC%\\onnxruntime\\core\\session\\onnxruntime_cxx_api.h exit 1  # [win]
+      #         - if not exist %LIBRARY_LIB%\\onnxruntime_conda.lib exit 1  # [win]
+      #         - if not exist %LIBRARY_BIN%\\onnxruntime_conda.dll exit 1  # [win]
+      #         - if not exist %LIBRARY_LIB%\\onnxruntime_providers_shared.lib exit 1  # [win and cuda_compiler_version != "None"]
+      #         - if not exist %LIBRARY_BIN%\\onnxruntime_providers_shared.dll exit 1  # [win and cuda_compiler_version != "None"]
+      #         - if not exist %LIBRARY_LIB%\\onnxruntime_providers_cuda.lib exit 1  # [win and cuda_compiler_version != "None"]
+      #         - if not exist %LIBRARY_BIN%\\onnxruntime_providers_cuda.dll exit 1  # [win and cuda_compiler_version != "None"]
+      #         - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp                               # [linux]
+      #         - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp  # [osx]
+      #         - ./a.out  # [unix]
+      #         - call .\run_cpp_test.bat  # [win]
 
 about:
   home: https://github.com/microsoft/onnxruntime/
@@ -165,11 +170,9 @@ about:
   license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
-    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
-    - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
