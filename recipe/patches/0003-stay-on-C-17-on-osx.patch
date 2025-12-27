@@ -1,17 +1,17 @@
-From 30010899d3b24cdfc64d043161e039a6f4d4f0ad Mon Sep 17 00:00:00 2001
+From 911e63c3b941d5892b50e721fe2d541aa0a9368b Mon Sep 17 00:00:00 2001
 From: Christian Bourjau <christian.bourjau@quantco.com>
 Date: Tue, 21 May 2024 12:45:50 +0200
-Subject: [PATCH 3/7] stay on C++17 on osx
+Subject: [PATCH 3/5] stay on C++17 on osx
 
 ---
  cmake/CMakeLists.txt | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
-index 5e689908f4..d880e436ac 100644
+index 0b37ade..7a4e493 100644
 --- a/cmake/CMakeLists.txt
 +++ b/cmake/CMakeLists.txt
-@@ -33,7 +33,7 @@ include(GNUInstallDirs) # onnxruntime_providers_* require CMAKE_INSTALL_* variab
+@@ -34,7 +34,7 @@ include(GNUInstallDirs) # onnxruntime_providers_* require CMAKE_INSTALL_* variab
  
  # TODO: update this once all system adapt c++20
  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -20,3 +20,6 @@ index 5e689908f4..d880e436ac 100644
  else()
  set(CMAKE_CXX_STANDARD 17)
  endif()
+-- 
+2.43.0
+
