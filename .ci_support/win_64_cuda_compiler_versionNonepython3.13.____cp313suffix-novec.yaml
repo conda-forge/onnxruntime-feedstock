@@ -16,6 +16,10 @@ cxx_compiler:
 - vs2022
 github_actions_labels:
 - cirun-azure-windows-4xlarge
+libabseil:
+- '20250512'
+libprotobuf:
+- 6.31.1
 numpy:
 - '2'
 pin_run_as_build:
