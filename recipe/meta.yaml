@@ -176,7 +176,6 @@ about:
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/onnx-src/LICENSE
-    - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
@@ -189,7 +188,7 @@ extra:
     # between eigen's vectorization and onnx's
     - jtilly
     - cbourjau
-    # General support for GPUs
+    # General support for GPUs on linux + x86_64
     - hmaarrfk
     # Especially interested in Windows
     - traversaro
