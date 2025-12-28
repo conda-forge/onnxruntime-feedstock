@@ -32,6 +32,7 @@ source:
     # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
     - patches/0005-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
     - patches/0006-Pass-along-the-CMAKE_ARGS.patch
+    - patches/0007-Force-vendored-eigen-5.patch
 
 build:
   number: {{ build }}
@@ -66,7 +67,7 @@ requirements:
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     {% endif %}
-    - cmake <4
+    - cmake
     - ninja
     # we need protoc in the build environment for cross compilations
     - libprotobuf
@@ -101,7 +102,9 @@ requirements:
     - nlohmann_json
     - libboost-devel
     - libboost-python-devel
-    - eigen
+    # https://github.com/conda-forge/eigen-feedstock/pull/50
+    # this package requires eigen 5, but conda-forge is still on 3.4
+    # - eigen
     - flatbuffers
   run:
     - coloredlogs

@@ -1,0 +1,34 @@
+From 4063d768c108be4d79b888e7f5da19862bbd0b85 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 28 Dec 2025 15:56:54 -0500
+Subject: [PATCH] Force vendored eigen 5
+
+---
+ cmake/external/onnxruntime_external_deps.cmake | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/cmake/external/onnxruntime_external_deps.cmake b/cmake/external/onnxruntime_external_deps.cmake
+index 3189b64..d2bfc86 100644
+--- a/cmake/external/onnxruntime_external_deps.cmake
++++ b/cmake/external/onnxruntime_external_deps.cmake
+@@ -548,11 +548,13 @@ if(TARGET ONNX::onnx_proto AND NOT TARGET onnx_proto)
+   message(STATUS "Aliasing ONNX::onnx_proto to onnx_proto")
+   add_library(onnx_proto ALIAS ONNX::onnx_proto)
+ endif()
+-if(onnxruntime_USE_VCPKG)
+-  find_package(Eigen3 CONFIG REQUIRED)
+-else()
++# if(onnxruntime_USE_VCPKG)
++#   find_package(Eigen3 CONFIG REQUIRED)
++# else()
++# Conda-forge is still at eigen 3.4
++# This needs newer eigen
+   include(external/eigen.cmake)
+-endif()
++# endif()
+ 
+ if(WIN32)
+   if(onnxruntime_USE_VCPKG)
+-- 
+2.51.0
+
