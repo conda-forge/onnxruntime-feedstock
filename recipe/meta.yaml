@@ -57,6 +57,7 @@ requirements:
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - numpy                                  # [build_platform != target_platform]
     - pybind11                               # [build_platform != target_platform]
+    - flatbuffers                            # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
@@ -98,6 +99,10 @@ requirements:
     - libprotobuf
     - libabseil
     - nlohmann_json
+    - libboost-devel
+    - libboost-python-devel
+    - eigen
+    - flatbuffers
   run:
     - coloredlogs
     - packaging
