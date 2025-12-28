@@ -66,17 +66,6 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc"
 )
 
-# Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
-# into --cmake_extra_defines.
-read -a CMAKE_ARGS_ARRAY <<< "${CMAKE_ARGS}"
-for cmake_arg in "${CMAKE_ARGS_ARRAY[@]}"
-do
-    if [[ "${cmake_arg}" == -DCMAKE_SYSTEM_* ]]; then
-        # Strip -D prefix
-        cmake_extra_defines+=( "${cmake_arg#"-D"}" )
-    fi
-done
-
 
 python tools/ci_build/build.py \
     --compile_no_warning_as_error \

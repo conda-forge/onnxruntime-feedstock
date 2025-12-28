@@ -1,0 +1,40 @@
+From 56bfffaef41593822809de23ade05c587cfb7122 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 28 Dec 2025 14:11:08 -0500
+Subject: [PATCH] Pass along the CMAKE_ARGS
+
+---
+ tools/ci_build/build.py | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
+index aabf496..833692a 100644
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -1229,6 +1229,11 @@ def generate_build_tree(
+             cxxflags = cflags.copy()
+         config_build_dir = get_config_build_dir(build_dir, config)
+         os.makedirs(config_build_dir, exist_ok=True)
++
++        if "CMAKE_ARGS" in os.environ:
++            cmake_args.extend(
++                shlex.split(os.environ["CMAKE_ARGS"], posix=not is_windows())
++            )
+         temp_cmake_args = cmake_args.copy()
+         if cflags is not None and cxxflags is not None and len(cflags) != 0 and len(cxxflags) != 0:
+             temp_cmake_args += [
+@@ -1302,8 +1307,10 @@ def generate_build_tree(
+ 
+             env["VCPKG_KEEP_ENV_VARS"] = ";".join(vcpkg_keep_env_vars)
+ 
++        cmd = [*temp_cmake_args, f"-DCMAKE_BUILD_TYPE={config}"]
++        print(cmd)
+         run_subprocess(
+-            [*temp_cmake_args, f"-DCMAKE_BUILD_TYPE={config}"],
++            cmd,
+             cwd=config_build_dir,
+             cuda_home=cuda_home,
+             env=env,
+-- 
+2.51.0
+
