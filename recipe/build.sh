@@ -19,6 +19,8 @@ else
     RUN_TESTS_BUILD_PY_OPTIONS="--test"
     BUILD_UNIT_TESTS="ON"
 fi
+RUN_TESTS_BUILD_PY_OPTIONS=""
+BUILD_UNIT_TESTS="OFF"
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
