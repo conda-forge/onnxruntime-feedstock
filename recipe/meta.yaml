@@ -182,7 +182,6 @@ about:
   license_file:
     - LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
