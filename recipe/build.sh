@@ -61,6 +61,8 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
+                      "ONNX_USE_PROTOBUF_SHARED_LIBS=ON" \
+                      "onnxruntime_USE_FULL_PROTOBUF=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
                       "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc"
