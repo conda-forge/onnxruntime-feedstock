@@ -19,6 +19,8 @@ else
     RUN_TESTS_BUILD_PY_OPTIONS="--test"
     BUILD_UNIT_TESTS="ON"
 fi
+RUN_TESTS_BUILD_PY_OPTIONS=""
+BUILD_UNIT_TESTS="OFF"
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
@@ -48,33 +50,34 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
       exit 1
     fi
   fi
-  BUILD_ARGS="${BUILD_ARGS} --use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --parallel=1"
+  BUILD_ARGS="${BUILD_ARGS} --use_cuda"
+  BUILD_ARGS="${BUILD_ARGS} --cuda_version ${cuda_compiler_version}"
+  BUILD_ARGS="${BUILD_ARGS} --cuda_home ${CUDA_HOME}"
+  BUILD_ARGS="${BUILD_ARGS} --cudnn_home ${PREFIX}"
+  BUILD_ARGS="${BUILD_ARGS} --parallel=1"
   export NINJAJOBS=1
 fi
 
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
-                      "FLATBUFFERS_BUILD_FLATC=OFF" \
+                      "onnxruntime_USE_VCPKG=ON" \
                       "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
+                      "ONNX_USE_PROTOBUF_SHARED_LIBS=ON" \
+                      "onnxruntime_USE_FULL_PROTOBUF=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
-                      "CMAKE_CUDA_ARCHITECTURES=all-major"
+                      "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc"
 )
+${PYTHON:-python} \
+    onnxruntime/lora/adapter_format/compile_schema.py \
+    --flatc $(which flatc) --language cpp
 
-# Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
-# into --cmake_extra_defines.
-read -a CMAKE_ARGS_ARRAY <<< "${CMAKE_ARGS}"
-for cmake_arg in "${CMAKE_ARGS_ARRAY[@]}"
-do
-    if [[ "${cmake_arg}" == -DCMAKE_SYSTEM_* ]]; then
-        # Strip -D prefix
-        cmake_extra_defines+=( "${cmake_arg#"-D"}" )
-    fi
-done
+${PYTHON:-python} \
+    onnxruntime/core/flatbuffers/schema/compile_schema.py \
+    --flatc $(which flatc) --language cpp
 
-
-python tools/ci_build/build.py \
+${PYTHON:-python} tools/ci_build/build.py \
     --compile_no_warning_as_error \
     --enable_lto \
     --build_dir build-ci \
@@ -89,5 +92,5 @@ python tools/ci_build/build.py \
     ${BUILD_ARGS}
 
 for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
-    python -m pip install "$whl_file"
+    ${PYTHON:-python} -m pip install "$whl_file"
 done
