@@ -1,0 +1,117 @@
+From 45f48fe438a16deb70d2aa68ea22d70040d3ec2c Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Thu, 1 Jan 2026 23:14:13 -0500
+Subject: [PATCH] Improve Private linking
+
+---
+ cmake/onnxruntime_common.cmake        | 3 ++-
+ cmake/onnxruntime_framework.cmake     | 4 +++-
+ cmake/onnxruntime_graph.cmake         | 1 +
+ cmake/onnxruntime_optimizer.cmake     | 3 ++-
+ cmake/onnxruntime_providers_cpu.cmake | 1 +
+ cmake/onnxruntime_session.cmake       | 2 +-
+ cmake/onnxruntime_util.cmake          | 1 +
+ 7 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/cmake/onnxruntime_common.cmake b/cmake/onnxruntime_common.cmake
+index d927489..0718879 100644
+--- a/cmake/onnxruntime_common.cmake
++++ b/cmake/onnxruntime_common.cmake
+@@ -172,7 +172,8 @@ target_include_directories(onnxruntime_common
+         ${OPTIONAL_LITE_INCLUDE_DIR})
+ 
+ 
+-target_link_libraries(onnxruntime_common PUBLIC safeint_interface ${GSL_TARGET} ${ABSEIL_LIBS} date::date)
++target_link_libraries(onnxruntime_common PRIVATE safeint_interface ${GSL_TARGET} date::date)
++target_link_libraries(onnxruntime_common PRIVATE ${ABSEIL_LIBS})
+ 
+ add_dependencies(onnxruntime_common ${onnxruntime_EXTERNAL_DEPENDENCIES})
+ 
+diff --git a/cmake/onnxruntime_framework.cmake b/cmake/onnxruntime_framework.cmake
+index 15f3105..20c6569 100644
+--- a/cmake/onnxruntime_framework.cmake
++++ b/cmake/onnxruntime_framework.cmake
+@@ -88,9 +88,11 @@ if (onnxruntime_USE_MIMALLOC)
+ endif()
+ 
+ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+-  target_link_libraries(onnxruntime_framework ${ABSEIL_LIBS})
++  target_link_libraries(onnxruntime_framework PRIVATE ${ABSEIL_LIBS})
+ endif()
+ 
++target_link_libraries(onnxruntime_framework PRIVATE ${GSL_TARGET})
++
+ set_target_properties(onnxruntime_framework PROPERTIES FOLDER "ONNXRuntime")
+ # need onnx to build to create headers that this project includes
+ add_dependencies(onnxruntime_framework ${onnxruntime_EXTERNAL_DEPENDENCIES})
+diff --git a/cmake/onnxruntime_graph.cmake b/cmake/onnxruntime_graph.cmake
+index fba1a68..3cb9e32 100644
+--- a/cmake/onnxruntime_graph.cmake
++++ b/cmake/onnxruntime_graph.cmake
+@@ -97,6 +97,7 @@ endif()
+ onnxruntime_add_static_library(onnxruntime_graph ${onnxruntime_graph_src} ${orttraining_graph_src})
+ add_dependencies(onnxruntime_graph onnx_proto flatbuffers::flatbuffers)
+ onnxruntime_add_include_to_target(onnxruntime_graph onnxruntime_common ${WIL_TARGET} onnx onnx_proto ${PROTOBUF_LIB} flatbuffers::flatbuffers safeint_interface Boost::mp11)
++target_link_libraries(onnxruntime_graph PRIVATE ${GSL_TARGET})
+ 
+ if (MSVC)
+   set(ONNX_PROTOBUF_NATVIS_FILE "onnx_protobuf.natvis")
+diff --git a/cmake/onnxruntime_optimizer.cmake b/cmake/onnxruntime_optimizer.cmake
+index 5ab196f..18b1258 100644
+--- a/cmake/onnxruntime_optimizer.cmake
++++ b/cmake/onnxruntime_optimizer.cmake
+@@ -114,6 +114,7 @@ endif()
+ onnxruntime_add_static_library(onnxruntime_optimizer ${onnxruntime_optimizer_srcs})
+ 
+ onnxruntime_add_include_to_target(onnxruntime_optimizer onnxruntime_common onnxruntime_framework onnx onnx_proto ${PROTOBUF_LIB} flatbuffers::flatbuffers Boost::mp11 safeint_interface)
++target_link_libraries(onnxruntime_optimizer PRIVATE ${GSL_TARGET})
+ target_include_directories(onnxruntime_optimizer PRIVATE ${ONNXRUNTIME_ROOT})
+ if (onnxruntime_ENABLE_TRAINING)
+   target_include_directories(onnxruntime_optimizer PRIVATE ${ORTTRAINING_ROOT})
+@@ -136,4 +137,4 @@ if (NOT onnxruntime_BUILD_SHARED_LIB)
+             LIBRARY   DESTINATION ${CMAKE_INSTALL_LIBDIR}
+             RUNTIME   DESTINATION ${CMAKE_INSTALL_BINDIR}
+             FRAMEWORK DESTINATION ${CMAKE_INSTALL_BINDIR})
+-endif()
+\ No newline at end of file
++endif()
+diff --git a/cmake/onnxruntime_providers_cpu.cmake b/cmake/onnxruntime_providers_cpu.cmake
+index a5f165d..cf21861 100644
+--- a/cmake/onnxruntime_providers_cpu.cmake
++++ b/cmake/onnxruntime_providers_cpu.cmake
+@@ -147,6 +147,7 @@ if (MSVC)
+ #   endif()
+ endif()
+ onnxruntime_add_include_to_target(onnxruntime_providers onnxruntime_common onnxruntime_framework onnx onnx_proto ${PROTOBUF_LIB} flatbuffers::flatbuffers Boost::mp11 safeint_interface)
++target_link_libraries(onnxruntime_providers PRIVATE ${GSL_TARGET})
+ 
+ if (onnxruntime_BUILD_MS_EXPERIMENTAL_OPS)
+   target_compile_definitions(onnxruntime_providers PRIVATE BUILD_MS_EXPERIMENTAL_OPS=1)
+diff --git a/cmake/onnxruntime_session.cmake b/cmake/onnxruntime_session.cmake
+index f81a7a9..aaf5750 100644
+--- a/cmake/onnxruntime_session.cmake
++++ b/cmake/onnxruntime_session.cmake
+@@ -40,7 +40,7 @@ source_group(TREE ${REPO_ROOT} FILES ${onnxruntime_session_srcs})
+ 
+ onnxruntime_add_static_library(onnxruntime_session ${onnxruntime_session_srcs})
+ onnxruntime_add_include_to_target(onnxruntime_session onnxruntime_common onnxruntime_framework onnxruntime_lora onnx onnx_proto ${PROTOBUF_LIB} flatbuffers::flatbuffers Boost::mp11 safeint_interface nlohmann_json::nlohmann_json Eigen3::Eigen)
+-target_link_libraries(onnxruntime_session PRIVATE onnxruntime_lora)
++target_link_libraries(onnxruntime_session PRIVATE onnxruntime_lora ${GSL_TARGET})
+ if(onnxruntime_ENABLE_INSTRUMENT)
+   target_compile_definitions(onnxruntime_session PUBLIC ONNXRUNTIME_ENABLE_INSTRUMENT)
+ endif()
+diff --git a/cmake/onnxruntime_util.cmake b/cmake/onnxruntime_util.cmake
+index 851b68a..3b88e41 100644
+--- a/cmake/onnxruntime_util.cmake
++++ b/cmake/onnxruntime_util.cmake
+@@ -10,6 +10,7 @@ source_group(TREE ${ONNXRUNTIME_ROOT}/core FILES ${onnxruntime_util_srcs})
+ 
+ onnxruntime_add_static_library(onnxruntime_util ${onnxruntime_util_srcs})
+ onnxruntime_add_include_to_target(onnxruntime_util onnxruntime_common onnx onnx_proto ${PROTOBUF_LIB} Boost::mp11 Eigen3::Eigen)
++target_link_libraries(onnxruntime_util PRIVATE ${GSL_TARGET})
+ if(UNIX)
+     target_compile_options(onnxruntime_util PUBLIC "-Wno-error=comment")
+ endif()
+-- 
+2.51.0
+
