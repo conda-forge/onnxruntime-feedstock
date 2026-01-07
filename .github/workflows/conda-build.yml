@@ -21,36 +21,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - CONFIG: linux_64_cuda_compiler_version12.9python3.10.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_h3a66bdde', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_version12.9python3.10.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_h31d65d89', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_version12.9python3.11.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_hc301f952', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_version12.9python3.11.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_hca068e97', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_version12.9python3.12.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_h562205ff', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_version12.9python3.12.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_hfcb0a960', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
           - CONFIG: linux_64_cuda_compiler_version12.9python3.13.____cp313suffix
             UPLOAD_PACKAGES: True
             os: ubuntu
@@ -60,36 +30,6 @@ jobs:
             UPLOAD_PACKAGES: True
             os: ubuntu
             runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_version12.9python_h1cca7428', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_h324bf040', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_h880ce673', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_h6ac1d39a', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_h7de3e2a5', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_versionNonepython3.12.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_hec45729e', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_cuda_compiler_versionNonepython3.12.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_h054a5f3a', 'linux', 'x64', 'self-hosted']
             DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
           - CONFIG: linux_64_cuda_compiler_versionNonepython3.13.____cp313suffix
             UPLOAD_PACKAGES: True
@@ -101,36 +41,6 @@ jobs:
             os: ubuntu
             runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_64_cuda_compiler_versionNonepython_h22789aa6', 'linux', 'x64', 'self-hosted']
             DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.10.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_h02b92a48', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.10.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_h29ebf758', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.11.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_h50dfbc70', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_hbd10c3ea', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.12.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_h956d8279', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.12.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_hc525edcf', 'linux', 'x64', 'self-hosted']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
           - CONFIG: linux_aarch64_cuda_compiler_versionNonepython3.13.____cp313suffix
             UPLOAD_PACKAGES: True
             os: ubuntu
@@ -141,30 +51,6 @@ jobs:
             os: ubuntu
             runs_on: ['cirun-openstack-cpu-4xlarge--${{ github.run_id }}-linux_aarch64_cuda_compiler_versionNonep_ha614c754', 'linux', 'x64', 'self-hosted']
             DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: win_64_cuda_compiler_version12.9python3.10.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._haca5f550', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_version12.9python3.10.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._hda3d5d91', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_version12.9python3.11.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._h2845a0b2', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_version12.9python3.11.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._hf5f00a0b', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_version12.9python3.12.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._h39d4b130', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_version12.9python3.12.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._h512b08c8', 'windows', 'x64', 'self-hosted']
           - CONFIG: win_64_cuda_compiler_version12.9python3.13.____cp313suffix
             UPLOAD_PACKAGES: True
             os: windows
@@ -173,30 +59,6 @@ jobs:
             UPLOAD_PACKAGES: True
             os: windows
             runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_version12.9python3._hc205d925', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_versionNonepython3._h9b8b909e', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_versionNonepython3.10.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_versionNonepython3._hb247aade', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_versionNonepython3._h6928eed6', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_versionNonepython3._h4390b1c1', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_versionNonepython3.12.____cpythonsuffix
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_versionNonepython3._h7ca8fcdb', 'windows', 'x64', 'self-hosted']
-          - CONFIG: win_64_cuda_compiler_versionNonepython3.12.____cpythonsuffix-novec
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['cirun-azure-windows-4xlarge--${{ github.run_id }}-win_64_cuda_compiler_versionNonepython3._h7e77335f', 'windows', 'x64', 'self-hosted']
           - CONFIG: win_64_cuda_compiler_versionNonepython3.13.____cp313suffix
             UPLOAD_PACKAGES: True
             os: windows
