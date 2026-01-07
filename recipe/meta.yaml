@@ -147,7 +147,7 @@ outputs:
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
         # Compilation in tests requires libclang-cpp
-        - libclang-cpp # [osx]
+        - libclang-cpp  # [osx]
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
