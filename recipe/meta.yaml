@@ -39,7 +39,7 @@ source:
 
 build:
   number: {{ build }}
-  skip: true #[ py!=313 ]
+  skip: true  # [ py!=313 ]
   # don't build cuda versions with novec
   skip: true  # [ (cuda_compiler_version != "None") and (suffix == "-novec")]
   # cross-compilation of linux-aarch64 cuda builds are currently broken
