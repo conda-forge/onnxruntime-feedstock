@@ -1,0 +1,32 @@
+From 928df7cf25f0425e4b3250901a08a72acfd561b0 Mon Sep 17 00:00:00 2001
+From: mingyue <131847423+mingyueliuh@users.noreply.github.com>
+Date: Fri, 29 Aug 2025 16:27:23 -0500
+Subject: [PATCH] [Fix] illegal memory access in GetInputIndices with optional
+ inputs (#25881)
+
+### Description
+Fix illegal memory access in GetInputIndices with optional inputs
+
+### Motivation and Context
+When an input is optional, its ValueInfo may be nullptr.
+The current implementation directly calls InputValueInfo->GetName(), leading to illegal memory access.
+
+Update logic to skip optional inputs when valueInfo is nullptr .
+---
+ onnxruntime/core/graph/ep_api_types.cc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/onnxruntime/core/graph/ep_api_types.cc b/onnxruntime/core/graph/ep_api_types.cc
+index 0d9b93631ee8a..92eb31f0ad385 100644
+--- a/onnxruntime/core/graph/ep_api_types.cc
++++ b/onnxruntime/core/graph/ep_api_types.cc
+@@ -327,6 +327,9 @@ static Status GetInputIndices(const EpNode& consumer_node,
+       [&found, &value_info_name, &indices](gsl::span<const EpValueInfo* const> input_value_infos,
+                                            bool is_implicit) -> void {
+     for (size_t i = 0; i < input_value_infos.size(); i++) {
++      if (input_value_infos[i] == nullptr) {  // input_value_info == nullptr means the input is optional
++        continue;
++      }
+       if (input_value_infos[i]->GetName() == value_info_name) {
+         indices.push_back(is_implicit ? -1 : static_cast<int64_t>(i));
+         found = true;
