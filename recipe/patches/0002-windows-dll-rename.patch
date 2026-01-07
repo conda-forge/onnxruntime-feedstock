@@ -1,0 +1,26 @@
+diff --git a/cmake/onnxruntime.cmake b/cmake/onnxruntime.cmake
+index e1d9810920..5e25d7f14b 100644
+--- a/cmake/onnxruntime.cmake
++++ b/cmake/onnxruntime.cmake
+@@ -83,6 +83,8 @@ if(onnxruntime_BUILD_SHARED_LIB)
+       "${ONNXRUNTIME_ROOT}/core/dll/delay_load_hook.cc"
+       "${ONNXRUNTIME_ROOT}/core/dll/onnxruntime.rc"
+     )
++  # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
++  set_target_properties(onnxruntime PROPERTIES OUTPUT_NAME onnxruntime_conda)
+   elseif(onnxruntime_BUILD_APPLE_FRAMEWORK)
+     # apple framework requires the header file be part of the library
+     onnxruntime_add_shared_library(onnxruntime
+diff --git a/onnxruntime/test/shared_lib/dlopen_main.cc b/onnxruntime/test/shared_lib/dlopen_main.cc
+index 09a0647543..4dccbeb747 100644
+--- a/onnxruntime/test/shared_lib/dlopen_main.cc
++++ b/onnxruntime/test/shared_lib/dlopen_main.cc
+@@ -151,7 +151,7 @@ int main() {
+ #endif
+ 
+     std::cout << "Loading onnxruntime.dll..." << std::endl;
+-    ort_library_handle = LoadLibrary(TEXT("onnxruntime.dll"));
++    ort_library_handle = LoadLibrary(TEXT("onnxruntime_conda.dll"));
+     if (!ort_library_handle) {
+       DWORD error_code = GetLastError();
+       throw std::runtime_error("Failed to load onnxruntime.dll. Error code: " + std::to_string(error_code));
