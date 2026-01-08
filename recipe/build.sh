@@ -28,6 +28,8 @@ fi
 
 if [[ "${target_platform}" == "osx-64" ]]; then
     export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+    export CTEST_PARALLEL_LEVEL=1
+    export CTEST_OUTPUT_ON_FAILURE=1
 fi
 
 if [[ "${target_platform}" == "linux-64" || "${target_platform}" == "linux-aarch64" ]]; then

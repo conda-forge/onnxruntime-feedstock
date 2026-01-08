@@ -35,7 +35,7 @@ source:
 build:
   number: {{ build }}
   skip: true  # [ py!=313 ]
-  # skip: true  # [ not win ]
+  skip: true  # [ not osx ]
   skip: true  # [ (cuda_compiler_version != "None") ]
   skip: true  # [ suffix == "-novec" ]
   # don't build cuda versions with novec
