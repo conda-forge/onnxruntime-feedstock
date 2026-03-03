@@ -41,7 +41,7 @@ build:
   skip: true  # [osx and x86_64]  # No longer supported upstream and tests fail
   skip: true  # [win]
   skip: true  # [osx]
-  skip: true  # [py != 3.12]
+  skip: true  # [py != 312]
   skip: true  # [linux and x86_64]
   skip: true  # [cuda_compiler_version == "None"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
