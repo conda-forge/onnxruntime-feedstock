@@ -14,38 +14,6 @@ Current build status
 
 
 <table>
-    
-  <tr>
-    <td>Azure</td>
-    <td>
-      <details>
-        <summary>
-          <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-            <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main">
-          </a>
-        </summary>
-        <table>
-          <thead><tr><th>Variant</th><th>Status</th></tr></thead>
-          <tbody><tr>
-              <td>linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix" alt="variant">
-                </a>
-              </td>
-            </tr><tr>
-              <td>linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=12634&branchName=main">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/onnxruntime-feedstock?branchName=main&jobName=linux&configuration=linux%20linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix" alt="variant">
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </details>
-    </td>
-  </tr>
 </table>
 
 Current release info
@@ -54,7 +22,7 @@ Current release info
 | Name | Downloads | Version | Platforms |
 | --- | --- | --- | --- |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime-green.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) |
-| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) |
+| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) |
 
 Installing onnxruntime
 ======================
@@ -66,16 +34,16 @@ conda config --add channels conda-forge
 conda config --set channel_priority strict
 ```
 
-Once the `conda-forge` channel has been enabled, `onnxruntime, onnxruntime-cpp` can be installed with `conda`:
+Once the `conda-forge` channel has been enabled, `onnxruntime, onnxruntime-novec` can be installed with `conda`:
 
 ```
-conda install onnxruntime onnxruntime-cpp
+conda install onnxruntime onnxruntime-novec
 ```
 
 or with `mamba`:
 
 ```
-mamba install onnxruntime onnxruntime-cpp
+mamba install onnxruntime onnxruntime-novec
 ```
 
 It is possible to list all of the versions of `onnxruntime` available on your platform with `conda`:

@@ -26,24 +26,6 @@ description = "Build onnxruntime-feedstock directly (without setup scripts), no 
 [tasks.debug]
 cmd = "conda-build debug recipe"
 description = "Debug onnxruntime-feedstock directly (without setup scripts), no particular variant specified"
-[tasks."build-linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix"]
-cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix.yaml"
-description = "Build onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix directly (without setup scripts)"
-[tasks."debug-linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix"]
-cmd = "conda-build debug recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix.yaml"
-description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix directly (without setup scripts)"
-[tasks."inspect-linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9python3.12.____cpythonsuffix"
-[tasks."build-linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix"]
-cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix.yaml"
-description = "Build onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix directly (without setup scripts)"
-[tasks."debug-linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix"]
-cmd = "conda-build debug recipe -m .ci_support/linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix.yaml"
-description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix directly (without setup scripts)"
-[tasks."inspect-linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0python3.12.____cpythonsuffix"
 
 [feature.smithy.dependencies]
 conda-smithy = "*"
