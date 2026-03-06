@@ -1,6 +1,6 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
-{% set version = "1.24.2" %}
+{% set version = "1.24.3" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: e4f44579f0bdd06d1cc7abdb2a6740dc06ac10699d502c0f8d9576203550bd4d
+  sha256: 70364aa2cddfe535974bd160261c25743aca0ec3708770578813b0f9404bd064
   patches:
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
     - patches/0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch     # [win]
@@ -35,12 +35,12 @@ source:
 build:
   number: {{ build }}
   # don't build cuda versions with novec
-  skip: true  # [ (cuda_compiler_version != "None") and suffix == "-novec" ]
+  skip: true  # [ (cuda_compiler_version != "None") and suffix == "-novec"]
   # cross-compilation of linux-aarch64 cuda builds are currently broken
   skip: true  # [(cuda_compiler_version != "None") and aarch64]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
-  skip: true  # [osx and x86_64]  # No longer supported upstream and tests fail
+  skip: true  # [osx and x86_64]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
