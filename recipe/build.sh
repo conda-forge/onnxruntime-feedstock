@@ -2,9 +2,7 @@
 
 set -exuo pipefail
 
-BUILD_ARGS="--skip_pip_install --parallel=4"
-
-if [[ "${PKG_NAME}" == 'onnxruntime-novec' ]]; then
+if [[ "${PKG_NAME}" == *'-novec'* ]]; then
     DONT_VECTORIZE="ON"
 else
     DONT_VECTORIZE="OFF"
@@ -12,16 +10,16 @@ fi
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || "${cuda_compiler_version:-None}" != "None" ]]; then
     echo "Tests are disabled"
-    RUN_TESTS_BUILD_PY_OPTIONS=""
     BUILD_UNIT_TESTS="OFF"
 else
     echo "Tests are enabled"
-    RUN_TESTS_BUILD_PY_OPTIONS="--test"
     BUILD_UNIT_TESTS="ON"
 fi
 
-if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
-    BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
+# Work around transient macOS dyld bug where hardlinked binaries resolve
+# @rpath against the pkgs cache instead of the environment (conda-forge/cmake-feedstock#230).
+if [[ "$(uname)" == "Darwin" ]]; then
+    export DYLD_FALLBACK_LIBRARY_PATH="${BUILD_PREFIX}/lib:${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH:-}"
 fi
 
 if [[ "${target_platform}" == "linux-64" || "${target_platform}" == "linux-aarch64" ]]; then
@@ -31,79 +29,147 @@ if [[ "${target_platform}" == "linux-64" || "${target_platform}" == "linux-aarch
     LDFLAGS+=" -Wl,-z,noexecstack"
 fi
 
-cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
-                      "FLATBUFFERS_BUILD_FLATC=OFF" \
-                      "onnxruntime_USE_COREML=OFF" \
-                      "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
-                      "onnxruntime_BUILD_SHARED_LIB=ON" \
-                      "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
-                      "CMAKE_PREFIX_PATH=$PREFIX" \
-                      "CMAKE_CXX_STANDARD=17" \
-		      "CMAKE_INSTALL_LIBDIR=lib"
+# Collect cmake defines, starting with flags that deviate from onnxruntime defaults.
+cmake_defines=(
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_PREFIX_PATH="$PREFIX"
+    -DCMAKE_CXX_STANDARD=17
+    -DCMAKE_INSTALL_LIBDIR=lib
+    -DONNX_CUSTOM_PROTOC_EXECUTABLE="$BUILD_PREFIX/bin/protoc"
+    -DPython_EXECUTABLE="$PREFIX/bin/python"
+    # Non-default onnxruntime options
+    -Donnxruntime_BUILD_SHARED_LIB=ON
+    -Donnxruntime_DISABLE_RTTI=OFF
+    -Donnxruntime_ENABLE_LTO=ON
+    -Donnxruntime_ENABLE_PYTHON=ON
+    -Donnxruntime_USE_KLEIDIAI=ON
+    -Donnxruntime_USE_SVE=ON
+    -Donnxruntime_BUILD_UNIT_TESTS="$BUILD_UNIT_TESTS"
+    -Donnxruntime_DONT_VECTORIZE="$DONT_VECTORIZE"
+    # License compliance / conda-forge specifics
+    -DEIGEN_MPL2_ONLY=ON
+    -DFLATBUFFERS_BUILD_FLATC=OFF
 )
 
-# Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
-# into --cmake_extra_defines.
-read -a CMAKE_ARGS_ARRAY <<< "${CMAKE_ARGS}"
-for cmake_arg in "${CMAKE_ARGS_ARRAY[@]}"
-do
-    if [[ "${cmake_arg}" == -DCMAKE_SYSTEM_* ]]; then
-        # Strip -D prefix
-        cmake_extra_defines+=( "${cmake_arg#"-D"}" )
-    fi
-done
+if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
+    cmake_defines+=( -DCMAKE_OSX_ARCHITECTURES=arm64 )
+fi
 
-# nvcc is at $BUILD_PREFIX/bin, not $CUDA_HOME/bin in conda-forge CUDA 12
+# CUDA configuration
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
     case ${cuda_compiler_version} in
-	12.9)
-            export CUDA_ARCH_LIST="70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
+        12.9)
+            CUDA_ARCH_LIST="70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
             ;;
-	13.0)
-            export CUDA_ARCH_LIST="75-real;80-real;86-real;89-real;90-real;100-real;120"
+        13.0)
+            CUDA_ARCH_LIST="75-real;80-real;86-real;89-real;90-real;100-real;120"
             ;;
-	*)
+        *)
             echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}. See build.sh for information on adding one."
-	    exit 1
+            exit 1
     esac
     case ${target_platform} in
-	linux-64)
+        linux-64)
             CUDA_TARGET=x86_64-linux
             ;;
-	linux-aarch64)
+        linux-aarch64)
             CUDA_TARGET=sbsa-linux
             ;;
-	*)
+        *)
             echo "unknown CUDA arch, edit build.sh"
             exit 1
     esac
     export CUDA_HOME="${BUILD_PREFIX}/targets/${CUDA_TARGET}"
-    BUILD_ARGS="${BUILD_ARGS} --use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX}"
     export NINJAJOBS=1
-    cmake_extra_defines+=( "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc" \
-			   "CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH_LIST}"
-			 )
-
+    cmake_defines+=(
+        -Donnxruntime_USE_CUDA=ON
+        -Donnxruntime_CUDA_HOME="$CUDA_HOME"
+        -Donnxruntime_CUDNN_HOME="$PREFIX"
+        -DCMAKE_CUDA_COMPILER="$BUILD_PREFIX/bin/nvcc"
+        -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCH_LIST"
+    )
 fi
 
-python tools/ci_build/build.py \
-    --compile_no_warning_as_error \
-    --enable_lto \
-    --build_dir build-ci \
-    --cmake_extra_defines "${cmake_extra_defines[@]}" \
-    --cmake_generator Ninja \
-    --build_wheel \
-    --config Release \
-    --update \
-    --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
-    --skip_submodule_sync \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
-    ${BUILD_ARGS}
+case "${PKG_NAME}" in
+  onnxruntime*-cpp)
+    # ============================================================
+    # C++ build (runs once with Python 3.12)
+    # ============================================================
 
-# Install the project into cwd.
-# This is needed only to produce the exported CMake targets.
-cmake --install build-ci/Release --prefix "install-ci"
+    # Configure
+    cmake -S cmake -B build-ci/Release \
+        -G Ninja \
+        --compile-no-warning-as-error \
+        ${CMAKE_ARGS} \
+        "${cmake_defines[@]}"
 
-for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
-    python -m pip install "$whl_file"
-done
+    # Build
+    cmake --build build-ci/Release --config Release -j${CPU_COUNT}
+
+    # Run tests (only for native, non-CUDA builds)
+    if [[ "$BUILD_UNIT_TESTS" == "ON" ]]; then
+        ctest -V -C Release --test-dir build-ci/Release/
+    fi
+
+    # Export cmake targets (for install-ci/lib/cmake/onnxruntime)
+    cmake --install build-ci/Release --prefix "install-ci"
+
+    # Save CMake cache for Python rebuilds
+    cp build-ci/Release/CMakeCache.txt build-ci/Release/CMakeCache.txt.orig
+
+    # Install C++ artifacts to $PREFIX
+    mkdir -p "${PREFIX}/include"
+    mkdir -p "${PREFIX}/lib/cmake"
+    cp -pr include/onnxruntime "${PREFIX}/include/"
+    cp -pr install-ci/lib/cmake/onnxruntime "${PREFIX}/lib/cmake/"
+
+    if [[ -n "${OSX_ARCH:+yes}" ]]; then
+        install build-ci/Release/libonnxruntime.*dylib "${PREFIX}/lib"
+    else
+        install build-ci/Release/libonnxruntime.so* "${PREFIX}/lib"
+        if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
+            install build-ci/Release/libonnxruntime_providers_shared.so* "${PREFIX}/lib"
+            install build-ci/Release/libonnxruntime_providers_cuda.so* "${PREFIX}/lib"
+        fi
+    fi
+    ;;
+
+  onnxruntime*)
+    # ============================================================
+    # Python rebuild (runs per Python version)
+    # ============================================================
+
+    # Determine target Python version
+    PY_VER=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    PY_MAJOR="${PY_VER%.*}"
+    PY_MINOR="${PY_VER#*.}"
+
+    # Make a copy to avoid polluting the build dir with re-generated protobuf files
+    PY_BUILD_DIR="build-py${PY_VER}" 
+    cp -al build-ci ${PYBUILD_DIR}
+
+    # Patch CMake cache: replace Python 3.12 references with target version
+    sed "s/3\.12/${PY_VER}/g" ${PYBUILD_DIR}/Release/CMakeCache.txt.orig > ${PYBUILD_DIR}/Release/CMakeCache.txt
+    sed -i.bak "s/3;12/${PY_MAJOR};${PY_MINOR}/g" ${PYBUILD_DIR}/Release/CMakeCache.txt
+    sed -i.bak "s/cpython-312/cpython-${PY_MAJOR}${PY_MINOR}/g" ${PYBUILD_DIR}/Release/CMakeCache.txt
+
+    # Delete old wheel
+    rm -f ${PYBUILD_DIR}/Release/dist/onnxruntime*.whl
+
+    # Rebuild: ninja detects the patched CMakeCache.txt and automatically
+    # triggers a cmake reconfigure before building. This uses the original
+    # configure arguments stored in the cache, avoiding any re-checks that
+    # a fresh cmake invocation with new -D flags would cause.
+    cmake --build ${PYBUILD_DIR}/Release --config Release -j${CPU_COUNT}
+
+    # Build wheel
+    pushd ${PYBUILD_DIR}/Release
+    python "${SRC_DIR}/setup.py" bdist_wheel
+    popd
+
+    # Install the rebuilt wheel
+    for whl_file in ${PYBUILD_DIR}/Release/dist/onnxruntime*.whl; do
+        python -m pip install "$whl_file"
+    done
+    ;;
+esac
