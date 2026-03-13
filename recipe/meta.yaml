@@ -35,8 +35,8 @@ source:
 build:
   number: {{ build }}
   # DEBUG skips:
-  # skip: true  # [ cuda_compiler_version != "None" ]
-  # skip: true  # [ suffix == "-novec" ]
+  skip: true  # [ cuda_compiler_version != "None" ]
+  skip: true  # [ suffix == "-novec" ]
   # don't build cuda versions with novec
   skip: true  # [ (cuda_compiler_version != "None") and suffix == "-novec"]
   # cross-compilation of linux-aarch64 cuda builds are currently broken

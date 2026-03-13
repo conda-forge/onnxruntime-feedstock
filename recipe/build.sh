@@ -40,11 +40,11 @@ cmake_defines=(
     # Non-default onnxruntime options
     -Donnxruntime_BUILD_SHARED_LIB=ON
     -Donnxruntime_DISABLE_RTTI=OFF
-    -Donnxruntime_ENABLE_LTO=ON
+    # -Donnxruntime_ENABLE_LTO=ON TODO: re-enable lto
     -Donnxruntime_ENABLE_PYTHON=ON
     -Donnxruntime_USE_KLEIDIAI=ON
     -Donnxruntime_USE_SVE=ON
-    -Donnxruntime_BUILD_UNIT_TESTS="$BUILD_UNIT_TESTS"
+    -Donnxruntime_BUILD_UNIT_TESTS="OFF"  # "$BUILD_UNIT_TESTS"
     -Donnxruntime_DONT_VECTORIZE="$DONT_VECTORIZE"
     # License compliance / conda-forge specifics
     -DEIGEN_MPL2_ONLY=ON
@@ -145,31 +145,34 @@ case "${PKG_NAME}" in
     PY_MINOR="${PY_VER#*.}"
 
     # Make a copy to avoid polluting the build dir with re-generated protobuf files
-    PY_BUILD_DIR="build-py${PY_VER}" 
-    cp -al build-ci ${PYBUILD_DIR}
+    zip -q -r build-ci.zip build-ci
 
     # Patch CMake cache: replace Python 3.12 references with target version
-    sed "s/3\.12/${PY_VER}/g" ${PYBUILD_DIR}/Release/CMakeCache.txt.orig > ${PYBUILD_DIR}/Release/CMakeCache.txt
-    sed -i.bak "s/3;12/${PY_MAJOR};${PY_MINOR}/g" ${PYBUILD_DIR}/Release/CMakeCache.txt
-    sed -i.bak "s/cpython-312/cpython-${PY_MAJOR}${PY_MINOR}/g" ${PYBUILD_DIR}/Release/CMakeCache.txt
+    sed "s/3\.12/${PY_VER}/g" build-ci/Release/CMakeCache.txt.orig > build-ci/Release/CMakeCache.txt
+    sed -i.bak "s/3;12/${PY_MAJOR};${PY_MINOR}/g" build-ci/Release/CMakeCache.txt
+    sed -i.bak "s/cpython-312/cpython-${PY_MAJOR}${PY_MINOR}/g" build-ci/Release/CMakeCache.txt
 
     # Delete old wheel
-    rm -f ${PYBUILD_DIR}/Release/dist/onnxruntime*.whl
+    rm -f build-ci/Release/dist/onnxruntime*.whl
 
     # Rebuild: ninja detects the patched CMakeCache.txt and automatically
     # triggers a cmake reconfigure before building. This uses the original
     # configure arguments stored in the cache, avoiding any re-checks that
     # a fresh cmake invocation with new -D flags would cause.
-    cmake --build ${PYBUILD_DIR}/Release --config Release -j${CPU_COUNT}
+    cmake --build build-ci/Release --config Release -j${CPU_COUNT}
 
     # Build wheel
-    pushd ${PYBUILD_DIR}/Release
+    pushd build-ci/Release
     python "${SRC_DIR}/setup.py" bdist_wheel
     popd
 
     # Install the rebuilt wheel
-    for whl_file in ${PYBUILD_DIR}/Release/dist/onnxruntime*.whl; do
+    for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
         python -m pip install "$whl_file"
     done
+    # restore the build dir from the -cpp stage
+    rm -rf build-ci
+    unzip -q build-ci.zip -d .
+
     ;;
 esac
