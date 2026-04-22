@@ -1,0 +1,264 @@
+context:
+  version: "1.25.0"
+  suffix: ${{ suffix | default("") }}
+  novec: ${{ suffix == "-novec" }}
+  cuda_enabled: ${{ cuda_compiler_version != "None" }}
+  build_number_base: 0
+  build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
+  build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
+
+recipe:
+  name: onnxruntime-dummy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 071d31a593082dd1d3a8ff3db8a78fba4e3d841653e225e807b1eb709da5f56f
+  patches:
+    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
+    - if: win
+      then:
+        - patches/0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch
+    # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
+    - patches/0002-use-first-nvcc-found.patch
+    # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
+    # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
+    - patches/0003-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
+    # Fix endian.h shadowing system header for glibc 2.17
+    - patches/0004-Remove-redundant-include-paths-from-custom-op-test-t.patch
+
+build:
+  number: ${{ build_number }}
+  skip:
+    # DEBUG skips:
+    # - osx
+    - cuda_compiler_version != "None"
+    - novec
+    # cross-compilation of linux-aarch64 cuda builds are currently broken
+    - cuda_compiler_version != "None" and aarch64
+    - ppc64le
+    # No longer supported upstream and tests fail
+    - osx and x86_64
+    # No CUDA on macOS
+    - cuda_compiler_version != "None" and osx
+    # don't build cuda versions with novec
+    - cuda_compiler_version != "None" and novec
+
+outputs:
+  - staging:
+      name: onnxruntime${{ suffix }}-build
+    build:
+      script:
+        interpreter: nu
+        env:
+          # breaks rattler build output due to invalid utf8 output on stderr
+          GTEST_FILTER: "-RegexFullMatch.NonUtf8Pattern"
+        file: build-cpp.nu
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - if: build_platform != target_platform
+          then:
+            - python 3.13.*
+            - pybind11
+            - numpy
+            - cross-python_${{ target_platform }}
+        # - if: cuda_enabled
+        #   then:
+        #     - ${{ compiler('cuda') }}
+        #     - if: build_platform != target_platform
+        #       then:
+        #         - cuda-cudart-dev
+        #         - cuda-nvrtc-dev
+        - cmake
+        - ninja
+        - nushell
+        - if: unix
+          then:
+            - patch
+          else:
+            - m2-patch
+        # we need protoc in the build environment for cross compilations
+        - libprotobuf 3.21.*
+      host:
+        - pybind11
+        - python 3.13.*
+        - numpy
+        # - if: cuda_enabled
+        #   then:
+        #     - cudnn
+        #     - cuda-version ==${{ cuda_compiler_version }}
+        #     - libcublas-dev
+        #     - libcusparse-dev
+        #     - libcurand-dev
+        #     - libcufft-dev
+        #     - cuda-cudart-dev
+        #     - cuda-nvrtc-dev
+        # - gmock
+        # - libdate
+        # - optional-lite
+        # - zlib
+      ignore_run_exports:
+        from_package:
+          # - zlib
+          # This output only needs python to build; libonnxruntime has no Python dependency
+          - python
+          - pybind11
+          - numpy
+          - cross-python_${{ target_platform }}
+  - package:
+      name: onnxruntime${{ suffix }}-cpp
+
+    build:
+      number: ${{ build_number }}
+      string: h${{ hash }}_${{ build_number }}_${{ build_ext }}
+      files:
+        - lib/*
+        - include/*
+    requirements:
+      run:
+        # avoid that people without GPUs needlessly download ~0.5-1GB
+        - if: cuda_enabled
+          then:
+            - __cuda
+      run_constraints:
+        - if: novec
+          then:
+            - onnxruntime-cpp <0a0
+    inherit: onnxruntime-build
+          
+    tests:
+      - package_contents:
+          include:
+            - onnxruntime/onnxruntime_cxx_api.h
+          lib:
+            - if: unix
+              then:
+                - onnxruntime
+              else:
+                - onnxruntime_conda
+            - if: cuda_compiler_version != "None"
+              then:
+                - onnxruntime_providers_shared
+                - onnxruntime_providers_cuda
+      - script:
+          - if: linux
+            then:
+              - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp
+          - if: osx
+            then:
+              - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp
+          - if: unix
+            then:
+              - ./a.out
+          - if: win
+            then:
+              - call .\run_cpp_test.bat
+          - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib("c") }}
+            - cmake-package-check
+        files:
+          recipe:
+            - test.cpp
+            - if: win
+              then:
+                - run_cpp_test.bat            
+
+  - package:
+      name: onnxruntime${{ suffix }}
+    inherit: onnxruntime-build
+    build:
+      skip:
+        - match(python, "<=3.10")
+      number: ${{ build_number }}
+      string: py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}_${{ build_ext }}
+      script: build-python.nu
+      python:
+        entry_points:
+          - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - nushell
+        - python
+        - pybind11
+        - numpy
+        - pip
+        - setuptools
+        - wheel
+        # we need protoc in the build environment for cross compilations
+        - libprotobuf 3.21.*
+        - if: build_platform != target_platform
+          then:
+            - cross-python_${{ target_platform }}
+        - if: unix
+          then:
+            - patch
+          else:
+            - m2-patch
+      host:
+        - ${{ pin_subpackage("onnxruntime" ~ suffix ~ "-cpp", exact=True) }}
+        - python
+        - numpy
+        - pybind11
+        # Tests contain a huge number of binary files that we don't
+        # want to ship by running them from the `tests` section.
+        - pytest
+      run:
+        - ${{ pin_subpackage("onnxruntime" ~ suffix ~ "-cpp", exact=True) }}
+        - python
+        - coloredlogs
+        - python-flatbuffers
+        - numpy
+        - packaging
+        - protobuf
+        - sympy
+      run_constraints:
+        - if: novec
+          then:
+            - onnxruntime <0a0
+
+    tests:
+      - if: build_platform == target_platform
+        then:
+          - python:
+              imports:
+                - onnxruntime
+              pip_check: true
+
+
+about:
+  homepage: https://github.com/microsoft/onnxruntime/
+  summary: cross-platform, high performance ML inferencing and training accelerator
+  license: MIT
+  license_file:
+    - LICENSE
+    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
+    - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
+    - build-ci/Release/_deps/flatbuffers-src/LICENSE
+    - build-ci/Release/_deps/gsl-src/LICENSE
+    - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
+    - build-ci/Release/_deps/onnx-src/LICENSE
+    - build-ci/Release/_deps/protobuf-src/LICENSE
+    - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
+    - build-ci/Release/_deps/re2-src/LICENSE
+    - build-ci/Release/_deps/safeint-src/LICENSE
+
+extra:
+  recipe-maintainers:
+    - xhochy
+    - janjagusch
+    - jtilly
+    - cbourjau
+    - hmaarrfk
+    - traversaro
