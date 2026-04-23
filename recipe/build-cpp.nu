@@ -114,10 +114,10 @@ cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cm
 # Build
 cmake --build build-ci/Release --config Release --parallel $env.CPU_COUNT
 
-# Run tests  #TODO: Enable
-# if not $cross_compiling {
-#    ctest -V -C Release --test-dir build-ci/Release
-# }
+# Run tests
+if not $cross_compiling {
+   ctest -V -C Release --test-dir build-ci/Release
+}
 
 # Install
 let lib_prefix = if $is_win { $env.LIBRARY_PREFIX } else { $env.PREFIX }
