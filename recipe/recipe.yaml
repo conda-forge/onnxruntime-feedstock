@@ -143,31 +143,33 @@ outputs:
               then:
                 - onnxruntime_providers_shared
                 - onnxruntime_providers_cuda
-      - script:
-          - if: linux
-            then:
-              - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp
-          - if: osx
-            then:
-              - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp
-          - if: unix
-            then:
-              - ./a.out
-          - if: win
-            then:
-              - call .\run_cpp_test.bat
-          - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
-        requirements:
-          run:
-            - ${{ compiler('cxx') }}
-            - ${{ stdlib("c") }}
-            - cmake-package-check
-        files:
-          recipe:
-            - test.cpp
-            - if: win
-              then:
-                - run_cpp_test.bat            
+      - if: build_platform == target_platform
+        then:
+          - script:
+              - if: linux
+                then:
+                  - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp
+              - if: osx
+                then:
+                  - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp
+              - if: unix
+                then:
+                  - ./a.out
+              - if: win
+                then:
+                  - call .\run_cpp_test.bat
+              - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+            requirements:
+              run:
+                - ${{ compiler('cxx') }}
+                - ${{ stdlib("c") }}
+                - cmake-package-check
+            files:
+              recipe:
+                - test.cpp
+                - if: win
+                  then:
+                    - run_cpp_test.bat
 
   - package:
       name: onnxruntime${{ suffix }}
