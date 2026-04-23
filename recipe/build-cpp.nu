@@ -122,3 +122,9 @@ if not $cross_compiling {
 # Install
 let lib_prefix = if $is_win { $env.LIBRARY_PREFIX } else { $env.PREFIX }
 cmake --install build-ci/Release --prefix $lib_prefix
+
+# Workaround: give Windows time to release file handles before rattler-build
+# tries to remove the work directory. See https://github.com/prefix-dev/rattler-build/issues/1431
+if $is_win {
+    sleep 30sec
+}
