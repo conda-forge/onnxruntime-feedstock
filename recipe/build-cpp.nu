@@ -49,7 +49,6 @@ mut cmake_defines = ($forwarded_cmake_args | append [
     "-Donnxruntime_ENABLE_PYTHON=ON"  # Must be enabled to get the dlpack exports
     "-Donnxruntime_USE_KLEIDIAI=ON"
     "-Donnxruntime_USE_SVE=ON"
-    "-Donnxruntime_DISABLE_CONTRIB_OPS=ON"
     $"-Donnxruntime_BUILD_UNIT_TESTS=($build_unit_tests)"
     $"-Donnxruntime_DONT_VECTORIZE=($dont_vectorize)"
     "-DEIGEN_MPL2_ONLY=ON"
