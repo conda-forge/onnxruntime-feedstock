@@ -44,10 +44,25 @@ if $is_win {
     $cmake_defines = ($cmake_defines | append "-DCMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON")
 }
 
-# Clear FindPython's cached result variables (Python_INCLUDE_DIRS, Python_NumPy_INCLUDE_DIRS, etc.)
-# from the C++ staging build. The executable path ($BUILD_PREFIX/bin/python) is identical between
-# builds so FindPython doesn't detect that the Python version changed and skips re-searching.
-cmake -UPython* -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
+# Patch CMakeCache.txt: replace the staging Python version (3.13) with the current
+# variant's version so FindPython doesn't re-search and trigger unnecessary rebuilds.
+# Approach borrowed from pytorch-feedstock.
+let py_ver = (python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" | str trim)
+let py_major = ($py_ver | split row "." | get 0)
+let py_minor = ($py_ver | split row "." | get 1)
+
+let cache_path = "build-ci/Release/CMakeCache.txt"
+(open $cache_path
+    | str replace --all "3.13" $py_ver
+    | str replace --all "3;13" $"($py_major);($py_minor)"
+    | str replace --all "cpython-313" $"cpython-($py_major)($py_minor)"
+    | save -f $cache_path)
+
+# Force rebuild of the pybind11 module for the current Python version.
+for f in (glob "build-ci/Release/onnxruntime_pybind11_state.*") { rm $f }
+
+# Configure
+cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
 
 # Build only the pybind11 module (links against already-installed libonnxruntime)
 cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT
