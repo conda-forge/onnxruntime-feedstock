@@ -44,8 +44,10 @@ if $is_win {
     $cmake_defines = ($cmake_defines | append "-DCMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON")
 }
 
-# Configure
-cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
+# Clear FindPython's cached result variables (Python_INCLUDE_DIRS, Python_NumPy_INCLUDE_DIRS, etc.)
+# from the C++ staging build. The executable path ($BUILD_PREFIX/bin/python) is identical between
+# builds so FindPython doesn't detect that the Python version changed and skips re-searching.
+cmake -UPython* -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
 
 # Build only the pybind11 module (links against already-installed libonnxruntime)
 cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT

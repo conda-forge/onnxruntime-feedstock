@@ -209,7 +209,6 @@ outputs:
           else:
             - m2-patch
       host:
-        - ${{ pin_subpackage("onnxruntime" ~ suffix ~ "-cpp", exact=True) }}
         - python
         - numpy
         - pybind11
@@ -217,7 +216,6 @@ outputs:
         # want to ship by running them from the `tests` section.
         - pytest
       run:
-        - ${{ pin_subpackage("onnxruntime" ~ suffix ~ "-cpp", exact=True) }}
         - python
         - coloredlogs
         - python-flatbuffers
