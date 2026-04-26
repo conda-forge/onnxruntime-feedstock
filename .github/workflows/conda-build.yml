@@ -22,19 +22,53 @@ jobs:
       max-parallel: 50
       matrix:
         include:
-          - CONFIG: linux_64_suffix
+          - CONFIG: linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix
             STORE_BUILD_ARTIFACTS: False
             UPLOAD_PACKAGES: True
             os: ubuntu
             runs_on: ['namespace-profile-16cpu-on-linux-64']
             DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_suffix
+          - CONFIG: linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix
             STORE_BUILD_ARTIFACTS: False
             UPLOAD_PACKAGES: True
             os: ubuntu
             runs_on: ['namespace-profile-16cpu-on-linux-64']
             DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: win_64_suffix
+          - CONFIG: linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix
+            STORE_BUILD_ARTIFACTS: False
+            UPLOAD_PACKAGES: True
+            os: ubuntu
+            runs_on: ['namespace-profile-16cpu-on-linux-64']
+            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
+          - CONFIG: linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix
+            STORE_BUILD_ARTIFACTS: False
+            UPLOAD_PACKAGES: True
+            os: ubuntu
+            runs_on: ['namespace-profile-16cpu-on-linux-64']
+            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
+          - CONFIG: linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix
+            STORE_BUILD_ARTIFACTS: False
+            UPLOAD_PACKAGES: True
+            os: ubuntu
+            runs_on: ['namespace-profile-16cpu-on-linux-64']
+            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
+          - CONFIG: linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix
+            STORE_BUILD_ARTIFACTS: False
+            UPLOAD_PACKAGES: True
+            os: ubuntu
+            runs_on: ['namespace-profile-16cpu-on-linux-64']
+            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
+          - CONFIG: win_64_cuda_compiler_version12.9suffix
+            STORE_BUILD_ARTIFACTS: False
+            UPLOAD_PACKAGES: True
+            os: windows
+            runs_on: ['blacksmith-16vcpu-windows-2025']
+          - CONFIG: win_64_cuda_compiler_version13.0suffix
+            STORE_BUILD_ARTIFACTS: False
+            UPLOAD_PACKAGES: True
+            os: windows
+            runs_on: ['blacksmith-16vcpu-windows-2025']
+          - CONFIG: win_64_cuda_compiler_versionNonesuffix
             STORE_BUILD_ARTIFACTS: False
             UPLOAD_PACKAGES: True
             os: windows
@@ -112,7 +146,7 @@ jobs:
         # default value; make it explicit, as it needs to match with artefact
         # generation below. Not configurable for now, can be revisited later
         CONDA_BLD_PATH: C:\bld
-        MINIFORGE_HOME: C:\Miniforge
+        MINIFORGE_HOME: ${{ contains(runner.arch, 'ARM') && 'C' || 'D' }}:\Miniforge
         PYTHONUNBUFFERED: 1
         CONFIG: ${{ matrix.CONFIG }}
         CI: github_actions

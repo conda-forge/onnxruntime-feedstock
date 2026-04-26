@@ -32,10 +32,10 @@ build:
   skip:
     # DEBUG skips:
     # - osx
-    - cuda_compiler_version != "None"
+    # - cuda_compiler_version != "None"
     - novec
-    # cross-compilation of linux-aarch64 cuda builds are currently broken
-    - cuda_compiler_version != "None" and aarch64
+    # # cross-compilation of linux-aarch64 cuda builds are currently broken
+    # - cuda_compiler_version != "None" and aarch64
     - ppc64le
     # No longer supported upstream and tests fail
     - osx and x86_64
@@ -65,13 +65,13 @@ outputs:
             - pybind11
             - numpy
             - cross-python_${{ target_platform }}
-        # - if: cuda_enabled
-        #   then:
-        #     - ${{ compiler('cuda') }}
-        #     - if: build_platform != target_platform
-        #       then:
-        #         - cuda-cudart-dev
-        #         - cuda-nvrtc-dev
+        - if: cuda_enabled
+          then:
+            - ${{ compiler('cuda') }}
+            - if: build_platform != target_platform
+              then:
+                - cuda-cudart-dev
+                - cuda-nvrtc-dev
         - cmake
         - ninja
         - nushell
@@ -86,23 +86,23 @@ outputs:
         - pybind11
         - python 3.13.*
         - numpy
-        # - if: cuda_enabled
-        #   then:
-        #     - cudnn
-        #     - cuda-version ==${{ cuda_compiler_version }}
-        #     - libcublas-dev
-        #     - libcusparse-dev
-        #     - libcurand-dev
-        #     - libcufft-dev
-        #     - cuda-cudart-dev
-        #     - cuda-nvrtc-dev
-        # - gmock
-        # - libdate
-        # - optional-lite
-        # - zlib
+        - if: cuda_enabled
+          then:
+            - cudnn
+            - cuda-version ==${{ cuda_compiler_version }}
+            - libcublas-dev
+            - libcusparse-dev
+            - libcurand-dev
+            - libcufft-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+        - gmock
+        - libdate
+        - optional-lite
+        - zlib
       ignore_run_exports:
         from_package:
-          # - zlib
+          - zlib
           # This output only needs python to build; libonnxruntime has no Python dependency
           - python
           - pybind11
