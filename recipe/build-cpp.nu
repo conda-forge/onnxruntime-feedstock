@@ -19,17 +19,6 @@ if $is_linux {
     $env.LDFLAGS = (($env.LDFLAGS? | default "") + " -Wl,-z,noexecstack")
 }
 
-# Somehow $BUILD_PREFIX is set in the respective flags which
-# unsurprisingly leads to linking errors during cross-compilation.
-if $cross_compiling {
-    for flag_name in [CFLAGS CXXFLAGS LDFLAGS DEBUG_CFLAGS DEBUG_CXXFLAGS] {
-        let val = ($env | get --optional $flag_name | default "")
-        if ($val | str contains $env.BUILD_PREFIX) {
-            load-env {($flag_name): ($val | str replace --all $env.BUILD_PREFIX $env.PREFIX)}
-        }
-    }
-}
-
 # Explicitly provide Python and NumPy paths to cmake. See:
 # https://conda-forge.org/docs/how-to/advanced/cross-compilation/#finding-numpy-in-cross-compiled-python-packages-using-cmake
 let python_include_dir = (python -c "import sysconfig; print(sysconfig.get_path('include'))" | str trim)
@@ -115,9 +104,9 @@ cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cm
 cmake --build build-ci/Release --config Release --parallel $env.CPU_COUNT
 
 # # Run tests
-# if not $cross_compiling {
-#    ctest -V -C Release --test-dir build-ci/Release
-# }
+if not $cross_compiling {
+   ctest -V -C Release --test-dir build-ci/Release
+}
 
 # Install
 let lib_prefix = if $is_win { $env.LIBRARY_PREFIX } else { $env.PREFIX }
