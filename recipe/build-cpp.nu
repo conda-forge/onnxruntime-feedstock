@@ -62,6 +62,12 @@ if $is_win {
     $cmake_defines = ($cmake_defines | append [
         $"-DONNX_CUSTOM_PROTOC_EXECUTABLE=($env.BUILD_PREFIX)/bin/protoc"
     ])
+    if $cross_compiling and $is_linux {
+        # On Linux/glibc, iconv is built into libc. During cross-compilation,
+        # CMake's FindIconv can't run its try_compile test to detect this and
+        # falls back to finding the wrong-architecture libiconv from BUILD_PREFIX.
+        $cmake_defines = ($cmake_defines | append "-DIconv_IS_BUILT_IN=TRUE")
+    }
 }
 
 # CUDA configuration
