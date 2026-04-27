@@ -12,7 +12,7 @@ let cuda_enabled = ($cuda_version != "None")
 let cross_compiling = ($env.CONDA_BUILD_CROSS_COMPILATION? | default "0") == "1"
 
 let build_unit_tests = "OFF"  # if $cross_compiling or $cuda_enabled { "OFF" } else { "ON" }
-let dont_vectorize = if ($env.PKG_NAME | str contains "novec") { "ON" } else { "OFF" }
+let dont_vectorize = if ($env.suffix | str contains "novec") { "ON" } else { "OFF" }
 
 # https://github.com/conda-forge/ctng-compiler-activation-feedstock/issues/143
 if $is_linux {
