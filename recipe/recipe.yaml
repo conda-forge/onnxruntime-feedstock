@@ -97,10 +97,10 @@ outputs:
             - libcufft-dev
             - cuda-cudart-dev
             - cuda-nvrtc-dev
-        - gmock
-        - libdate
-        - optional-lite
-        - zlib
+        # - gmock
+        # - libdate
+        # - optional-lite
+        # - zlib
       ignore_run_exports:
         from_package:
           - zlib
