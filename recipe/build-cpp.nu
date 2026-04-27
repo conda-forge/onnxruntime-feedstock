@@ -30,7 +30,7 @@ let forwarded_cmake_args = ($env.CMAKE_ARGS | split row " ")
 
 mut cmake_defines = ($forwarded_cmake_args | append [
     $"-DCMAKE_PREFIX_PATH=($env.PREFIX)"
-    "-DCMAKE_CXX_STANDARD=17"
+    "-DCMAKE_CXX_STANDARD=20"
     "-DCMAKE_INSTALL_LIBDIR=lib"
     "-Donnxruntime_BUILD_SHARED_LIB=ON"
     "-Donnxruntime_DISABLE_RTTI=OFF"
@@ -93,9 +93,12 @@ if $cuda_enabled {
             _ => { error make {msg: $"Unknown CUDA target for ($env.target_platform)"} }
         }
         $env.CUDA_HOME = $"($env.BUILD_PREFIX)/targets/($cuda_target)"
+        # onnxruntime_CUDA_HOME sets CUDAToolkit_ROOT for find_package(CUDAToolkit).
+        # Point it to the host prefix where libcublas-dev etc. install their headers.
+        let cuda_toolkit_root = $"($env.PREFIX)/targets/($cuda_target)"
         $cmake_defines = ($cmake_defines | append [
             "-Donnxruntime_USE_CUDA=ON"
-            $"-Donnxruntime_CUDA_HOME=($env.CUDA_HOME)"
+            $"-Donnxruntime_CUDA_HOME=($cuda_toolkit_root)"
             $"-Donnxruntime_CUDNN_HOME=($env.PREFIX)"
             $"-DCMAKE_CUDA_COMPILER=($env.BUILD_PREFIX)/bin/nvcc"
             $"-DCMAKE_CUDA_ARCHITECTURES=($cuda_arch_list)"
