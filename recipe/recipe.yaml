@@ -118,6 +118,25 @@ outputs:
         - lib/*
         - include/*
     requirements:
+      build:
+        - if: cuda_enabled
+          then:
+            - ${{ compiler('cuda') }}
+            - if: build_platform != target_platform
+              then:
+                - cuda-cudart-dev
+                - cuda-nvrtc-dev
+      host:
+        - if: cuda_enabled
+          then:
+            - cudnn
+            - cuda-version ==${{ cuda_compiler_version }}
+            - libcublas-dev
+            - libcusparse-dev
+            - libcurand-dev
+            - libcufft-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
       run:
         # avoid that people without GPUs needlessly download ~0.5-1GB
         - if: cuda_enabled
