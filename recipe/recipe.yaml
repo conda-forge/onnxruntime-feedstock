@@ -108,9 +108,12 @@ outputs:
           - pybind11
           - numpy
           - cross-python_${{ target_platform }}
+
+  # The cpp package does not need to compile anything. It only reuses
+  # the artifacts from the build stage.
   - package:
       name: onnxruntime${{ suffix }}-cpp
-
+    inherit: onnxruntime-build
     build:
       number: ${{ build_number }}
       string: h${{ hash }}_${{ build_number }}_${{ build_ext }}
@@ -118,25 +121,6 @@ outputs:
         - lib/*
         - include/*
     requirements:
-      build:
-        - if: cuda_enabled
-          then:
-            - ${{ compiler('cuda') }}
-            - if: build_platform != target_platform
-              then:
-                - cuda-cudart-dev
-                - cuda-nvrtc-dev
-      host:
-        - if: cuda_enabled
-          then:
-            - cudnn
-            - cuda-version ==${{ cuda_compiler_version }}
-            - libcublas-dev
-            - libcusparse-dev
-            - libcurand-dev
-            - libcufft-dev
-            - cuda-cudart-dev
-            - cuda-nvrtc-dev
       run:
         # avoid that people without GPUs needlessly download ~0.5-1GB
         - if: cuda_enabled
@@ -146,8 +130,6 @@ outputs:
         - if: novec
           then:
             - onnxruntime-cpp <0a0
-    inherit: onnxruntime-build
-          
     tests:
       - package_contents:
           include:
@@ -207,7 +189,13 @@ outputs:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
         - ${{ compiler('cxx') }}
-        - ${{ stdlib('c') }}
+        - if: cuda_enabled
+          then:
+            - ${{ compiler('cuda') }}
+            - if: build_platform != target_platform
+              then:
+                - cuda-cudart-dev
+                - cuda-nvrtc-dev
         - cmake
         - ninja
         - nushell
@@ -228,6 +216,16 @@ outputs:
           else:
             - m2-patch
       host:
+        - if: cuda_enabled
+          then:
+            - cudnn
+            - cuda-version ==${{ cuda_compiler_version }}
+            - libcublas-dev
+            - libcusparse-dev
+            - libcurand-dev
+            - libcufft-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
         - python
         - numpy
         - pybind11
