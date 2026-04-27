@@ -53,6 +53,7 @@ outputs:
         env:
           # breaks rattler build output due to invalid utf8 output on stderr
           GTEST_FILTER: "-RegexFullMatch.NonUtf8Pattern"
+          cuda_compiler_version: ${{ cuda_compiler_version }}
         file: build-cpp.nu
     requirements:
       build:
