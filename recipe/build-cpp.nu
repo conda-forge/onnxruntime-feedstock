@@ -102,10 +102,12 @@ if $cuda_enabled {
             $"-Donnxruntime_CUDNN_HOME=($env.PREFIX)"
             $"-DCMAKE_CUDA_COMPILER=($env.BUILD_PREFIX)/bin/nvcc"
             $"-DCMAKE_CUDA_ARCHITECTURES=($cuda_arch_list)"
-            # FindCUDAToolkit uses CUDA_HOME env var which points to BUILD_PREFIX
-            # (needed for nvcc). Override with CUDAToolkit_ROOT so CMake finds
-            # cublas headers etc. in the host prefix where libcublas-dev installs them.
+            # Once enable_language(CUDA) runs, FindCUDAToolkit derives the toolkit
+            # location from nvcc (in BUILD_PREFIX) and ignores CUDAToolkit_ROOT.
+            # Explicitly set the include dir to the host prefix where libcublas-dev
+            # etc. install their headers.
             $"-DCUDAToolkit_ROOT=($cuda_toolkit_root)"
+            $"-DCMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES=($cuda_toolkit_root)/include"
         ])
     }
 }
