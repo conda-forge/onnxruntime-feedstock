@@ -124,6 +124,7 @@ outputs:
       files:
         - ${{ "Library/" if win }}lib/*
         - ${{ "Library/" if win }}include/*
+        - ${{ "Library/" if win }}bin/*
     requirements:
       run:
         # avoid that people without GPUs needlessly download ~0.5-1GB
