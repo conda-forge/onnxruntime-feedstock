@@ -53,7 +53,7 @@ for f in (glob "build-ci/Release/onnxruntime_pybind11_state.*") { rm $f }
 # cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
 
 # Build only the pybind11 module (links against already-installed libonnxruntime)
-cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT
+cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT -- -d explain
 
 # Remove shared library from Python tree (belongs to onnxruntime-cpp)
 if $is_win {
