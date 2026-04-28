@@ -72,7 +72,18 @@ if $is_win {
 
 # Build the wheel
 cd build-ci/Release
-python $"($env.SRC_DIR)/setup.py" bdist_wheel
+let plat_args = if $cross_compiling {
+    let plat_name = match $env.target_platform {
+        "linux-64" => "linux_x86_64"
+        "linux-aarch64" => "linux_aarch64"
+        _ => { error make {msg: $"Unknown target platform for wheel: ($env.target_platform)"} }
+    }
+    [--plat-name $plat_name]
+} else {
+    []
+}
+
+python $"($env.SRC_DIR)/setup.py" bdist_wheel ...$plat_args ...$plat_args
 
 # Install the wheel
 pip install ...(glob dist/*.whl) --no-deps --no-build-isolation $"--prefix=($env.PREFIX)"
