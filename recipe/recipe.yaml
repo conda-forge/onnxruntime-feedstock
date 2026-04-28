@@ -206,6 +206,7 @@ outputs:
             - python
             - pybind11
             - numpy
+            - packaging
             - cross-python_${{ target_platform }}
         - if: cuda_enabled
           then:
