@@ -122,8 +122,8 @@ outputs:
       number: ${{ build_number }}
       string: h${{ hash }}_${{ build_number }}_${{ build_ext }}
       files:
-        - lib/*
-        - include/*
+        - ${{ "Library/" if win }}lib/*
+        - ${{ "Library/" if win }}include/*
     requirements:
       run:
         # avoid that people without GPUs needlessly download ~0.5-1GB
