@@ -49,11 +49,19 @@ let cache_path = "build-ci/Release/CMakeCache.txt"
 # Force rebuild of the pybind11 module for the current Python version.
 for f in (glob "build-ci/Release/onnxruntime_pybind11_state.*") { rm $f }
 
+# Debug: print an absl compile rule BEFORE re-configure
+print "=== BEFORE RE-CONFIGURE ==="
+^grep -A2 "strings_internal.dir/internal/utf8" build-ci/Release/build.ninja
+
 # Configure
 # cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
 
 # Build only the pybind11 module (links against already-installed libonnxruntime)
 cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT -- -d explain
+
+# Debug: print same rule AFTER re-configure
+print "=== AFTER RE-CONFIGURE ==="
+^grep -A2 "strings_internal.dir/internal/utf8" build-ci/Release/build.ninja
 
 # Remove shared library from Python tree (belongs to onnxruntime-cpp)
 if $is_win {
