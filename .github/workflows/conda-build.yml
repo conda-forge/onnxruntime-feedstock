@@ -22,25 +22,7 @@ jobs:
       max-parallel: 50
       matrix:
         include:
-          - CONFIG: linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix
-            STORE_BUILD_ARTIFACTS: False
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['namespace-profile-16cpu-on-linux-64']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
           - CONFIG: linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix
-            STORE_BUILD_ARTIFACTS: False
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['namespace-profile-16cpu-on-linux-64']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix
-            STORE_BUILD_ARTIFACTS: False
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['namespace-profile-16cpu-on-linux-64']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix
             STORE_BUILD_ARTIFACTS: False
             UPLOAD_PACKAGES: True
             os: ubuntu
@@ -52,22 +34,6 @@ jobs:
             os: ubuntu
             runs_on: ['namespace-profile-16cpu-on-linux-64']
             DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix
-            STORE_BUILD_ARTIFACTS: False
-            UPLOAD_PACKAGES: True
-            os: ubuntu
-            runs_on: ['namespace-profile-16cpu-on-linux-64']
-            DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
-          - CONFIG: win_64_cuda_compiler_version12.9suffix
-            STORE_BUILD_ARTIFACTS: False
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['namespace-profile-16cpu-on-win-64']
-          - CONFIG: win_64_cuda_compiler_version13.0suffix
-            STORE_BUILD_ARTIFACTS: False
-            UPLOAD_PACKAGES: True
-            os: windows
-            runs_on: ['namespace-profile-16cpu-on-win-64']
           - CONFIG: win_64_cuda_compiler_versionNonesuffix
             STORE_BUILD_ARTIFACTS: False
             UPLOAD_PACKAGES: True

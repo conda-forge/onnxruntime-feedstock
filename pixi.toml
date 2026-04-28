@@ -23,60 +23,24 @@ description = "List contents of all packages found in rattler-build build direct
 [tasks.build]
 cmd = "rattler-build build --recipe recipe"
 description = "Build onnxruntime-feedstock directly (without setup scripts), no particular variant specified"
-[tasks."build-linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix"]
-cmd = "rattler-build build --recipe recipe -m .ci_support/linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix.yaml"
-description = "Build onnxruntime-feedstock with variant linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix directly (without setup scripts)"
-[tasks."inspect-linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_stdlib_version2.17cuda_compiler_version12.9suffix"
 [tasks."build-linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix"]
 cmd = "rattler-build build --recipe recipe -m .ci_support/linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix.yaml"
 description = "Build onnxruntime-feedstock with variant linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix directly (without setup scripts)"
 [tasks."inspect-linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_stdlib_version2.17cuda_compiler_versionNonesuffix"
-[tasks."build-linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix"]
-cmd = "rattler-build build --recipe recipe -m .ci_support/linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix.yaml"
-description = "Build onnxruntime-feedstock with variant linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix directly (without setup scripts)"
-[tasks."inspect-linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_stdlib_version2.28cuda_compiler_version13.0suffix"
-[tasks."build-linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix"]
-cmd = "rattler-build build --recipe recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix.yaml"
-description = "Build onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix directly (without setup scripts)"
-[tasks."inspect-linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_stdlib_version2.17cuda_compiler_version12.9suffix"
 [tasks."build-linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix"]
 cmd = "rattler-build build --recipe recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix.yaml"
 description = "Build onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix directly (without setup scripts)"
 [tasks."inspect-linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_stdlib_version2.17cuda_compiler_versionNonesuffix"
-[tasks."build-linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix"]
-cmd = "rattler-build build --recipe recipe -m .ci_support/linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix.yaml"
-description = "Build onnxruntime-feedstock with variant linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix directly (without setup scripts)"
-[tasks."inspect-linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_stdlib_version2.28cuda_compiler_version13.0suffix"
 [tasks."build-osx_arm64_suffix"]
 cmd = "rattler-build build --recipe recipe -m .ci_support/osx_arm64_suffix.yaml"
 description = "Build onnxruntime-feedstock with variant osx_arm64_suffix directly (without setup scripts)"
 [tasks."inspect-osx_arm64_suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/osx_arm64_suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant osx_arm64_suffix"
-[tasks."build-win_64_cuda_compiler_version12.9suffix"]
-cmd = "rattler-build build --recipe recipe -m .ci_support/win_64_cuda_compiler_version12.9suffix.yaml"
-description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_version12.9suffix directly (without setup scripts)"
-[tasks."inspect-win_64_cuda_compiler_version12.9suffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_version12.9suffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_version12.9suffix"
-[tasks."build-win_64_cuda_compiler_version13.0suffix"]
-cmd = "rattler-build build --recipe recipe -m .ci_support/win_64_cuda_compiler_version13.0suffix.yaml"
-description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_version13.0suffix directly (without setup scripts)"
-[tasks."inspect-win_64_cuda_compiler_version13.0suffix"]
-cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_version13.0suffix.yaml"
-description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_version13.0suffix"
 [tasks."build-win_64_cuda_compiler_versionNonesuffix"]
 cmd = "rattler-build build --recipe recipe -m .ci_support/win_64_cuda_compiler_versionNonesuffix.yaml"
 description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_versionNonesuffix directly (without setup scripts)"
