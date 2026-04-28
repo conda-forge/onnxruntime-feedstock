@@ -46,6 +46,7 @@ mut cmake_defines = ($forwarded_cmake_args | append [
     $"-DPython_INCLUDE_DIR:PATH=($python_include_dir)"
     $"-DPython_NumPy_INCLUDE_DIR=($numpy_include_dir)"
     "-DCMAKE_OSX_ARCHITECTURES=arm64"  # Ignored on non-apple platforms
+    "-DTHREADS_PREFER_PTHREAD_FLAG=ON"  # Ensure -pthread is used from the start, avoiding cache invalidation in Python stage
 ])
 
 if $is_win {
