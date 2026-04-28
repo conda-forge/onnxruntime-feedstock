@@ -57,10 +57,17 @@ outputs:
           suffix: ${{ suffix }}
         file: build-cpp.nu
     requirements:
+      ###############################################
+      # Keep dependencies in sync with python stage #
+      ###############################################
       build:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
         - ${{ compiler('cxx') }}
+        - cmake
+        - libprotobuf 3.21.*  # We need protoc for cross-compilation
+        - ninja
+        - nushell
         - if: build_platform != target_platform
           then:
             - python 3.13.*
@@ -74,20 +81,18 @@ outputs:
               then:
                 - cuda-cudart-dev
                 - cuda-nvrtc-dev
-        - cmake
-        - ninja
-        - nushell
         - if: unix
           then:
             - patch
           else:
             - m2-patch
-        # we need protoc in the build environment for cross compilations
-        - libprotobuf 3.21.*
       host:
+        - numpy
+        - pip
         - pybind11
         - python 3.13.*
-        - numpy
+        - setuptools
+        - wheel
         - if: cuda_enabled
           then:
             - cudnn
@@ -98,10 +103,7 @@ outputs:
             - libcufft-dev
             - cuda-cudart-dev
             - cuda-nvrtc-dev
-        # - gmock
-        # - libdate
-        # - optional-lite
-        # - zlib
+
       ignore_run_exports:
         from_package:
           - zlib
@@ -187,10 +189,23 @@ outputs:
         entry_points:
           - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
     requirements:
+      #############################################################################################
+      # Copy from build stage. The dependencies must match to avoid invalidating the cmake cache. #
+      #############################################################################################
       build:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
         - ${{ compiler('cxx') }}
+        - cmake
+        - libprotobuf 3.21.*  # We need protoc for cross-compilation
+        - ninja
+        - nushell
+        - if: build_platform != target_platform
+          then:
+            - python
+            - pybind11
+            - numpy
+            - cross-python_${{ target_platform }}
         - if: cuda_enabled
           then:
             - ${{ compiler('cuda') }}
@@ -198,26 +213,18 @@ outputs:
               then:
                 - cuda-cudart-dev
                 - cuda-nvrtc-dev
-        - cmake
-        - ninja
-        - nushell
-        - python
-        - pybind11
-        - numpy
-        - pip
-        - setuptools
-        - wheel
-        # we need protoc in the build environment for cross compilations
-        - libprotobuf 3.21.*
-        - if: build_platform != target_platform
-          then:
-            - cross-python_${{ target_platform }}
         - if: unix
           then:
             - patch
           else:
             - m2-patch
       host:
+        - numpy
+        - pip
+        - pybind11
+        - python
+        - setuptools
+        - wheel
         - if: cuda_enabled
           then:
             - cudnn
@@ -228,9 +235,7 @@ outputs:
             - libcufft-dev
             - cuda-cudart-dev
             - cuda-nvrtc-dev
-        - python
-        - numpy
-        - pybind11
+
         # Tests contain a huge number of binary files that we don't
         # want to ship by running them from the `tests` section.
         - pytest
