@@ -34,7 +34,7 @@ build:
   skip:
     # DEBUG skips:
     # - osx
-    - cuda_compiler_version != "None"
+    # - cuda_compiler_version != "None"
     - novec
     # # cross-compilation of linux-aarch64 cuda builds are currently broken
     # - cuda_compiler_version != "None" and aarch64
