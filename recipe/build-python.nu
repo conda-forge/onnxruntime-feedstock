@@ -28,6 +28,13 @@ for f in (glob "build-ci/Release/onnxruntime_pybind11_state.*") { rm $f }
 # Add `-- -d explain` to get ninja debug info about invalidated caches
 cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT
 
+# Remove shared library from Python tree (belongs to onnxruntime-cpp)
+if $is_win {
+    for f in (glob "build-ci/Release/onnxruntime/capi/onnxruntime_conda*") { rm $f }
+} else {
+    for f in (glob "build-ci/Release/onnxruntime/capi/libonnxruntime*") { rm $f }
+}
+
 # Build the wheel
 cd build-ci/Release
 let plat_args = if $cross_compiling {
@@ -45,15 +52,6 @@ python $"($env.SRC_DIR)/setup.py" bdist_wheel ...$plat_args ...$plat_args
 
 # Install the wheel
 pip install ...(glob dist/*.whl) --no-deps --no-build-isolation $"--prefix=($env.PREFIX)"
-
-# Remove shared library that got copied from the staging step. Python
-# bindings link statically.
-if $is_win {
-    for f in (glob $"($env.PREFIX)/Library/bin/onnxruntime_conda*") { rm $f }
-    for f in (glob $"($env.PREFIX)/Library/lib/onnxruntime_conda*") { rm $f }
-} else {
-    for f in (glob $"($env.PREFIX)/lib/libonnxruntime*") { rm $f }
-}
 
 # Run CPU-relevant Python tests from upstream build.py:
 # https://github.com/microsoft/onnxruntime/blob/v1.24.3/tools/ci_build/build.py#L1770-L1904
