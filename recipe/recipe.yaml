@@ -262,6 +262,16 @@ outputs:
               imports:
                 - onnxruntime
               pip_check: true
+      - package_contents:
+          files:
+            not_exists:
+              - if: unix
+                then:
+                  - lib/libonnxruntime*
+              - if: win
+                then:
+                  - Library/bin/onnxruntime_conda*
+                  - Library/lib/onnxruntime_conda*
 
 
 about:

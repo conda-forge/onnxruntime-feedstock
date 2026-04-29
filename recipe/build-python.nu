@@ -7,31 +7,6 @@ if $is_linux {
     $env.LDFLAGS = (($env.LDFLAGS? | default "") + " -Wl,-z,noexecstack")
 }
 
-# Explicitly provide Python and NumPy paths to cmake. See:
-# https://conda-forge.org/docs/how-to/advanced/cross-compilation/#finding-numpy-in-cross-compiled-python-packages-using-cmake
-let python_include_dir = (python -c "import sysconfig; print(sysconfig.get_path('include'))" | str trim)
-let numpy_include_dir = (python -c "import numpy; print(numpy.get_include())" | str trim)
-# $PYTHON points to the host env python which can't run during cross-compilation.
-let python_executable = if $cross_compiling { $"($env.BUILD_PREFIX)/bin/python" } else { $env.PYTHON }
-
-# Only forward cross-compilation and platform flags from CMAKE_ARGS.
-# See build-cpp.nu for rationale.
-let forwarded_cmake_args = ($env.CMAKE_ARGS  | split row " " )
-mut cmake_defines = ($forwarded_cmake_args | append [
-    "-DCMAKE_BUILD_TYPE=Release"
-    $"-DCMAKE_PREFIX_PATH=($env.PREFIX)"
-    "-DCMAKE_CXX_STANDARD=20"
-    "-DCMAKE_INSTALL_LIBDIR=lib"
-    $"-DPython_EXECUTABLE:PATH=($python_executable)"
-    $"-DPython_INCLUDE_DIR:PATH=($python_include_dir)"
-    $"-DPython_NumPy_INCLUDE_DIR=($numpy_include_dir)"
-])
-
-if $is_win {
-    # https://github.com/conda-forge/onnxruntime-feedstock/issues/57#issuecomment-1518033552
-    $cmake_defines = ($cmake_defines | append "-DCMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON")
-}
-
 # Patch CMakeCache.txt: replace the staging Python version (3.13) with the current
 # variant's version so FindPython doesn't re-search and trigger unnecessary rebuilds.
 # Approach borrowed from pytorch-feedstock.
@@ -49,18 +24,9 @@ let cache_path = "build-ci/Release/CMakeCache.txt"
 # Force rebuild of the pybind11 module for the current Python version.
 for f in (glob "build-ci/Release/onnxruntime_pybind11_state.*") { rm $f }
 
-# Configure
-# cmake -S cmake -B build-ci/Release -G Ninja --compile-no-warning-as-error ...$cmake_defines
-
 # Build only the pybind11 module (links against already-installed libonnxruntime)
-cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT -- -d explain
-
-# Remove shared library from Python tree (belongs to onnxruntime-cpp)
-if $is_win {
-    for f in (glob "build-ci/Release/onnxruntime/capi/onnxruntime_conda*") { rm $f }
-} else {
-    for f in (glob "build-ci/Release/onnxruntime/capi/libonnxruntime*") { rm $f }
-}
+# Add `-- -d explain` to get ninja debug info about invalidated caches
+cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT
 
 # Build the wheel
 cd build-ci/Release
@@ -79,6 +45,15 @@ python $"($env.SRC_DIR)/setup.py" bdist_wheel ...$plat_args ...$plat_args
 
 # Install the wheel
 pip install ...(glob dist/*.whl) --no-deps --no-build-isolation $"--prefix=($env.PREFIX)"
+
+# Remove shared library that got copied from the staging step. Python
+# bindings link statically.
+if $is_win {
+    for f in (glob $"($env.PREFIX)/Library/bin/onnxruntime_conda*") { rm $f }
+    for f in (glob $"($env.PREFIX)/Library/lib/onnxruntime_conda*") { rm $f }
+} else {
+    for f in (glob $"($env.PREFIX)/lib/libonnxruntime*") { rm $f }
+}
 
 # Run CPU-relevant Python tests from upstream build.py:
 # https://github.com/microsoft/onnxruntime/blob/v1.24.3/tools/ci_build/build.py#L1770-L1904
