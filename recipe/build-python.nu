@@ -28,13 +28,6 @@ for f in (glob "build-ci/Release/onnxruntime_pybind11_state.*") { rm $f }
 # Add `-- -d explain` to get ninja debug info about invalidated caches
 cmake --build build-ci/Release --target onnxruntime_pybind11_state --config Release --parallel $env.CPU_COUNT
 
-# Remove shared library from Python tree (belongs to onnxruntime-cpp)
-if $is_win {
-    for f in (glob "build-ci/Release/onnxruntime/capi/onnxruntime_conda*") { rm $f }
-} else {
-    for f in (glob "build-ci/Release/onnxruntime/capi/libonnxruntime*") { rm $f }
-}
-
 # Build the wheel
 cd build-ci/Release
 let plat_args = if $cross_compiling {
