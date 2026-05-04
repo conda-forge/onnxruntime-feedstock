@@ -150,7 +150,17 @@ outputs:
             - if: cuda_compiler_version != "None"
               then:
                 - onnxruntime_providers_shared
-                - onnxruntime_providers_cuda
+          files:
+            - if: cuda_compiler_version != "None"
+              then:
+                - if: unix
+                  then:
+                    - lib/libonnxruntime_providers_cuda.so
+                  else:
+                    # onnxruntime_providers_cuda is defined as MODULE
+                    # and meant to be opened with dlopen-like
+                    # functionality. No .lib file is installed.
+                    - Library/lib/onnxruntime_providers_cuda.dll
       - if: build_platform == target_platform
         then:
           - script:
