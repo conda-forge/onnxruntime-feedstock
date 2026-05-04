@@ -85,7 +85,7 @@ if $cuda_enabled {
             "-Donnxruntime_USE_CUDA=ON"
             $"-Donnxruntime_CUDA_HOME=($env.LIBRARY_PREFIX)"
             $"-Donnxruntime_CUDNN_HOME=($env.LIBRARY_PREFIX)"
-            $"-DCUDAToolkit_ROOT=($env.LIBRARY_PREFIX)"
+            $"-DCMAKE_CUDA_COMPILER=($env.LIBRARY_PREFIX)/bin/nvcc.exe"
             $"-DCMAKE_CUDA_ARCHITECTURES=($cuda_arch_list)"
         ])
     } else {
