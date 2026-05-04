@@ -185,7 +185,11 @@ outputs:
     build:
       number: ${{ build_number }}
       string: py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}_${{ build_ext }}
-      script: build-python.nu
+      script:
+        interpreter: nu
+        env:
+          cuda_compiler_version: ${{ cuda_compiler_version }}
+        file: build-python.nu
       python:
         entry_points:
           - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main

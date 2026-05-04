@@ -12,7 +12,7 @@ let cuda_enabled = ($cuda_version != "None")
 let cross_compiling = ($env.CONDA_BUILD_CROSS_COMPILATION? | default "0") == "1"
 
 let build_unit_tests = if $cross_compiling or $cuda_enabled { "OFF" } else { "ON" }
-let dont_vectorize = if ($env.suffix | str contains "novec") { "ON" } else { "OFF" }
+let dont_vectorize = if (($env.suffix? | default "") | str contains "novec") { "ON" } else { "OFF" }
 
 # https://github.com/conda-forge/ctng-compiler-activation-feedstock/issues/143
 if $is_linux {
@@ -30,7 +30,7 @@ let forwarded_cmake_args = ($env.CMAKE_ARGS | split row " ")
 
 mut cmake_defines = ($forwarded_cmake_args | append [
     $"-DCMAKE_PREFIX_PATH=($env.PREFIX)"
-    "-DCMAKE_CXX_STANDARD=20"
+    "-DCMAKE_CXX_STANDARD=17"
     "-DCMAKE_INSTALL_LIBDIR=lib"
     "-Donnxruntime_BUILD_SHARED_LIB=ON"
     "-Donnxruntime_DISABLE_RTTI=OFF"
@@ -85,6 +85,7 @@ if $cuda_enabled {
             "-Donnxruntime_USE_CUDA=ON"
             $"-Donnxruntime_CUDA_HOME=($env.LIBRARY_PREFIX)"
             $"-Donnxruntime_CUDNN_HOME=($env.LIBRARY_PREFIX)"
+            $"-DCUDAToolkit_ROOT=($env.LIBRARY_PREFIX)"
             $"-DCMAKE_CUDA_ARCHITECTURES=($cuda_arch_list)"
         ])
     } else {

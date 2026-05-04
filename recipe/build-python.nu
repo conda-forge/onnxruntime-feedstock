@@ -1,6 +1,7 @@
 let is_win = ($env.target_platform | str starts-with "win")
 let is_linux = ($env.target_platform | str starts-with "linux")
 let cross_compiling = ($env.CONDA_BUILD_CROSS_COMPILATION? | default "0") == "1"
+let cuda_enabled = (($env.cuda_compiler_version? | default "None") != "None")
 
 # https://github.com/conda-forge/ctng-compiler-activation-feedstock/issues/143
 if $is_linux {
@@ -53,13 +54,26 @@ if not $cross_compiling {
 
     # Deselect tests that need build artifacts we didn't produce or
     # that write to the read-only testdata directory.
-    let deselect = [
+    mut deselect = [
         --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_register_custom_ops_library
         --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_run_with_adapter
         --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_model_serialization_with_external_initializers_to_directory
         --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_model_serialization_with_original_external_initializers_to_directory
 	--deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_register_custom_e_ps_library
     ]
+
+    # Deselect tests that require a CUDA device (CI runners have no GPU)
+    if $cuda_enabled {
+        $deselect = ($deselect | append [
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_get_and_set_tuning_results
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_ort_value
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_ort_value_gh_issue9799
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_set_providers
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_set_providers_with_options
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_sparse_tensor_coo_format
+            --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_sparse_tensor_csr_format
+        ])
+    }
 
     pytest -v ...$deselect ...[
         onnxruntime/test/python/onnxruntime_test_python.py
