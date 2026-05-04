@@ -28,8 +28,9 @@ let python_executable = if $cross_compiling { $"($env.BUILD_PREFIX)/bin/python" 
 
 let forwarded_cmake_args = ($env.CMAKE_ARGS | split row " ")
 
+let prefix_path = if $is_win { $env.LIBRARY_PREFIX } else { $env.PREFIX }
 mut cmake_defines = ($forwarded_cmake_args | append [
-    $"-DCMAKE_PREFIX_PATH=($env.PREFIX)"
+    $"-DCMAKE_PREFIX_PATH=($prefix_path)"
     "-DCMAKE_CXX_STANDARD=17"
     "-DCMAKE_INSTALL_LIBDIR=lib"
     "-Donnxruntime_BUILD_SHARED_LIB=ON"
@@ -81,11 +82,13 @@ if $cuda_enabled {
     $env.NINJAJOBS = "1"
 
     if $is_win {
+        let build_lib_prefix = $"($env.BUILD_PREFIX)/Library"
+        # Add nvcc to PATH so cmake can find it (matches build.py behavior)
+        $env.PATH = $"($build_lib_prefix)/bin;($env.PATH)"
         $cmake_defines = ($cmake_defines | append [
             "-Donnxruntime_USE_CUDA=ON"
             $"-Donnxruntime_CUDA_HOME=($env.LIBRARY_PREFIX)"
             $"-Donnxruntime_CUDNN_HOME=($env.LIBRARY_PREFIX)"
-            $"-DCMAKE_CUDA_COMPILER=($env.LIBRARY_PREFIX)/bin/nvcc.exe"
             $"-DCMAKE_CUDA_ARCHITECTURES=($cuda_arch_list)"
         ])
     } else {
