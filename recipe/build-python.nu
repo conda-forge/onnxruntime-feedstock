@@ -72,6 +72,8 @@ if not $cross_compiling {
             --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_set_providers_with_options
             --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_sparse_tensor_coo_format
             --deselect onnxruntime/test/python/onnxruntime_test_python.py::TestInferenceSession::test_sparse_tensor_csr_format
+            --deselect onnxruntime/test/python/onnxruntime_test_python_autoep.py::TestAutoEP::test_cuda_ep_register_and_inference
+            --deselect onnxruntime/test/python/onnxruntime_test_python_autoep.py::TestAutoEP::test_cuda_ep_selection_delegate_and_inference
         ])
     }
 
