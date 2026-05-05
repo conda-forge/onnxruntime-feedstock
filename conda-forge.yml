@@ -10,15 +10,14 @@ azure:
 build_platform:
   linux_aarch64: linux_64
   linux_ppc64le: linux_64
-  osx_arm64: osx_64
 conda_build:
   pkg_format: '2'
 conda_forge_output_validation: true
+conda_install_tool: pixi
 github:
   branch_name: main
   tooling_branch_name: main
 github_actions:
-  self_hosted: true
   timeout_minutes: 720
   triggers:
   - push
@@ -26,4 +25,5 @@ github_actions:
 provider:
   linux_64: github_actions
   win_64: github_actions
+  osx_arm64: default
 test: native_and_emulated
