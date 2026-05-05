@@ -9,13 +9,13 @@ channel_targets:
 cuda_compiler:
 - cuda-nvcc
 cuda_compiler_version:
-- '13.0'
+- None
 cudnn:
 - '9'
 cxx_compiler:
 - vs2022
 github_actions_labels:
-- cirun-azure-windows-4xlarge
+- namespace-profile-16cpu-on-win-64
 numpy:
 - '2'
 pin_run_as_build:
@@ -23,7 +23,7 @@ pin_run_as_build:
     min_pin: x.x
     max_pin: x.x
 python:
-- 3.10.* *_cpython
+- 3.14.* *_cp314
 suffix:
 - ''
 target_platform:
