@@ -6,7 +6,7 @@ if "%cuda_compiler_version%"=="None" (
     set "onnxruntime_BUILD_UNIT_TESTS=ON"
     set "CUDA_ARCH_LIST="
 ) else (
-    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1 --parallel=0 --parallel=4"
+    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=4 --parallel=8"
     set "onnxruntime_BUILD_UNIT_TESTS=OFF"
     if "%cuda_compiler_version%"=="12.9" (
         set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
