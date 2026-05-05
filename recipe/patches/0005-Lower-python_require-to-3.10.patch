@@ -1,0 +1,22 @@
+From 8bd6bd7bc2b1a0742db116a598a39e3da6dda4d0 Mon Sep 17 00:00:00 2001
+From: Christian Bourjau <christian.bourjau@quantco.com>
+Date: Wed, 29 Apr 2026 23:30:28 +0200
+Subject: [PATCH 5/5] Lower python_require to 3.10
+
+---
+ setup.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/setup.py b/setup.py
+index 056dcd9746..19a6425df6 100644
+--- a/setup.py
++++ b/setup.py
+@@ -880,7 +880,7 @@ setup(
+     data_files=data_files,
+     install_requires=install_requires,
+     extras_require=extras_require,
+-    python_requires=">=3.11",
++    python_requires=">=3.10",
+     keywords="onnx machine learning",
+     entry_points={
+         "console_scripts": [
