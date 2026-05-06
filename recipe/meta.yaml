@@ -95,7 +95,6 @@ requirements:
     - protobuf
     - python
     - python-flatbuffers
-    - sympy
     # avoid that people without GPUs needlessly download ~0.5-1GB
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
