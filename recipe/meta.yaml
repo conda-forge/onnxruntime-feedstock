@@ -41,9 +41,6 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [osx and x86_64]
-  # Debug:
-  skip: true  # [py != 310]
-  skip: true  # [ (cuda_compiler_version != "None") or suffix == "-novec"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
