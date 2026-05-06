@@ -38,7 +38,7 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
-                      "CMAKE_CXX_STANDARD=17" \
+                      "CMAKE_CXX_STANDARD=20" \
 		      "CMAKE_INSTALL_LIBDIR=lib"
 )
 
