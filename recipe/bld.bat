@@ -9,15 +9,14 @@ if "%cuda_compiler_version%"=="None" (
     set "onnxruntime_BUILD_UNIT_TESTS=OFF"
     if "%cuda_compiler_version%"=="12.9" (
         set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
-        set "NVCC_THREADS=2"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=2 --parallel=8"
     ) else if "%cuda_compiler_version%"=="13.0" (
         set "CUDA_ARCH_LIST=75-real;80-real;86-real;89-real;90-real;100-real;120"
-        set "NVCC_THREADS=4"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=4 --parallel=8"
     ) else (
         echo No CUDA architecture list exists for CUDA v%cuda_compiler_version%. See bld.bat for information on adding one.
         exit 1
     )
-    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=%NVCC_THREADS% --parallel=8"
 )
 
 :: We set CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON as currently we do not want to use
