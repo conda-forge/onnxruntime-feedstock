@@ -31,6 +31,8 @@ source:
     - patches/0003-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
     # Fix endian.h shadowing system header for glibc 2.17
     - patches/0004-Remove-redundant-include-paths-from-custom-op-test-t.patch
+    # Upstream is actually compatible with 3.10
+    - patches/0005-Lower-python_require-to-3.10.patch
 
 build:
   number: {{ build }}
@@ -39,7 +41,9 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [osx and x86_64]
-  skip: true  # [py < 311]
+  # Debug:
+  skip: true  # [py != 310]
+  skip: true  # [ (cuda_compiler_version != "None") or suffix == "-novec"]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
