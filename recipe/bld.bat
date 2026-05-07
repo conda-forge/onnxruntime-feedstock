@@ -8,7 +8,9 @@ if "%cuda_compiler_version%"=="None" (
 ) else (
     set "onnxruntime_BUILD_UNIT_TESTS=OFF"
     if "%cuda_compiler_version%"=="12.9" (
-        set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
+        :: SM 100+ (Blackwell) triggers a broken asm constraint in CUDA 12.9's clusterlaunchcontrol.h on Windows
+        :: (__CUDA_ARCH__ >= 1000 guard); fixed in CUDA 13.0. Use PTX JIT for Blackwell on this toolchain.
+        set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real"
         set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=2 --parallel=8"
     ) else if "%cuda_compiler_version%"=="13.0" (
         set "CUDA_ARCH_LIST=75-real;80-real;86-real;89-real;90-real;100-real;120"
