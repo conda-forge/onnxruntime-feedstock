@@ -6,12 +6,14 @@ if "%cuda_compiler_version%"=="None" (
     set "onnxruntime_BUILD_UNIT_TESTS=ON"
     set "CUDA_ARCH_LIST="
 ) else (
-    set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=4 --parallel=8"
     set "onnxruntime_BUILD_UNIT_TESTS=OFF"
     if "%cuda_compiler_version%"=="12.9" (
-        set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
+        REM SM 100+ (Blackwell) triggers a broken asm in CUDA 12.9 clusterlaunchcontrol.h on Windows, fixed in 13.0
+        set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=2 --parallel=8"
     ) else if "%cuda_compiler_version%"=="13.0" (
         set "CUDA_ARCH_LIST=75-real;80-real;86-real;89-real;90-real;100-real;120"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=4 --parallel=8"
     ) else (
         echo No CUDA architecture list exists for CUDA v%cuda_compiler_version%. See bld.bat for information on adding one.
         exit 1

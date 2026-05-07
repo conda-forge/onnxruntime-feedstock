@@ -38,7 +38,7 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
-                      "CMAKE_CXX_STANDARD=17" \
+                      "CMAKE_CXX_STANDARD=20" \
 		      "CMAKE_INSTALL_LIBDIR=lib"
 )
 
@@ -78,7 +78,7 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
             exit 1
     esac
     export CUDA_HOME="${BUILD_PREFIX}/targets/${CUDA_TARGET}"
-    BUILD_ARGS="${BUILD_ARGS} --use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --nvcc_threads=4"
+    BUILD_ARGS="${BUILD_ARGS} --use_cuda --cuda_home ${CUDA_HOME} --cudnn_home ${PREFIX} --nvcc_threads=2"
     export NINJAJOBS=1
     cmake_extra_defines+=( "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc" \
 			   "CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH_LIST}"
