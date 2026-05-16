@@ -22,6 +22,10 @@ fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
+    # Enable the CoreML execution provider on Apple Silicon. This sets
+    # onnxruntime_USE_COREML=ON; the CoreML EP is statically linked into
+    # libonnxruntime and exposed as the "CoreMLExecutionProvider".
+    BUILD_ARGS="${BUILD_ARGS} --use_coreml"
 fi
 
 if [[ "${target_platform}" == "linux-64" || "${target_platform}" == "linux-aarch64" ]]; then
@@ -33,7 +37,6 @@ fi
 
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "FLATBUFFERS_BUILD_FLATC=OFF" \
-                      "onnxruntime_USE_COREML=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
                       "onnxruntime_BUILD_SHARED_LIB=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
