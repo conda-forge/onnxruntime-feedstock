@@ -2,7 +2,7 @@
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.25.1" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -88,6 +88,9 @@ requirements:
     - packaging
     - python-flatbuffers
     - optional-lite
+    # Used by the CoreML execution provider to build mlpackage models;
+    # onnxruntime finds it via find_package, so prefer the conda-forge build.
+    - nlohmann_json  # [osx and arm64]
     - zlib
     - numpy
     - pybind11
@@ -107,6 +110,8 @@ test:
   commands:
     - pip check
     - onnxruntime_test --help
+    # The CoreML execution provider is built into onnxruntime on Apple Silicon.
+    - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
   requires:
     - pip
     # 2024/05 hmaarrfk/jtilly
@@ -144,6 +149,7 @@ outputs:
         - run_cpp_test.bat  # [win]
       commands:
         - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
+        - test -f $PREFIX/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h  # [osx and arm64]
         - test -f $PREFIX/lib/libonnxruntime${SHLIB_EXT}  # [unix]
         - test -f $PREFIX/lib/libonnxruntime_providers_shared${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
         - test -f $PREFIX/lib/libonnxruntime_providers_cuda${SHLIB_EXT}  # [unix and cuda_compiler_version != "None"]
@@ -163,7 +169,8 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0  # mp11 is BSL 1.0
+  license: MIT AND BSL-1.0                   # [not (osx and arm64)]  # mp11 is BSL 1.0
+  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]        # mp11 is BSL 1.0, coremltools is BSD-3-Clause
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
@@ -176,6 +183,10 @@ about:
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
+    # Vendored at build time by onnxruntime for the CoreML execution provider.
+    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
+    - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
+    - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
 
 extra:
   recipe-maintainers:
