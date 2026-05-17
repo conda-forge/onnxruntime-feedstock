@@ -93,11 +93,11 @@ requirements:
     - flake8
     - gmock
     - libdate
-    # Link the conda-forge onnx/protobuf/abseil shared libraries instead of the
-    # sources vendored by onnxruntime. onnxruntime finds them via find_package
-    # (CMAKE_PREFIX_PATH=$PREFIX). libonnx and libcoremltools depend on this
-    # exact libprotobuf/libabseil pair, so all of the dependencies resolve to
-    # one self-consistent (full-protobuf) stack.
+    # Link the conda-forge onnx/protobuf/abseil/re2 shared libraries instead of
+    # the sources vendored by onnxruntime. onnxruntime finds them via
+    # find_package (CMAKE_PREFIX_PATH=$PREFIX). libonnx and libcoremltools
+    # depend on this exact libprotobuf/libabseil pair, so all of the
+    # dependencies resolve to one self-consistent (full-protobuf) stack.
     #
     # Known limitation: the conda-forge libonnx does not carry onnxruntime's
     # vendored patch that un-deprecates the opset-18 GroupNormalization op, so
@@ -107,6 +107,7 @@ requirements:
     - libabseil
     - libprotobuf
     - libonnx
+    - re2
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -168,6 +169,7 @@ outputs:
         - libabseil
         - libprotobuf
         - libonnx
+        - re2
         - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
@@ -210,10 +212,10 @@ about:
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    # onnx, abseil and protobuf are no longer vendored; their licenses ship
-    # with the conda-forge libonnx, libabseil and libprotobuf packages.
+    # onnx, abseil, protobuf and re2 are no longer vendored; their licenses
+    # ship with the conda-forge libonnx, libabseil, libprotobuf and re2
+    # packages.
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
     # Fetched at build time by onnxruntime for the CoreML execution provider.
     # coremltools itself is provided by the linked libcoremltools package.
