@@ -33,6 +33,9 @@ source:
     - patches/0004-Remove-redundant-include-paths-from-custom-op-test-t.patch
     # Upstream is actually compatible with 3.10
     - patches/0005-Lower-python_require-to-3.10.patch
+    # Use the conda-forge libcoremltools package instead of vendoring the
+    # coremltools sources for the CoreML execution provider.
+    - patches/0006-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
 
 build:
   number: {{ build }}
@@ -66,7 +69,7 @@ requirements:
     - cmake <4
     - ninja
     # we need protoc in the build environment for cross compilations
-    - libprotobuf 3.21
+    - libprotobuf
   host:
     - python
     - pip
@@ -91,6 +94,9 @@ requirements:
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
+    # The CoreML execution provider links libcoremltools (MILBlob +
+    # modelpackage helpers) instead of vendoring the coremltools sources.
+    - libcoremltools  # [osx and arm64]
     - zlib
     - numpy
     - pybind11
@@ -169,8 +175,7 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0                   # [not (osx and arm64)]  # mp11 is BSL 1.0
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]        # mp11 is BSL 1.0, coremltools is BSD-3-Clause
+  license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
@@ -183,10 +188,10 @@ about:
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
-    # Vendored at build time by onnxruntime for the CoreML execution provider.
-    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
-    - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
-    - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
+    # Fetched at build time by onnxruntime for the CoreML execution provider.
+    # coremltools itself is provided by the linked libcoremltools package.
+    - build-ci/Release/_deps/fp16-src/LICENSE   # [osx and arm64]
+    - build-ci/Release/_deps/psimd-src/LICENSE  # [osx and arm64]
 
 extra:
   recipe-maintainers:

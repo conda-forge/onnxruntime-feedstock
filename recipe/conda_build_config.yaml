@@ -12,3 +12,9 @@ MACOSX_SDK_VERSION:  # [osx]
 github_actions_labels:                # [linux or win]
 - namespace-profile-16cpu-on-linux-64 # [linux]
 - namespace-profile-16cpu-on-win-64   # [win]
+
+# TEMPORARY: also pull from the mark.harfouche channel so the CoreML
+# execution provider can use the libcoremltools package before it is
+# published on conda-forge. Remove before merging.
+channel_sources:
+- conda-forge,mark.harfouche

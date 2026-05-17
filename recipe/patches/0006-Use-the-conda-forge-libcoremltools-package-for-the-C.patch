@@ -1,0 +1,69 @@
+From d78bc27058f8fd0342841f33858eb9debc53b544 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sat, 16 May 2026 21:18:40 -0400
+Subject: [PATCH] Use the conda-forge libcoremltools package for the CoreML EP
+
+Instead of vendoring and rebuilding the coremltools sources via
+FetchContent, locate the installed libcoremltools shared library and
+its headers/.proto definitions, and link the library. The CoreML EP
+still compiles coreml_proto itself from the installed .proto files.
+---
+ .../external/onnxruntime_external_deps.cmake  | 25 ++++++++++++-------
+ cmake/onnxruntime_providers_coreml.cmake      |  5 ++++
+ 2 files changed, 21 insertions(+), 9 deletions(-)
+
+diff --git a/cmake/external/onnxruntime_external_deps.cmake b/cmake/external/onnxruntime_external_deps.cmake
+index be0abc9..8f12b26 100644
+--- a/cmake/external/onnxruntime_external_deps.cmake
++++ b/cmake/external/onnxruntime_external_deps.cmake
+@@ -863,15 +863,22 @@ if(onnxruntime_USE_COREML)
+   set(FP16_BUILD_BENCHMARKS OFF CACHE INTERNAL "")
+   onnxruntime_fetchcontent_makeavailable(fp16)
+ 
+-  onnxruntime_fetchcontent_declare(
+-    coremltools
+-    URL ${DEP_URL_coremltools}
+-    URL_HASH SHA1=${DEP_SHA1_coremltools}
+-    PATCH_COMMAND ${Patch_EXECUTABLE} --binary --ignore-whitespace -p1 < ${PROJECT_SOURCE_DIR}/patches/coremltools/crossplatformbuild.patch
+-    EXCLUDE_FROM_ALL
+-  )
+-  # we don't build directly so use Populate. selected files are built from onnxruntime_providers_coreml.cmake
+-  FetchContent_Populate(coremltools)
++  # coremltools is provided by the conda-forge libcoremltools package: its
++  # mlmodel C++ core (MILBlob + modelpackage) built as a shared library, plus
++  # the development headers and the CoreML .proto definitions. Locate that
++  # instead of vendoring and rebuilding the coremltools sources.
++  #
++  # coremltools_SOURCE_DIR is pointed at the installed include tree so that
++  # the ${coremltools_SOURCE_DIR}/... references in
++  # onnxruntime_providers_coreml.cmake (the .proto root and the header
++  # include directories) keep resolving.
++  find_library(coremltools_LIBRARY NAMES coremltools REQUIRED)
++  find_path(coremltools_SOURCE_DIR
++            NAMES mlmodel/format/Model.proto
++            PATH_SUFFIXES coremltools
++            REQUIRED)
++  message(STATUS "Using coremltools library ${coremltools_LIBRARY}")
++  message(STATUS "Using coremltools headers ${coremltools_SOURCE_DIR}")
+ 
+ endif()
+ 
+diff --git a/cmake/onnxruntime_providers_coreml.cmake b/cmake/onnxruntime_providers_coreml.cmake
+index 757198f..b99af7b 100644
+--- a/cmake/onnxruntime_providers_coreml.cmake
++++ b/cmake/onnxruntime_providers_coreml.cmake
+@@ -179,6 +179,11 @@ onnxruntime_add_include_to_target(onnxruntime_providers_coreml coreml_proto)
+ target_link_libraries(onnxruntime_providers_coreml PRIVATE coreml_proto)
+ add_dependencies(onnxruntime_providers_coreml coreml_proto)
+ 
++# The MILBlob and modelpackage helpers are not compiled from source above
++# (coremltools_srcs only matches the installed headers); link the prebuilt
++# coremltools shared library from the conda-forge libcoremltools package.
++target_link_libraries(onnxruntime_providers_coreml PRIVATE ${coremltools_LIBRARY})
++
+ if (APPLE)
+   target_compile_definitions(onnxruntime_providers_coreml PRIVATE __APPLE__)
+ endif()
+-- 
+2.53.0
+
