@@ -39,10 +39,7 @@ source:
     # build.py's "onnx is not installed" gate
     - patches/0007-Guard-onnx-import-in-autoep-test.patch
     - patches/0008-Copy-python-test-files-in-batches.patch
-    # Use the conda-forge libcoremltools package instead of vendoring the
-    # coremltools sources for the CoreML execution provider.
     - patches/0009-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
-    # Use the conda-forge libabseil package instead of the vendored abseil.
     - patches/0010-Use-the-conda-forge-libabseil-package.patch
 
 build:
@@ -99,12 +96,6 @@ requirements:
     - flake8
     - gmock
     - libdate
-    # Link the conda-forge onnx/protobuf/abseil/re2 shared libraries instead of
-    # the sources vendored by onnxruntime. onnxruntime finds them via
-    # find_package (CMAKE_PREFIX_PATH=$PREFIX). libonnx and libcoremltools
-    # depend on this exact libprotobuf/libabseil pair, so all of the
-    # dependencies resolve to one self-consistent (full-protobuf) stack.
-    #
     # Known limitation: the conda-forge libonnx does not carry onnxruntime's
     # vendored patch that un-deprecates the opset-18 GroupNormalization op, so
     # models with an ai.onnx GroupNormalization node at opset 18-20 are rejected
@@ -114,8 +105,6 @@ requirements:
     - libprotobuf
     - libonnx
     - re2
-    # flatbuffers is statically linked into libonnxruntime (no run dependency);
-    # it is here so onnxruntime finds its headers and CMake package.
     - flatbuffers
     - packaging
     - python-flatbuffers
@@ -123,8 +112,6 @@ requirements:
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
-    # The CoreML execution provider links libcoremltools (MILBlob +
-    # modelpackage helpers) instead of vendoring the coremltools sources.
     - libcoremltools  # [osx and arm64]
     - zlib
     - numpy
@@ -170,16 +157,6 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
-      host:
-        # This output ships libonnxruntime, which dynamically links the
-        # conda-forge onnx/protobuf/abseil/coremltools shared libraries (they
-        # are no longer vendored). Listing them here lets their run_exports add
-        # the matching runtime dependencies to this output.
-        - libabseil
-        - libprotobuf
-        - libonnx
-        - re2
-        - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -220,13 +197,8 @@ about:
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    # onnx, abseil, protobuf, re2 and flatbuffers are no longer vendored; their
-    # licenses ship with the conda-forge libonnx, libabseil, libprotobuf, re2
-    # and flatbuffers packages.
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
-    # Fetched at build time by onnxruntime for the CoreML execution provider.
-    # coremltools itself is provided by the linked libcoremltools package.
     - build-ci/Release/_deps/fp16-src/LICENSE   # [osx and arm64]
     - build-ci/Release/_deps/psimd-src/LICENSE  # [osx and arm64]
 
