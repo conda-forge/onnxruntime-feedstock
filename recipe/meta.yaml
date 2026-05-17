@@ -75,6 +75,9 @@ requirements:
     - ninja
     # we need protoc in the build environment for cross compilations
     - libprotobuf
+    # flatc (from flatbuffers) regenerates the schema headers in build.sh and
+    # must run on the build platform when cross compiling
+    - flatbuffers
   host:
     - python
     - pip
@@ -108,6 +111,9 @@ requirements:
     - libprotobuf
     - libonnx
     - re2
+    # flatbuffers is statically linked into libonnxruntime (no run dependency);
+    # it is here so onnxruntime finds its headers and CMake package.
+    - flatbuffers
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -209,12 +215,11 @@ about:
   license_file:
     - LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    # onnx, abseil, protobuf and re2 are no longer vendored; their licenses
-    # ship with the conda-forge libonnx, libabseil, libprotobuf and re2
-    # packages.
+    # onnx, abseil, protobuf, re2 and flatbuffers are no longer vendored; their
+    # licenses ship with the conda-forge libonnx, libabseil, libprotobuf, re2
+    # and flatbuffers packages.
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
     # Fetched at build time by onnxruntime for the CoreML execution provider.

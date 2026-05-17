@@ -92,6 +92,13 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
 
 fi
 
+# onnxruntime is built against the conda-forge flatbuffers instead of the
+# vendored copy. The flatbuffers schema headers checked into the source tree
+# carry a static_assert pinning them to flatbuffers 23.5.26, so regenerate
+# them with the conda flatc to match the conda flatbuffers runtime version.
+python onnxruntime/core/flatbuffers/schema/compile_schema.py --flatc "${BUILD_PREFIX}/bin/flatc" --language cpp
+python onnxruntime/lora/adapter_format/compile_schema.py --flatc "${BUILD_PREFIX}/bin/flatc"
+
 python tools/ci_build/build.py \
     --compile_no_warning_as_error \
     --enable_lto \
