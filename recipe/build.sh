@@ -42,9 +42,6 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
                       "CMAKE_CXX_STANDARD=20" \
 		      "CMAKE_INSTALL_LIBDIR=lib" \
-                      `# The conda-forge libonnx (and libprotobuf) are full` \
-                      `# protobuf builds, so onnxruntime must link the full` \
-                      `# libprotobuf too, not libprotobuf-lite.` \
                       "onnxruntime_USE_FULL_PROTOBUF=ON"
 )
 
@@ -92,10 +89,7 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
 
 fi
 
-# onnxruntime is built against the conda-forge flatbuffers instead of the
-# vendored copy. The flatbuffers schema headers checked into the source tree
-# carry a static_assert pinning them to flatbuffers 23.5.26, so regenerate
-# them with the conda flatc to match the conda flatbuffers runtime version.
+# regenerate with conda-forge flatc
 python onnxruntime/core/flatbuffers/schema/compile_schema.py --flatc "${BUILD_PREFIX}/bin/flatc" --language cpp
 python onnxruntime/lora/adapter_format/compile_schema.py --flatc "${BUILD_PREFIX}/bin/flatc"
 
