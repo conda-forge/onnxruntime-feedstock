@@ -36,6 +36,8 @@ source:
     # Use the conda-forge libcoremltools package instead of vendoring the
     # coremltools sources for the CoreML execution provider.
     - patches/0006-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
+    # Use the conda-forge libabseil package instead of the vendored abseil.
+    - patches/0007-Use-the-conda-forge-libabseil-package.patch
 
 build:
   number: {{ build }}
@@ -88,6 +90,13 @@ requirements:
     - flake8
     - gmock
     - libdate
+    # Link the conda-forge protobuf and abseil shared libraries instead of the
+    # sources vendored by onnxruntime. onnxruntime finds both via find_package
+    # (CMAKE_PREFIX_PATH=$PREFIX). libcoremltools depends on this exact
+    # libprotobuf/libabseil pair, so all of the CoreML execution provider's
+    # dependencies resolve to one self-consistent stack.
+    - libabseil
+    - libprotobuf
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -141,6 +150,14 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        # This output ships libonnxruntime, which dynamically links the
+        # conda-forge protobuf/abseil/coremltools shared libraries (they are no
+        # longer vendored). Listing them here lets their run_exports add the
+        # matching runtime dependencies to this output.
+        - libabseil
+        - libprotobuf
+        - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -178,13 +195,13 @@ about:
   license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
-    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
-    - build-ci/Release/_deps/protobuf-src/LICENSE
+    # abseil and protobuf are no longer vendored; their licenses ship with the
+    # conda-forge libabseil and libprotobuf packages.
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
