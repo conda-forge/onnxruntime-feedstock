@@ -22,6 +22,8 @@ cxx_compiler:
 - clangxx
 cxx_compiler_version:
 - '19'
+libabseil:
+- '20260107'
 libprotobuf:
 - 6.33.5
 macos_machine:
@@ -34,6 +36,8 @@ pin_run_as_build:
     max_pin: x.x
 python:
 - 3.11.* *_cpython
+re2:
+- 2025.11.05
 suffix:
 - ''
 target_platform:

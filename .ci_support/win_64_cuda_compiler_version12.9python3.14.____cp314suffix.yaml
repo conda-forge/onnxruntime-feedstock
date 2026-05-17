@@ -16,6 +16,8 @@ cxx_compiler:
 - vs2022
 github_actions_labels:
 - namespace-profile-16cpu-on-win-64
+libabseil:
+- '20260107'
 libprotobuf:
 - 6.33.5
 numpy:
@@ -26,6 +28,8 @@ pin_run_as_build:
     max_pin: x.x
 python:
 - 3.14.* *_cp314
+re2:
+- 2025.11.05
 suffix:
 - ''
 target_platform:
