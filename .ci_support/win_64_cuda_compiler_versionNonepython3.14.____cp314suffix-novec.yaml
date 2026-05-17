@@ -3,7 +3,7 @@ c_compiler:
 c_stdlib:
 - vs
 channel_sources:
-- conda-forge
+- conda-forge,mark.harfouche
 channel_targets:
 - conda-forge main
 cuda_compiler:
@@ -16,6 +16,8 @@ cxx_compiler:
 - vs2022
 github_actions_labels:
 - namespace-profile-16cpu-on-win-64
+libprotobuf:
+- 6.33.5
 numpy:
 - '2'
 pin_run_as_build:
