@@ -38,6 +38,9 @@ source:
     - patches/0006-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
     # Use the conda-forge libabseil package instead of the vendored abseil.
     - patches/0007-Use-the-conda-forge-libabseil-package.patch
+    # Use the conda-forge libonnx package instead of the vendored onnx: skip
+    # onnxruntime's schema registration when onnx registers schemas statically.
+    - patches/0008-Skip-ONNX-schema-registration-when-static.patch
 
 build:
   number: {{ build }}
@@ -90,13 +93,14 @@ requirements:
     - flake8
     - gmock
     - libdate
-    # Link the conda-forge protobuf and abseil shared libraries instead of the
-    # sources vendored by onnxruntime. onnxruntime finds both via find_package
-    # (CMAKE_PREFIX_PATH=$PREFIX). libcoremltools depends on this exact
-    # libprotobuf/libabseil pair, so all of the CoreML execution provider's
-    # dependencies resolve to one self-consistent stack.
+    # Link the conda-forge onnx/protobuf/abseil shared libraries instead of the
+    # sources vendored by onnxruntime. onnxruntime finds them via find_package
+    # (CMAKE_PREFIX_PATH=$PREFIX). libonnx and libcoremltools depend on this
+    # exact libprotobuf/libabseil pair, so all of the dependencies resolve to
+    # one self-consistent (full-protobuf) stack.
     - libabseil
     - libprotobuf
+    - libonnx
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -152,11 +156,12 @@ outputs:
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
       host:
         # This output ships libonnxruntime, which dynamically links the
-        # conda-forge protobuf/abseil/coremltools shared libraries (they are no
-        # longer vendored). Listing them here lets their run_exports add the
-        # matching runtime dependencies to this output.
+        # conda-forge onnx/protobuf/abseil/coremltools shared libraries (they
+        # are no longer vendored). Listing them here lets their run_exports add
+        # the matching runtime dependencies to this output.
         - libabseil
         - libprotobuf
+        - libonnx
         - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
@@ -199,9 +204,8 @@ about:
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    - build-ci/Release/_deps/onnx-src/LICENSE
-    # abseil and protobuf are no longer vendored; their licenses ship with the
-    # conda-forge libabseil and libprotobuf packages.
+    # onnx, abseil and protobuf are no longer vendored; their licenses ship
+    # with the conda-forge libonnx, libabseil and libprotobuf packages.
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
