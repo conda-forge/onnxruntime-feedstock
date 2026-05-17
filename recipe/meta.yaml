@@ -98,6 +98,12 @@ requirements:
     # (CMAKE_PREFIX_PATH=$PREFIX). libonnx and libcoremltools depend on this
     # exact libprotobuf/libabseil pair, so all of the dependencies resolve to
     # one self-consistent (full-protobuf) stack.
+    #
+    # Known limitation: the conda-forge libonnx does not carry onnxruntime's
+    # vendored patch that un-deprecates the opset-18 GroupNormalization op, so
+    # models with an ai.onnx GroupNormalization node at opset 18-20 are rejected
+    # (INVALID_GRAPH); re-export or version-convert them to opset >= 21. Rare in
+    # practice -- mainstream exporters decompose group norm rather than emit it.
     - libabseil
     - libprotobuf
     - libonnx
