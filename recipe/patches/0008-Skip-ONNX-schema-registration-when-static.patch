@@ -1,0 +1,52 @@
+From 5da16e2834e3093ecfcc41be8899b5a4eaae0c3d Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 17 May 2026 05:00:00 -0400
+Subject: [PATCH] Skip ONNX schema registration when onnx registers it
+ statically
+
+When onnxruntime is built against an external (find_package) onnx, that
+onnx is normally built with static operator-schema registration enabled
+and registers the ai.onnx, ai.onnx.ml and ai.onnx.training opsets itself
+at library load time. onnxruntime then called RegisterOnnxOperatorSetSchema()
+and friends unconditionally, causing duplicate-schema registration errors.
+
+Guard those calls with ONNX's IsOnnxStaticRegistrationDisabled(). The
+vendored onnx is built with __ONNX_DISABLE_STATIC_REGISTRATION (so the
+function returns true and registration still happens), so this works for
+both the vendored and the unvendored onnx.
+---
+ onnxruntime/core/session/environment.cc | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/onnxruntime/core/session/environment.cc b/onnxruntime/core/session/environment.cc
+index 503aedb..cf25847 100644
+--- a/onnxruntime/core/session/environment.cc
++++ b/onnxruntime/core/session/environment.cc
+@@ -304,15 +304,24 @@ Status Environment::Initialize(std::unique_ptr<logging::LoggingManager> logging_
+ #ifdef USE_DML
+       dml::RegisterDmlSchemas();
+ #endif
+-      RegisterOnnxOperatorSetSchema();
++      // An unvendored (find_package) onnx is normally built with static
++      // schema registration enabled, in which case it registers the
++      // ai.onnx{,.ml,.training} opsets itself at library load time.
++      // Registering them again here would throw a duplicate-schema error.
++      // onnxruntime's own vendored onnx is built with
++      // __ONNX_DISABLE_STATIC_REGISTRATION, so this guard keeps both the
++      // vendored and the find_package() onnx working.
++      if (ONNX_NAMESPACE::IsOnnxStaticRegistrationDisabled()) {
++        RegisterOnnxOperatorSetSchema();
+ 
+ #ifndef DISABLE_ML_OPS
+-      RegisterOnnxMLOperatorSetSchema();
++        RegisterOnnxMLOperatorSetSchema();
+ #endif
+ 
+ #if defined(ENABLE_TRAINING_OPS)
+-      RegisterOnnxTrainingOperatorSetSchema();
++        RegisterOnnxTrainingOperatorSetSchema();
+ #endif
++      }
+ 
+ #if defined(ENABLE_TRAINING_OPS)
+       // preserve this order until <training schemas>: this depends on operatorsetschema registration.

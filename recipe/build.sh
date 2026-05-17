@@ -10,15 +10,14 @@ else
     DONT_VECTORIZE="OFF"
 fi
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || "${cuda_compiler_version:-None}" != "None" ]]; then
-    echo "Tests are disabled"
-    RUN_TESTS_BUILD_PY_OPTIONS=""
-    BUILD_UNIT_TESTS="OFF"
-else
-    echo "Tests are enabled"
-    RUN_TESTS_BUILD_PY_OPTIONS="--test"
-    BUILD_UNIT_TESTS="ON"
-fi
+# The C++ unit tests build an onnx_test_data_proto target that imports ONNX's
+# .proto source files. The unvendored conda-forge libonnx package ships only
+# the generated headers, not the .proto sources, so the unit tests cannot be
+# built. Skip them; the recipe's own test section still exercises the Python
+# package, the C++ consumer test and cmake-package-check.
+echo "Compiled unit tests are disabled"
+RUN_TESTS_BUILD_PY_OPTIONS=""
+BUILD_UNIT_TESTS="OFF"
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
@@ -42,7 +41,8 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
                       "CMAKE_CXX_STANDARD=20" \
-		      "CMAKE_INSTALL_LIBDIR=lib"
+		      "CMAKE_INSTALL_LIBDIR=lib" \
+                      "onnxruntime_USE_FULL_PROTOBUF=ON"
 )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
@@ -88,6 +88,10 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
 			 )
 
 fi
+
+# regenerate with conda-forge flatc
+python onnxruntime/core/flatbuffers/schema/compile_schema.py --flatc "${BUILD_PREFIX}/bin/flatc" --language cpp
+python onnxruntime/lora/adapter_format/compile_schema.py --flatc "${BUILD_PREFIX}/bin/flatc"
 
 python tools/ci_build/build.py \
     --compile_no_warning_as_error \
