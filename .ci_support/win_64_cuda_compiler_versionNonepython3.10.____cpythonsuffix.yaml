@@ -14,6 +14,8 @@ cudnn:
 - '9'
 cxx_compiler:
 - vs2022
+flatbuffers:
+- 25.9.23
 github_actions_labels:
 - namespace-profile-16cpu-on-win-64
 libabseil:
