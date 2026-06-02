@@ -10,14 +10,25 @@ else
     DONT_VECTORIZE="OFF"
 fi
 
-# The C++ unit tests build an onnx_test_data_proto target that imports ONNX's
-# .proto source files. The unvendored conda-forge libonnx package ships only
-# the generated headers, not the .proto sources, so the unit tests cannot be
-# built. Skip them; the recipe's own test section still exercises the Python
-# package, the C++ consumer test and cmake-package-check.
-echo "Compiled unit tests are disabled"
-RUN_TESTS_BUILD_PY_OPTIONS=""
-BUILD_UNIT_TESTS="OFF"
+# The C++ unit tests build an onnx_test_data_proto target whose tml.proto
+# imports ONNX's .proto source files (onnx/onnx-ml.proto). onnxruntime locates
+# them via the cmake variable onnx_SOURCE_DIR. The unvendored conda libonnx
+# package ships only the generated headers, but the conda-forge `onnx` (Python)
+# package ships the .proto sources under
+# $PREFIX/lib/pythonX.Y/site-packages/onnx/, so point onnx_SOURCE_DIR there
+# instead of re-vendoring onnx. Disabled only when cross compiling or for the
+# CUDA build (no GPU available to run the suite), matching the pre-unvendoring
+# behaviour.
+ONNX_PROTO_ROOT="$(dirname "$(dirname "$(find "${PREFIX}" -path '*/onnx/onnx-ml.proto' 2>/dev/null | head -1)")")"
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == '1' || "${cuda_compiler_version:-None}" != "None" || -z "${ONNX_PROTO_ROOT}" ]]; then
+    echo "Compiled unit tests are disabled"
+    RUN_TESTS_BUILD_PY_OPTIONS=""
+    BUILD_UNIT_TESTS="OFF"
+else
+    echo "Compiled unit tests are enabled (onnx .proto from ${ONNX_PROTO_ROOT})"
+    RUN_TESTS_BUILD_PY_OPTIONS="--test"
+    BUILD_UNIT_TESTS="ON"
+fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
@@ -44,6 +55,13 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
 		      "CMAKE_INSTALL_LIBDIR=lib" \
                       "onnxruntime_USE_FULL_PROTOBUF=ON"
 )
+
+# When building the unit tests, tell onnxruntime where to find ONNX's .proto
+# sources (shipped by the conda `onnx` package) so the onnx_test_data_proto
+# target can be generated against the unvendored onnx.
+if [[ "${BUILD_UNIT_TESTS}" == "ON" ]]; then
+    cmake_extra_defines+=( "onnx_SOURCE_DIR=${ONNX_PROTO_ROOT}" )
+fi
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
 # into --cmake_extra_defines.

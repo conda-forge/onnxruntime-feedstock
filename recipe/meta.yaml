@@ -104,6 +104,15 @@ requirements:
     - libabseil
     - libprotobuf
     - libonnx
+    # The conda `onnx` (Python) package supplies ONNX's .proto sources for the
+    # onnx_test_data_proto unit-test target (see build.sh; onnx_SOURCE_DIR). At
+    # python-test runtime it must also be an onnx that links the SHARED libonnx,
+    # so it shares the onnx-ml.proto descriptors with onnxruntime; an onnx that
+    # statically embeds its own onnx registers onnx-ml.proto twice and aborts.
+    # conda-forge's onnx gains shared-libonnx linkage with the libonnx split
+    # (onnx-feedstock PR #146, build >=1). TEMPORARY: drop the `*_1` build pin
+    # once that lands on conda-forge (conda-forge's current onnx is build 0).
+    - onnx 1.21.0 *_1
     - re2
     - flatbuffers
     - packaging
