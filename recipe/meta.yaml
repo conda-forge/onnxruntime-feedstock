@@ -2,7 +2,7 @@
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.26.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -67,6 +67,9 @@ requirements:
     - ninja
     # we need protoc in the build environment for cross compilations
     - libprotobuf 3.21
+    # flatc (from flatbuffers) regenerates the schema headers in build.sh and
+    # must run on the build platform when cross compiling
+    - flatbuffers
   host:
     - python
     - pip
@@ -85,6 +88,13 @@ requirements:
     - flake8
     - gmock
     - libdate
+    # Link the conda-forge re2 shared library instead of the copy vendored by
+    # onnxruntime; onnxruntime finds it via find_package (CMAKE_PREFIX_PATH).
+    - re2
+    # flatbuffers is statically linked into libonnxruntime (no run dependency);
+    # it is here so onnxruntime finds its headers and CMake package, and so the
+    # schema headers can be regenerated with the conda flatc (see build.sh).
+    - flatbuffers
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -135,6 +145,15 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        # libonnxruntime.so dynamically links the now-unvendored conda-forge
+        # re2 shared library. The main onnxruntime output picks this up
+        # automatically because it compiles libonnxruntime.so, but this output
+        # only repackages the prebuilt libs via install-cpp.sh, so conda-build
+        # cannot infer it. List it here so its run_exports pin it into this
+        # package's run requirements; otherwise downstream C++ consumers (and
+        # the cmake-package-check test) fail to link with undefined re2 symbols.
+        - re2  # [unix]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -175,13 +194,13 @@ about:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE
+    # re2 and flatbuffers are no longer vendored; their licenses ship with the
+    # conda-forge re2 and flatbuffers packages.
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
     # Vendored at build time by onnxruntime for the CoreML execution provider.
     - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
