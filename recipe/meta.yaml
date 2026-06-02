@@ -157,6 +157,19 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        # libonnxruntime.so links these now-unvendored shared libraries
+        # (libonnx.so, libprotobuf.so, libabsl_*.so, libre2.so). The main
+        # onnxruntime output picks them up automatically because it compiles
+        # libonnxruntime.so, but this output only repackages the prebuilt libs
+        # via install-cpp.sh, so conda-build cannot infer them. List them here
+        # so their run_exports pin them into this package's run requirements;
+        # otherwise downstream C++ consumers (and the cmake-package-check test)
+        # fail to link with undefined onnx::/google::protobuf:: symbols.
+        - libonnx        # [unix]
+        - libprotobuf    # [unix]
+        - libabseil      # [unix]
+        - re2            # [unix]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
