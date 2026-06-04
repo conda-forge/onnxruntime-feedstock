@@ -137,13 +137,22 @@ requirements:
 test:
   imports:
     - onnxruntime
+  files:
+    - test_onnxruntime_inference.py
   commands:
     - pip check
     - onnxruntime_test --help
     # The CoreML execution provider is built into onnxruntime on Apple Silicon.
     - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
+    # Runtime smoke test on the always-available CPUExecutionProvider: import
+    # onnx and onnxruntime into one process (guards the unvendored libonnx
+    # schema-registration wiring) and run real inference.
+    - python test_onnxruntime_inference.py
   requires:
     - pip
+    # onnx builds the tiny test model; importing it alongside onnxruntime also
+    # exercises the shared-libonnx coexistence the unvendoring relies on.
+    - onnx
     # 2024/05 hmaarrfk/jtilly
     # Test the pip check command with numpy < 2
     # which was included in the requirements file for
