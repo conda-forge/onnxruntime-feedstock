@@ -11,7 +11,7 @@ c_stdlib:
 c_stdlib_version:
 - '11.0'
 channel_sources:
-- conda-forge
+- conda-forge,mark.harfouche
 channel_targets:
 - conda-forge main
 cuda_compiler:
@@ -22,6 +22,12 @@ cxx_compiler:
 - clangxx
 cxx_compiler_version:
 - '19'
+flatbuffers:
+- 25.9.23
+libabseil:
+- '20260107'
+libprotobuf:
+- 6.33.5
 macos_machine:
 - arm64-apple-darwin20.0.0
 numpy:
@@ -32,6 +38,8 @@ pin_run_as_build:
     max_pin: x.x
 python:
 - 3.10.* *_cpython
+re2:
+- 2025.11.05
 suffix:
 - -novec
 target_platform:

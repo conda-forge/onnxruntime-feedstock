@@ -2,7 +2,7 @@
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.26.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -33,6 +33,9 @@ source:
     - patches/0004-Remove-redundant-include-paths-from-custom-op-test-t.patch
     # Upstream is actually compatible with 3.10
     - patches/0005-Lower-python_require-to-3.10.patch
+    - patches/0006-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
+    - patches/0007-Use-the-conda-forge-libabseil-package.patch
+    - patches/0008-Skip-ONNX-schema-registration-when-static.patch
 
 build:
   number: {{ build }}
@@ -44,6 +47,15 @@ build:
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
+    # Keep OpenVINO a *soft* dependency: the OpenVINO EP is a separately loadable
+    # libonnxruntime_providers_openvino.so, so onnxruntime must not hard-depend
+    # on OpenVINO. Drop the (strong) run_exports that libopenvino-dev and the
+    # linked OpenVINO libs would otherwise inject; compatibility is expressed via
+    # run_constrained below instead.
+    - libopenvino-dev            # [linux64]
+    - libopenvino                # [linux64]
+    - libopenvino-onnx-frontend  # [linux64]
+    - libopenvino-ir-frontend    # [linux64]
   # This needs to be coherent with the entry_points list defined around
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
@@ -66,7 +78,10 @@ requirements:
     - cmake <4
     - ninja
     # we need protoc in the build environment for cross compilations
-    - libprotobuf 3.21
+    - libprotobuf
+    # flatc (from flatbuffers) regenerates the schema headers in build.sh and
+    # must run on the build platform when cross compiling
+    - flatbuffers
   host:
     - python
     - pip
@@ -85,12 +100,38 @@ requirements:
     - flake8
     - gmock
     - libdate
+    # Known limitation: the conda-forge libonnx does not carry onnxruntime's
+    # vendored patch that un-deprecates the opset-18 GroupNormalization op, so
+    # models with an ai.onnx GroupNormalization node at opset 18-20 are rejected
+    # (INVALID_GRAPH); re-export or version-convert them to opset >= 21. Rare in
+    # practice -- mainstream exporters decompose group norm rather than emit it.
+    - libabseil
+    - libprotobuf
+    - libonnx
+    # The conda `onnx` (Python) package supplies ONNX's .proto sources for the
+    # onnx_test_data_proto unit-test target (see build.sh; onnx_SOURCE_DIR). At
+    # python-test runtime it must also be an onnx that links the SHARED libonnx,
+    # so it shares the onnx-ml.proto descriptors with onnxruntime; an onnx that
+    # statically embeds its own onnx registers onnx-ml.proto twice and aborts.
+    # conda-forge's onnx gains shared-libonnx linkage with the libonnx split
+    # (onnx-feedstock PR #146). Until that lands on conda-forge, the mark.harfouche
+    # channel (channel_sources, conda_build_config.yaml) supplies the shared-libonnx
+    # onnx; both are TEMPORARY testing aids to drop before merge.
+    - onnx
+    - re2
+    - flatbuffers
     - packaging
     - python-flatbuffers
     - optional-lite
+    # OpenVINO execution provider (Intel CPU/iGPU/NPU), Linux x86_64 only.
+    # libopenvino-dev provides the OpenVINO CMake config consumed by
+    # find_package(OpenVINO REQUIRED COMPONENTS Runtime ONNX) and pulls in the
+    # onnx frontend + every device plugin at build time.
+    - libopenvino-dev  # [linux64]
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
+    - libcoremltools  # [osx and arm64]
     - zlib
     - numpy
     - pybind11
@@ -103,6 +144,13 @@ requirements:
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
+    # OpenVINO execution provider (Intel CPU/iGPU/NPU), Linux x86_64 only.
+    # OpenVINO is a *soft* dependency: it is not installed by default, but when a
+    # user installs a compatible OpenVINO the OpenVINO EP picks it up. Every
+    # OpenVINO frontend and device plugin depends on an exact libopenvino build,
+    # so constraining libopenvino alone transitively pins them all to the version
+    # onnxruntime was built against.
+    - {{ pin_compatible('libopenvino', min_pin='x.x.x', max_pin='x.x.x') }}  # [linux64]
 
 test:
   imports:
@@ -112,6 +160,10 @@ test:
     - onnxruntime_test --help
     # The CoreML execution provider is built into onnxruntime on Apple Silicon.
     - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
+    # The OpenVINO execution provider is built into onnxruntime on Linux x86_64.
+    # It is advertised even without OpenVINO installed (the provider library is
+    # loaded lazily only when an OpenVINO session is created).
+    - python -c "import onnxruntime as ort; assert 'OpenVINOExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [linux64]
   requires:
     - pip
     # 2024/05 hmaarrfk/jtilly
@@ -135,6 +187,19 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        # libonnxruntime.so links these now-unvendored shared libraries
+        # (libonnx.so, libprotobuf.so, libabsl_*.so, libre2.so). The main
+        # onnxruntime output picks them up automatically because it compiles
+        # libonnxruntime.so, but this output only repackages the prebuilt libs
+        # via install-cpp.sh, so conda-build cannot infer them. List them here
+        # so their run_exports pin them into this package's run requirements;
+        # otherwise downstream C++ consumers (and the cmake-package-check test)
+        # fail to link with undefined onnx::/google::protobuf:: symbols.
+        - libonnx        # [unix]
+        - libprotobuf    # [unix]
+        - libabseil      # [unix]
+        - re2            # [unix]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -169,24 +234,16 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0                   # [not (osx and arm64)]  # mp11 is BSL 1.0
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]        # mp11 is BSL 1.0, coremltools is BSD-3-Clause
+  license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
-    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    - build-ci/Release/_deps/onnx-src/LICENSE
-    - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
-    # Vendored at build time by onnxruntime for the CoreML execution provider.
-    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
-    - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
-    - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
+    - build-ci/Release/_deps/fp16-src/LICENSE   # [osx and arm64]
+    - build-ci/Release/_deps/psimd-src/LICENSE  # [osx and arm64]
 
 extra:
   recipe-maintainers:
