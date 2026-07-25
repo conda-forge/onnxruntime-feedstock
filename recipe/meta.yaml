@@ -1,6 +1,6 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
-{% set version = "1.26.0" %}
+{% set version = "1.28.0" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 2a90eb9a306c1eeb29213f5b165a55008ac5cb7d27e0935c4458c51a49ef091d
+  sha256: 9616cbdbbfcb1420b3261cd280a047d74ab0a249825e577b0e2dd310e22f6b83
   patches:
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
     - patches/0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch     # [win]
@@ -169,8 +169,8 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0                   # [not (osx and arm64)]  # mp11 is BSL 1.0
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]        # mp11 is BSL 1.0, coremltools is BSD-3-Clause
+  license: MIT AND BSL-1.0  # [not (osx and arm64)]
+  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]
   license_file:
     - LICENSE
     - build-ci/Release/_deps/abseil_cpp-src/LICENSE
