@@ -9,24 +9,14 @@ channel_targets:
 cuda_compiler:
 - cuda-nvcc
 cuda_compiler_version:
-- None
+- '13.0'
 cudnn:
 - '9'
 cxx_compiler:
 - vs2022
 github_actions_labels:
 - namespace-profile-16cpu-on-win-64
-numpy:
-- '2'
-pin_run_as_build:
-  python:
-    min_pin: x.x
-    max_pin: x.x
-python:
-- 3.14.* *_cp314
 suffix:
-- -novec
+- ''
 target_platform:
 - win-64
-zlib:
-- '1'
