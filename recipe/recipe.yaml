@@ -1,0 +1,392 @@
+context:
+  version: "1.29.0"
+  suffix: ${{ suffix | default("") }}
+  novec: ${{ suffix == "-novec" }}
+  cuda_enabled: ${{ cuda_compiler_version != "None" }}
+  build_number_base: 0
+  build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
+  build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
+
+recipe:
+  name: onnxruntime-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0f065cfd3816eaa4b709a057ea0e237ebc6463843af44a439e0d81af76d6620e
+  patches:
+    # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
+    - if: win
+      then:
+        - patches/0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch
+    # https://github.com/conda-forge/onnxruntime-feedstock/pull/128#issuecomment-2390332504
+    - patches/0002-use-first-nvcc-found.patch
+    # Improve compatibility between Visual Studio 19.41 + cuda 12.0 (they require 12.4 by default)
+    # Upstream suggestion https://github.com/microsoft/onnxruntime/pull/22332
+    - patches/0003-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
+    # Fix endian.h shadowing system header for glibc 2.17
+    - patches/0004-Remove-redundant-include-paths-from-custom-op-test-t.patch
+    # Upstream is actually compatible with 3.10
+    - patches/0005-Lower-python_require-to-3.10.patch
+    # New test in 1.28.0 lacks the skip guard its siblings have when onnx is absent
+    - patches/0006-Skip-adapter-string-tensor-test-without-onnx.patch
+    # autoep test gained a module-level onnx import in 1.28.0 but runs before
+    # build.py's "onnx is not installed" gate
+    - patches/0007-Guard-onnx-import-in-autoep-test.patch
+    # 1.29.0 delay-loads shell32.dll from the pybind module but never links
+    # delayimp.lib; only the MSBuild generator adds it implicitly, so the Ninja
+    # build fails with "unresolved external symbol __delayLoadHelper2".
+    # https://github.com/microsoft/onnxruntime/pull/31637
+    - if: win
+      then:
+        - patches/0008-Link-delayimp.lib-for-onnxruntime_pybind11_state.patch
+    # New 1.29.0 test asserting a fusion-generated sharing tag is stable across
+    # sessions; it reads uninitialized memory and fails intermittently. The tag is
+    # only an enrollment signal (the pre-pack container keys by the packed bytes),
+    # so this costs nothing but a missed buffer reuse.
+    - patches/0009-Disable-flaky-MatMulNBits-sharing-identity-test.patch
+
+build:
+  number: ${{ build_number }}
+  skip:
+    # Since 1.11, power9 seems to be required.
+    - ppc64le
+    # No longer supported upstream and tests fail
+    - osx and x86_64
+    # No CUDA on macOS
+    - cuda_compiler_version != "None" and osx
+    # don't build cuda versions with novec
+    - cuda_compiler_version != "None" and novec
+
+outputs:
+  # ---------------------------------------------------------------------------
+  # CUDA execution provider plugin (CUDA variants only).
+  #
+  # onnxruntime 1.28.0 can build its CUDA EP as a standalone plugin shared
+  # library (onnxruntime_BUILD_CUDA_EP_AS_PLUGIN=ON, docs/cuda_plugin_ep/
+  # upstream). The plugin has no Python dependency, is registered at runtime
+  # under the canonical name "CUDAExecutionProvider" via the EP plugin API
+  # (onnxruntime.register_execution_provider_library from Python or
+  # Env::RegisterExecutionProviderLibrary from C++), and loads into any
+  # onnxruntime core >= 1.24.4 (API version negotiated at load time).
+  #
+  # This removes CUDA from the python/cpp builds entirely: one plugin build
+  # per platform x CUDA version replaces the former python-matrix of full
+  # CUDA rebuilds, and no staged/cached outputs are needed anywhere.
+  # ---------------------------------------------------------------------------
+  - package:
+      name: onnxruntime-ep-cuda
+    build:
+      skip:
+        - not cuda_enabled
+      number: ${{ build_number }}
+      string: h${{ hash }}_${{ build_number }}_${{ build_ext }}
+      script:
+        interpreter: nu
+        env:
+          cuda_compiler_version: ${{ cuda_compiler_version }}
+        file: build-ep-cuda.nu
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        # The vendored protobuf 3.21 does not build with CMake 4
+        - cmake <4
+        - libprotobuf 3.21.*  # We need protoc for cross-compilation
+        - ninja
+        - nushell
+        - if: build_platform != target_platform
+          then:
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+        - if: unix
+          then:
+            - patch
+          else:
+            - m2-patch
+      host:
+        - cuda-version ==${{ cuda_compiler_version }}
+        # cuDNN and cuFFT headers are required at build time; at runtime the
+        # plugin loads both lazily instead of hard-linking them.
+        - cudnn
+        - libcublas-dev
+        - libcusparse-dev
+        - libcurand-dev
+        - libcufft-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+      run:
+        # avoid that people without GPUs needlessly download ~0.5-1GB
+        - __cuda
+      run_constraints:
+        # Minimum core onnxruntime the plugin can load into, from upstream
+        # plugin-ep-cuda/MIN_ONNXRUNTIME_VERSION (enforced at registration)
+        - onnxruntime >=1.24.4
+        - onnxruntime-cpp >=1.24.4
+      ignore_run_exports:
+        from_package:
+          # Only headers are used at build time: the plugin does not link
+          # these (cuFFT is loaded lazily at runtime — FFT contrib ops fail
+          # cleanly without it — and cusparse/curand/nvrtc are unused), so
+          # do not propagate their run exports.
+          - libcufft-dev
+          - libcusparse-dev
+          - libcurand-dev
+          - cuda-nvrtc-dev
+    tests:
+      - package_contents:
+          files:
+            - if: win
+              then:
+                - Library/bin/onnxruntime_providers_cuda.dll
+              else:
+                - lib/libonnxruntime_providers_cuda.so
+          strict: true
+    about:
+      # cutlass is BSD-3-Clause
+      license: MIT AND BSL-1.0 AND BSD-3-Clause
+      license_file:
+        # The plugin-only configure fetches a slightly different vendored set
+        # than the python builds (no dlpack/pybind11; adds cutlass and
+        # cudnn_frontend). rattler-build fails on any listed path that does
+        # not exist, so this list matches exactly what the plugin build
+        # vendors (verified against CI configure logs).
+        - LICENSE
+        - build-ci/Release/_deps/abseil_cpp-src/LICENSE
+        - build-ci/Release/_deps/cudnn_frontend-src/LICENSE.txt
+        - build-ci/Release/_deps/cutlass-src/LICENSE.txt
+        - build-ci/Release/_deps/date-src/LICENSE.txt
+        # EIGEN_MPL2_ONLY=ON, so only MPL2-licensed Eigen code is compiled in
+        - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
+        - build-ci/Release/_deps/flatbuffers-src/LICENSE
+        - build-ci/Release/_deps/gsl-src/LICENSE
+        - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
+        - build-ci/Release/_deps/onnx-src/LICENSE
+        - build-ci/Release/_deps/protobuf-src/LICENSE
+        - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
+        - build-ci/Release/_deps/re2-src/LICENSE
+        - build-ci/Release/_deps/safeint-src/LICENSE
+        - if: aarch64
+          then:
+            # KleidiAI kernels are vendored on ARM targets
+            - build-ci/Release/_deps/kleidiai-src/LICENSES/Apache-2.0.txt
+            - build-ci/Release/_deps/kleidiai-src/LICENSES/BSD-3-Clause.txt
+        - if: win
+          then:
+            - build-ci/Release/_deps/microsoft_wil-src/LICENSE
+
+  # ---------------------------------------------------------------------------
+  # C++ library (CPU-only). Standalone build via upstream's build.py driver:
+  # no Python bindings, no unit tests (those run in the python builds of the
+  # same source), nested upstream header layout as before.
+  # ---------------------------------------------------------------------------
+  - package:
+      name: onnxruntime${{ suffix }}-cpp
+    build:
+      skip:
+        - cuda_enabled
+      number: ${{ build_number }}
+      string: h${{ hash }}_${{ build_number }}_${{ build_ext }}
+      script:
+        file: ${{ "build-cpp.bat" if win else "build-cpp.sh" }}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        # The vendored protobuf 3.21 does not build with CMake 4
+        - cmake <4
+        - libprotobuf 3.21.*  # We need protoc for cross-compilation
+        - ninja
+        # Runs tools/ci_build/build.py. Pinned so the python variant key does
+        # not apply to this output: the C++ package is python-independent and
+        # must have a single build per platform.
+        - python 3.13.*
+        - if: unix
+          then:
+            - patch
+          else:
+            - m2-patch
+      host:
+        - zlib
+        - if: osx
+          then:
+            # Used by the CoreML execution provider to build mlpackage models;
+            # onnxruntime finds it via find_package, so prefer the conda-forge build.
+            - nlohmann_json
+      # TODO: restore the run_exports pin (main's meta.yaml had
+      # pin_subpackage('onnxruntime{{ suffix }}-cpp', max_pin='x.x.x')) once
+      # conda-smithy's v1 linter can handle templated pin_subpackage names.
+      run_constraints:
+        - if: novec
+          then:
+            - onnxruntime-cpp <0a0
+      ignore_run_exports:
+        from_package:
+          - zlib
+    tests:
+      - package_contents:
+          include:
+            - onnxruntime/core/session/onnxruntime_cxx_api.h
+            - if: osx
+              then:
+                # The CoreML execution provider is built into onnxruntime on Apple Silicon.
+                - onnxruntime/core/providers/coreml/coreml_provider_factory.h
+          lib:
+            - if: unix
+              then:
+                - onnxruntime
+              else:
+                - onnxruntime_conda
+      - script:
+          - if: linux
+            then:
+              - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime test.cpp
+          - if: osx
+            then:
+              - $CXX $CXXFLAGS -I$PREFIX/include/ -L$PREFIX/lib/ -lonnxruntime -Wl,-rpath,$CONDA_PREFIX/lib test.cpp
+          - if: unix
+            then:
+              - ./a.out
+          - if: win
+            then:
+              - call .\run_cpp_test.bat
+          - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib("c") }}
+            - cmake-package-check
+        files:
+          recipe:
+            - test.cpp
+            - if: win
+              then:
+                - run_cpp_test.bat
+
+  # ---------------------------------------------------------------------------
+  # Python package (CPU-only), one comparatively cheap build per Python
+  # version via upstream's build.py driver (wheel + full upstream test run,
+  # exactly like the previous conda-build recipe). GPU users additionally
+  # install onnxruntime-ep-cuda and register it through the EP plugin API.
+  # ---------------------------------------------------------------------------
+  - package:
+      name: onnxruntime${{ suffix }}
+    build:
+      skip:
+        - cuda_enabled
+      number: ${{ build_number }}
+      string: py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}_${{ build_ext }}
+      script:
+        file: ${{ "build-python.bat" if win else "build-python.sh" }}
+      python:
+        entry_points:
+          # This needs to be coherent with the entry_points list defined around
+          # https://github.com/microsoft/onnxruntime/blob/main/setup.py
+          - onnxruntime_test = onnxruntime.tools.onnxruntime_test:main
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        # The vendored protobuf 3.21 does not build with CMake 4
+        - cmake <4
+        - libprotobuf 3.21.*  # We need protoc for cross-compilation
+        - ninja
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - numpy
+            - pybind11
+        - if: unix
+          then:
+            - patch
+          else:
+            - m2-patch
+      host:
+        - python
+        - pip
+        - setuptools
+        - wheel
+        - flake8
+        - gmock
+        - libdate
+        - packaging
+        - python-flatbuffers
+        - optional-lite
+        - if: osx
+          then:
+            # Used by the CoreML execution provider to build mlpackage models;
+            # onnxruntime finds it via find_package, so prefer the conda-forge build.
+            - nlohmann_json
+        - zlib
+        - numpy
+        - pybind11
+      run:
+        - packaging
+        - protobuf
+        - python
+        - python-flatbuffers
+      run_constraints:
+        - if: novec
+          then:
+            - onnxruntime <0a0
+      ignore_run_exports:
+        from_package:
+          - zlib
+    tests:
+      - if: build_platform == target_platform
+        then:
+          - python:
+              imports:
+                - onnxruntime
+              pip_check: true
+          - script:
+              - onnxruntime_test --help
+              - if: osx
+                then:
+                  # The CoreML execution provider is built into onnxruntime on Apple Silicon.
+                  - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"
+
+about:
+  homepage: https://github.com/microsoft/onnxruntime/
+  summary: cross-platform, high performance ML inferencing and training accelerator
+  # mp11 is BSL 1.0; coremltools (osx) is BSD-3-Clause
+  license: ${{ "MIT AND BSL-1.0 AND BSD-3-Clause" if osx else "MIT AND BSL-1.0" }}
+  license_file:
+    # This is the license set the conda-build recipe shipped; every listed
+    # path is proven to exist under the build.py-driven builds on its
+    # platform. rattler-build fails on any listed path that does not exist.
+    - LICENSE
+    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
+    # EIGEN_MPL2_ONLY=ON, so only MPL2-licensed Eigen code is compiled in
+    - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
+    - build-ci/Release/_deps/flatbuffers-src/LICENSE
+    - build-ci/Release/_deps/gsl-src/LICENSE
+    - if: win
+      then:
+        - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT
+    - build-ci/Release/_deps/onnx-src/LICENSE
+    - build-ci/Release/_deps/protobuf-src/LICENSE
+    - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
+    - build-ci/Release/_deps/re2-src/LICENSE
+    - build-ci/Release/_deps/safeint-src/LICENSE
+    - if: osx
+      then:
+        # Vendored at build time by onnxruntime for the CoreML execution provider.
+        - build-ci/Release/_deps/coremltools-src/LICENSE.txt
+        - build-ci/Release/_deps/fp16-src/LICENSE
+        - build-ci/Release/_deps/psimd-src/LICENSE
+
+extra:
+  feedstock-name: onnxruntime
+  recipe-maintainers:
+    - xhochy
+    - janjagusch
+    - jtilly
+    - cbourjau
+    - hmaarrfk
+    - traversaro

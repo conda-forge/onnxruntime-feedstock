@@ -1,0 +1,48 @@
+From 71ff58165641fb0512e06068526cd92b3271dfe9 Mon Sep 17 00:00:00 2001
+From: Jaskaran Singh Nagi <jaskaran.singh.nagi@intel.com>
+Date: Wed, 12 Aug 2026 09:36:41 -0700
+Subject: [PATCH] Link delayimp.lib for onnxruntime_pybind11_state when
+ delay-loading is enabled (#31637)
+
+### Description
+Add target_link_libraries(onnxruntime_pybind11_state PRIVATE
+delayimp.lib),
+guarded on onnxruntime_DELAYLOAD_FLAGS being non-empty, matching the
+existing
+pattern in onnxruntime.cmake, onnxruntime_providers_webgpu.cmake, and
+onnxruntime_providers_dml.cmake.
+
+
+### Motivation and Context
+target_link_options() sets /DELAYLOAD:<dll> flags for
+onnxruntime_pybind11_state
+via onnxruntime_DELAYLOAD_FLAGS (e.g. /DELAYLOAD:shell32.dll), but
+nothing links
+delayimp.lib to resolve __delayLoadHelper2 for this target.
+
+Under the Visual Studio/MSBuild generator this is masked because
+Microsoft.Cpp.targets auto-adds delayimp.lib whenever /DELAYLOAD is
+used. Ninja
+has no such implicit behavior, so building the Python bindings with -G
+Ninja and
+onnxruntime_ENABLE_DELAY_LOADING_WIN_DLLS=ON (the WIN32 default) fails
+with:
+  LNK2001: unresolved external symbol __delayLoadHelper2
+---
+ cmake/onnxruntime_python.cmake | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/cmake/onnxruntime_python.cmake b/cmake/onnxruntime_python.cmake
+index f50baf6f993a6..80fbbdf0e7260 100644
+--- a/cmake/onnxruntime_python.cmake
++++ b/cmake/onnxruntime_python.cmake
+@@ -253,6 +253,9 @@ add_dependencies(onnxruntime_pybind11_state ${onnxruntime_pybind11_state_depende
+ 
+ if (MSVC)
+   target_link_options(onnxruntime_pybind11_state PRIVATE ${onnxruntime_DELAYLOAD_FLAGS})
++  if(onnxruntime_DELAYLOAD_FLAGS)
++    target_link_libraries(onnxruntime_pybind11_state PRIVATE delayimp.lib)
++  endif()
+   # if MSVC, pybind11 undefines _DEBUG in pybind11/detail/common.h, which causes the pragma in pyconfig.h
+   # from the python installation to require the release version of the lib
+   # e.g. from a python 3.10 install:
