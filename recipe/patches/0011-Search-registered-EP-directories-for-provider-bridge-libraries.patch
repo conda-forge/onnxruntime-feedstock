@@ -1,0 +1,208 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge onnxruntime-feedstock <conda-forge@googlegroups.com>
+Date: Sat, 05 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Search registered EP directories for provider bridge libraries
+
+Provider bridge libraries (onnxruntime_providers_shared, onnxruntime_providers_cuda,
+...) are resolved as Env::GetRuntimePath() + <filename>, i.e. they must live in the
+same directory as the onnxruntime binary. That assumption is fine for a single wheel
+that ships every EP, but it breaks as soon as an EP is a separate package:
+
+  * onnxruntime_providers_tensorrt does not implement its own CUDA allocator, pinned
+    allocator, GPU data transfer, cast kernels or CUDA error checking. It reaches
+    them through ProviderHost, which forwards to ProviderInfo_CUDA and therefore
+    dlopens onnxruntime_providers_cuda. So a standalone TensorRT EP package has to
+    ship a (CUDA_MINIMAL) onnxruntime_providers_cuda of its own.
+
+  * That file name is already taken. A CUDA EP plugin built with
+    onnxruntime_BUILD_CUDA_EP_AS_PLUGIN=ON is also installed as
+    onnxruntime_providers_cuda, and exports only CreateEpFactories/ReleaseEpFactory -
+    it is not a provider bridge. Putting both in one directory is impossible, and if
+    the plugin wins the name, GetProviderInfo_CUDA() fails on it.
+
+  * For a Python install the runtime path is site-packages/onnxruntime/capi, which a
+    Python-independent EP package cannot write into at all.
+
+So: keep the runtime path as the first place searched, and additionally search any
+directory registered with AddProviderLibrarySearchPath. LoadPluginOrProviderBridge
+registers the directory of every EP library loaded from an absolute path, which lets
+an out-of-tree EP ship the bridge libraries it depends on next to itself in a private
+directory. Nothing changes for an ordinary install, where the runtime path resolves
+first.
+
+A candidate is only accepted if it exports the symbol the caller needs
+(Provider_SetHost / GetProvider). That is not just an early sanity check: it is what
+stops a CUDA EP plugin occupying the onnxruntime_providers_cuda name in the runtime
+path from shadowing a usable bridge library in a registered directory.
+diff --git a/onnxruntime/core/session/provider_bridge_library.h b/onnxruntime/core/session/provider_bridge_library.h
+index a131e1e..92b4bbb 100644
+--- a/onnxruntime/core/session/provider_bridge_library.h
++++ b/onnxruntime/core/session/provider_bridge_library.h
+@@ -3,12 +3,28 @@
+ 
+ #pragma once
+ 
++#include <filesystem>
+ #include <mutex>
+ #include "core/session/onnxruntime_c_api.h"
+ 
+ namespace onnxruntime {
+ struct Provider;
+ 
++// Registers an additional directory to search for provider bridge libraries
++// (onnxruntime_providers_shared, onnxruntime_providers_cuda, ...) when they are not found next to
++// the onnxruntime binary itself.
++//
++// Provider bridge libraries have always been resolved relative to Env::GetRuntimePath(), which
++// assumes every EP is installed into the same directory as onnxruntime. An EP registered from an
++// arbitrary path with RegisterExecutionProviderLibrary cannot satisfy that: the TensorRT EP, for
++// example, calls into ProviderInfo_CUDA and therefore needs onnxruntime_providers_cuda next to it.
++// Registering the directory an EP library was loaded from lets it ship the bridge libraries it
++// depends on alongside itself.
++//
++// Directories are searched after the runtime path, in registration order. Registering the same
++// directory twice is a no-op.
++void AddProviderLibrarySearchPath(const std::filesystem::path& directory);
++
+ enum class ProviderLibraryPathType {
+   Default,
+   Absolute,
+diff --git a/onnxruntime/core/session/provider_bridge_ort.cc b/onnxruntime/core/session/provider_bridge_ort.cc
+index c45d216..fdae391 100644
+--- a/onnxruntime/core/session/provider_bridge_ort.cc
++++ b/onnxruntime/core/session/provider_bridge_ort.cc
+@@ -4,8 +4,11 @@
+ // This is the Onnxruntime side of the bridge to allow providers to be built as a DLL
+ // It implements onnxruntime::ProviderHost
+ 
++#include <algorithm>
++#include <filesystem>
+ #include <optional>
+ #include <utility>
++#include <vector>
+ 
+ #include "core/common/inlined_containers.h"
+ #include "core/common/path_string.h"
+@@ -1887,15 +1890,92 @@ struct ProviderHostImpl : ProviderHost {
+ #if defined(_MSC_VER) && !defined(__clang__)
+ #pragma warning(pop)
+ #endif
++// Extra directories to search for provider bridge libraries, in addition to the ORT runtime path.
++// See AddProviderLibrarySearchPath in provider_bridge_library.h.
++static std::mutex& ProviderLibrarySearchPathsMutex() {
++  static std::mutex mutex;
++  return mutex;
++}
++
++static std::vector<std::filesystem::path>& ProviderLibrarySearchPaths() {
++  static std::vector<std::filesystem::path> paths;
++  return paths;
++}
++
++void AddProviderLibrarySearchPath(const std::filesystem::path& directory) {
++  if (directory.empty()) {
++    return;
++  }
++
++  std::lock_guard<std::mutex> lock{ProviderLibrarySearchPathsMutex()};
++  auto& paths = ProviderLibrarySearchPaths();
++  if (std::find(paths.begin(), paths.end(), directory) == paths.end()) {
++    paths.push_back(directory);
++  }
++}
++
++// Loads a provider bridge library by file name, looking in the ORT runtime path first (the
++// long-standing behaviour) and then in every directory registered with
++// AddProviderLibrarySearchPath.
++//
++// `required_symbol` must be exported by the library for a candidate to be accepted. This is not
++// just an early sanity check: a CUDA EP plugin (onnxruntime_BUILD_CUDA_EP_AS_PLUGIN=ON) installs
++// under the same onnxruntime_providers_cuda name as the provider bridge library but exports only
++// CreateEpFactories/ReleaseEpFactory. Without the check, such a file sitting in the runtime path
++// would shadow a usable bridge library in a registered directory.
++//
++// On failure the error from the runtime path is returned, so the message keeps naming the
++// expected location.
++static Status LoadProviderBridgeLibrary(const PathString& filename, const char* required_symbol,
++                                        bool shared_globals, void** handle) {
++  std::vector<PathString> candidates{Env::Default().GetRuntimePath() + filename};
++  {
++    std::lock_guard<std::mutex> lock{ProviderLibrarySearchPathsMutex()};
++    for (const auto& directory : ProviderLibrarySearchPaths()) {
++      candidates.push_back((directory / std::filesystem::path{filename}).native());
++    }
++  }
++
++  Status first_error;
++  for (size_t i = 0; i < candidates.size(); ++i) {
++    void* candidate_handle = nullptr;
++    auto status = Env::Default().LoadDynamicLibrary(candidates[i], shared_globals, &candidate_handle);
++
++    if (status.IsOK()) {
++      void* symbol = nullptr;
++      status = Env::Default().GetSymbolFromLibrary(candidate_handle, required_symbol, &symbol);
++      if (status.IsOK()) {
++        if (i != 0) {
++          LOGS_DEFAULT(INFO) << "Loaded provider bridge library from a registered search path: "
++                             << PathToUTF8String(candidates[i]);
++        }
++        *handle = candidate_handle;
++        return Status::OK();
++      }
++
++      auto unload_status = Env::Default().UnloadDynamicLibrary(candidate_handle);
++      if (!unload_status.IsOK()) {
++        LOGS_DEFAULT(ERROR) << unload_status.ErrorMessage();
++      }
++    }
++
++    if (i == 0) {
++      first_error = status;
++    }
++  }
++
++  return first_error;
++}
++
+ struct ProviderSharedLibrary {
+   Status Initialize() {
+     if (handle_) {
+       return Status::OK();
+     }
+ 
+-    auto full_path = Env::Default().GetRuntimePath() +
+-                     PathString(LIBRARY_PREFIX ORT_TSTR("onnxruntime_providers_shared") LIBRARY_EXTENSION);
+-    ORT_RETURN_IF_ERROR(Env::Default().LoadDynamicLibrary(full_path, true /*shared_globals on unix*/, &handle_));
++    ORT_RETURN_IF_ERROR(LoadProviderBridgeLibrary(
++        PathString(LIBRARY_PREFIX ORT_TSTR("onnxruntime_providers_shared") LIBRARY_EXTENSION),
++        "Provider_SetHost", true /*shared_globals on unix*/, &handle_));
+ 
+     void (*PProvider_SetHost)(void*);
+     ORT_RETURN_IF_ERROR(Env::Default().GetSymbolFromLibrary(handle_, "Provider_SetHost", (void**)&PProvider_SetHost));
+@@ -1960,8 +2040,7 @@ Status ProviderLibrary::Load() {
+         }
+         ORT_RETURN_IF_ERROR(Env::Default().LoadDynamicLibrary(filename_, false, &handle_));
+       } else {
+-        auto full_path = Env::Default().GetRuntimePath() + filename_;
+-        ORT_RETURN_IF_ERROR(Env::Default().LoadDynamicLibrary(full_path, false, &handle_));
++        ORT_RETURN_IF_ERROR(LoadProviderBridgeLibrary(PathString(filename_), "GetProvider", false, &handle_));
+       }
+ 
+       Provider* (*PGetProvider)();
+diff --git a/onnxruntime/core/session/utils.cc b/onnxruntime/core/session/utils.cc
+index 8fc6c1d..3780f4b 100644
+--- a/onnxruntime/core/session/utils.cc
++++ b/onnxruntime/core/session/utils.cc
+@@ -678,6 +678,12 @@ Status LoadPluginOrProviderBridge(const std::string& registration_name,
+     resolved_library_path = Env::Default().GetRuntimePath() / std::move(resolved_library_path);
+   }
+ 
++  // An EP library registered from an arbitrary path may ship the provider bridge libraries it
++  // depends on (onnxruntime_providers_shared, and onnxruntime_providers_cuda for the TensorRT EP)
++  // next to itself rather than next to onnxruntime. Make that directory searchable before the
++  // load below pulls those dependencies in.
++  AddProviderLibrarySearchPath(resolved_library_path.parent_path());
++
+   // if it's a provider bridge library we need to create ProviderLibrary first to ensure the dependencies are loaded
+   // like the onnxruntime_provider_shared library.
+   auto provider_library = std::make_unique<ProviderLibrary>(resolved_library_path.native().c_str(),

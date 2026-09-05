@@ -1,0 +1,299 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge onnxruntime-feedstock <conda-forge@googlegroups.com>
+Date: Sat, 05 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Give the TensorRT EP an OrtEpFactory
+
+onnxruntime_providers_tensorrt is already a standalone provider bridge library, but
+it only exports GetProvider. EpLibraryPlugin::Load() requires CreateEpFactories and
+ReleaseEpFactory, so RegisterExecutionProviderLibrary (the API that can load an EP
+from an arbitrary absolute path) rejects it and the library can only be discovered by
+sitting next to the onnxruntime binary itself. That is what makes it impossible to
+ship the TensorRT EP as its own package.
+
+The CUDA, NV TensorRT RTX, MIGraphX and OpenVINO in-tree provider bridge EPs all
+already implement the pair; this adds the same for TensorRT, modelled on
+MigraphXEpFactory. The factory only reports supported devices - ORT wraps it in a
+ProviderBridgeEpFactory and creates the actual EP through
+Provider::CreateIExecutionProvider, so no kernel, allocator or stream plumbing is
+duplicated. That override is added here too; it did not exist before.
+
+Note on the provider options conversion: TensorrtExecutionProviderInfo::
+UpdateProviderOptions(..., string_copy=false) cannot be used here. It points the
+OrtTensorRTProviderOptionsV2 `const char*` fields at std::strings owned by a
+TensorrtExecutionProviderInfo local to that function, so every string option dangles
+as soon as it returns (observed as garbage trt_tactic_sources /
+trt_extra_plugin_lib_paths / trt_profile_min_shapes values). Building the info struct
+directly with FromProviderOptions avoids it.
+
+Reported upstream is worthwhile; kept as a feedstock patch for now.
+diff --git a/onnxruntime/core/providers/tensorrt/exported_symbols.lst b/onnxruntime/core/providers/tensorrt/exported_symbols.lst
+index f4c4141..6dc5905 100644
+--- a/onnxruntime/core/providers/tensorrt/exported_symbols.lst
++++ b/onnxruntime/core/providers/tensorrt/exported_symbols.lst
+@@ -1 +1,3 @@
+ _GetProvider
++_CreateEpFactories
++_ReleaseEpFactory
+diff --git a/onnxruntime/core/providers/tensorrt/symbols.def b/onnxruntime/core/providers/tensorrt/symbols.def
+index 4ec2f79..3afed01 100644
+--- a/onnxruntime/core/providers/tensorrt/symbols.def
++++ b/onnxruntime/core/providers/tensorrt/symbols.def
+@@ -1,2 +1,4 @@
+ EXPORTS
+    GetProvider
++   CreateEpFactories
++   ReleaseEpFactory
+diff --git a/onnxruntime/core/providers/tensorrt/tensorrt_provider_factory.cc b/onnxruntime/core/providers/tensorrt/tensorrt_provider_factory.cc
+index 71ea66b..9903014 100644
+--- a/onnxruntime/core/providers/tensorrt/tensorrt_provider_factory.cc
++++ b/onnxruntime/core/providers/tensorrt/tensorrt_provider_factory.cc
+@@ -137,6 +137,43 @@ struct Tensorrt_Provider : Provider {
+     return onnxruntime::TensorrtExecutionProviderInfo::ToProviderOptions(options);
+   }
+ 
++  Status CreateIExecutionProvider(const OrtHardwareDevice* const* /*devices*/,
++                                  const OrtKeyValuePairs* const* /*ep_metadata*/,
++                                  size_t /*num_devices*/,
++                                  ProviderOptions& provider_options,
++                                  const OrtSessionOptions& session_options,
++                                  const OrtLogger& logger,
++                                  std::unique_ptr<IExecutionProvider>& ep) override {
++    // Note: do NOT go via OrtTensorRTProviderOptionsV2 +
++    // TensorrtExecutionProviderInfo::UpdateProviderOptions(..., string_copy=false) here. That
++    // overload points the OrtTensorRTProviderOptionsV2 `const char*` fields at std::strings owned
++    // by a local TensorrtExecutionProviderInfo inside UpdateProviderOptions(), so every string
++    // option dangles as soon as it returns. Build the info struct directly instead - it owns its
++    // strings for as long as the factory needs them.
++    auto status = Status::OK();
++    ORT_TRY {
++      TensorrtExecutionProviderInfo info = TensorrtExecutionProviderInfo::FromProviderOptions(provider_options);
++
++      // The EP was configured through provider options (auto EP selection always passes a map,
++      // even an empty one), so honour them rather than falling back to the ORT_TENSORRT_*
++      // environment variables - the same choice the OrtTensorRTProviderOptionsV2 path makes.
++      info.has_trt_options = true;
++
++      // Held as the base type: TensorrtProviderFactory overrides the no-argument CreateProvider(),
++      // which hides the session-options overload declared on IExecutionProviderFactory.
++      std::shared_ptr<IExecutionProviderFactory> ep_factory = std::make_shared<TensorrtProviderFactory>(info);
++      ep = ep_factory->CreateProvider(session_options, logger);
++    }
++    ORT_CATCH(const std::exception& ex) {
++      ORT_HANDLE_EXCEPTION([&]() {
++        status = ORT_MAKE_STATUS(ONNXRUNTIME, FAIL,
++                                 "[TensorRT EP] Failed to create the execution provider: ", ex.what());
++      });
++    }
++
++    return status;
++  }
++
+   void Initialize() override {
+     InitializeRegistry();
+   }
+@@ -149,9 +186,190 @@ struct Tensorrt_Provider : Provider {
+ 
+ }  // namespace onnxruntime
+ 
++#include "core/framework/error_code_helper.h"
++
++// OrtEpApi infrastructure so the TensorRT EP can be used as an OrtEpFactory for auto EP selection,
++// the same way the CUDA, NV TensorRT RTX, MIGraphX and OpenVINO EPs already can. Without
++// CreateEpFactories/ReleaseEpFactory this library can only be discovered next to the onnxruntime
++// binary itself; with them it can be registered from any path via RegisterExecutionProviderLibrary
++// (Env::RegisterExecutionProviderLibrary / onnxruntime.register_execution_provider_library), which
++// is what lets it ship as a standalone package.
++//
++// The EP itself is still created through the provider bridge: ORT wraps this factory in a
++// ProviderBridgeEpFactory and calls Provider::CreateIExecutionProvider above, so no kernel or
++// allocator plumbing is duplicated here.
++struct TensorrtEpFactory : OrtEpFactory {
++  TensorrtEpFactory(const OrtApi& ort_api_in, const OrtLogger& default_logger_in)
++      : ort_api{ort_api_in}, default_logger{default_logger_in} {
++    ort_version_supported = ORT_API_VERSION;  // Set to the ORT version we were compiled with.
++
++    GetName = GetNameImpl;
++    GetVendor = GetVendorImpl;
++    GetVendorId = GetVendorIdImpl;
++    GetVersion = GetVersionImpl;
++
++    GetSupportedDevices = GetSupportedDevicesImpl;
++    CreateEp = CreateEpImpl;
++    ReleaseEp = ReleaseEpImpl;
++
++    CreateAllocator = CreateAllocatorImpl;
++    ReleaseAllocator = ReleaseAllocatorImpl;
++    CreateDataTransfer = CreateDataTransferImpl;
++
++    IsStreamAware = IsStreamAwareImpl;
++    CreateSyncStreamForDevice = CreateSyncStreamForDeviceImpl;
++  }
++
++  static const char* ORT_API_CALL GetNameImpl(const OrtEpFactory* this_ptr) noexcept {
++    const auto* factory = static_cast<const TensorrtEpFactory*>(this_ptr);
++    return factory->ep_name.c_str();
++  }
++
++  static const char* ORT_API_CALL GetVendorImpl(const OrtEpFactory* this_ptr) noexcept {
++    const auto* factory = static_cast<const TensorrtEpFactory*>(this_ptr);
++    return factory->ep_vendor.c_str();
++  }
++
++  static uint32_t ORT_API_CALL GetVendorIdImpl(const OrtEpFactory* this_ptr) noexcept {
++    const auto* factory = static_cast<const TensorrtEpFactory*>(this_ptr);
++    return factory->ep_vendor_id;
++  }
++
++  static const char* ORT_API_CALL GetVersionImpl(const OrtEpFactory* /*this_ptr*/) noexcept {
++    return ORT_VERSION;
++  }
++
++  // The TensorRT EP runs on NVIDIA GPUs only. One OrtEpDevice per NVIDIA GPU, carrying the
++  // device_id the EP should use for it.
++  static OrtStatus* ORT_API_CALL GetSupportedDevicesImpl(OrtEpFactory* this_ptr,
++                                                         const OrtHardwareDevice* const* devices,
++                                                         size_t num_devices,
++                                                         OrtEpDevice** ep_devices,
++                                                         size_t max_ep_devices,
++                                                         size_t* p_num_ep_devices) noexcept {
++    size_t& num_ep_devices = *p_num_ep_devices;
++    num_ep_devices = 0;
++    auto* factory = static_cast<TensorrtEpFactory*>(this_ptr);
++
++    int device_id = 0;
++    for (size_t i = 0; i < num_devices && num_ep_devices < max_ep_devices; ++i) {
++      const OrtHardwareDevice& device = *devices[i];
++
++      if (factory->ort_api.HardwareDevice_Type(&device) != OrtHardwareDeviceType::OrtHardwareDeviceType_GPU ||
++          factory->ort_api.HardwareDevice_VendorId(&device) != OrtDevice::VendorIds::NVIDIA) {
++        continue;
++      }
++
++      OrtKeyValuePairs* ep_options = nullptr;
++      factory->ort_api.CreateKeyValuePairs(&ep_options);
++      factory->ort_api.AddKeyValuePair(ep_options, "device_id", std::to_string(device_id).c_str());
++
++      auto* status = factory->ort_api.GetEpApi()->CreateEpDevice(factory, &device, /*ep_metadata*/ nullptr,
++                                                                 ep_options, &ep_devices[num_ep_devices]);
++
++      factory->ort_api.ReleaseKeyValuePairs(ep_options);
++
++      if (status != nullptr) {
++        return status;
++      }
++
++      ++num_ep_devices;
++      ++device_id;
++    }
++
++    return nullptr;
++  }
++
++  static OrtStatus* ORT_API_CALL CreateEpImpl(OrtEpFactory* this_ptr,
++                                              _In_reads_(num_devices) const OrtHardwareDevice* const* /*devices*/,
++                                              _In_reads_(num_devices) const OrtKeyValuePairs* const* /*ep_metadata*/,
++                                              _In_ size_t /*num_devices*/,
++                                              _In_ const OrtSessionOptions* /*session_options*/,
++                                              _In_ const OrtLogger* /*logger*/,
++                                              _Out_ OrtEp** /*ep*/) noexcept {
++    auto* factory = static_cast<TensorrtEpFactory*>(this_ptr);
++    // ORT calls Provider::CreateIExecutionProvider through ProviderBridgeEpFactory instead.
++    return factory->ort_api.CreateStatus(ORT_INVALID_ARGUMENT,
++                                         "[TensorRT EP] EP factory does not support this method.");
++  }
++
++  static void ORT_API_CALL ReleaseEpImpl(OrtEpFactory* /*this_ptr*/, OrtEp* /*ep*/) noexcept {
++    // no-op as we never create an OrtEp here.
++  }
++
++  static OrtStatus* ORT_API_CALL CreateAllocatorImpl(OrtEpFactory* this_ptr,
++                                                     const OrtMemoryInfo* /*memory_info*/,
++                                                     const OrtKeyValuePairs* /*allocator_options*/,
++                                                     OrtAllocator** allocator) noexcept {
++    auto* factory = static_cast<TensorrtEpFactory*>(this_ptr);
++
++    *allocator = nullptr;
++    return factory->ort_api.CreateStatus(
++        ORT_INVALID_ARGUMENT,
++        "CreateAllocator should not be called as we did not add OrtMemoryInfo to our OrtEpDevice.");
++  }
++
++  static void ORT_API_CALL ReleaseAllocatorImpl(OrtEpFactory* /*this_ptr*/, OrtAllocator* /*allocator*/) noexcept {
++    // should never be called as we don't implement CreateAllocator
++  }
++
++  static OrtStatus* ORT_API_CALL CreateDataTransferImpl(OrtEpFactory* /*this_ptr*/,
++                                                        OrtDataTransferImpl** data_transfer) noexcept {
++    *data_transfer = nullptr;  // the EP's own IDataTransfer is used via the provider bridge
++    return nullptr;
++  }
++
++  static bool ORT_API_CALL IsStreamAwareImpl(const OrtEpFactory* /*this_ptr*/) noexcept {
++    return false;
++  }
++
++  static OrtStatus* ORT_API_CALL CreateSyncStreamForDeviceImpl(OrtEpFactory* this_ptr,
++                                                               const OrtMemoryDevice* /*memory_device*/,
++                                                               const OrtKeyValuePairs* /*stream_options*/,
++                                                               OrtSyncStreamImpl** stream) noexcept {
++    auto* factory = static_cast<TensorrtEpFactory*>(this_ptr);
++
++    *stream = nullptr;
++    return factory->ort_api.CreateStatus(
++        ORT_INVALID_ARGUMENT, "CreateSyncStreamForDevice should not be called as IsStreamAware returned false.");
++  }
++
++  const OrtApi& ort_api;
++  const OrtLogger& default_logger;
++  const std::string ep_name{onnxruntime::kTensorrtExecutionProvider};
++  const std::string ep_vendor{"Microsoft"};  // the EP is maintained by Microsoft, the device is NVIDIA's
++  const uint32_t ep_vendor_id{0x1414};       // Microsoft vendor ID
++
++  TensorrtEpFactory(const TensorrtEpFactory&) = delete;
++  TensorrtEpFactory& operator=(const TensorrtEpFactory&) = delete;
++};
++
+ extern "C" {
+ 
+ ORT_API(onnxruntime::Provider*, GetProvider) {
+   return &onnxruntime::g_provider;
+ }
++
++OrtStatus* CreateEpFactories(const char* /*registration_name*/, const OrtApiBase* ort_api_base,
++                             const OrtLogger* default_logger,
++                             OrtEpFactory** factories, size_t max_factories, size_t* num_factories) {
++  const OrtApi* ort_api = ort_api_base->GetApi(ORT_API_VERSION);
++
++  if (max_factories < 1) {
++    return ort_api->CreateStatus(ORT_INVALID_ARGUMENT,
++                                 "Not enough space to return EP factory. Need at least one.");
++  }
++
++  auto factory = std::make_unique<TensorrtEpFactory>(*ort_api, *default_logger);
++
++  factories[0] = factory.release();
++  *num_factories = 1;
++
++  return nullptr;
++}
++
++OrtStatus* ReleaseEpFactory(OrtEpFactory* factory) {
++  delete static_cast<TensorrtEpFactory*>(factory);
++  return nullptr;
++}
+ }
+diff --git a/onnxruntime/core/providers/tensorrt/version_script.lds b/onnxruntime/core/providers/tensorrt/version_script.lds
+index 094abb3..3600a4f 100644
+--- a/onnxruntime/core/providers/tensorrt/version_script.lds
++++ b/onnxruntime/core/providers/tensorrt/version_script.lds
+@@ -1,7 +1,9 @@
+ #_init and _fini should be local
+ VERS_1.0 {
+   global:
+-    GetProvider;    
++    GetProvider;
++    CreateEpFactories;
++    ReleaseEpFactory;
+ 
+   # Hide everything else.
+   local:

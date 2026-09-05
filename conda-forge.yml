@@ -3,6 +3,7 @@ build_platform:
   linux_ppc64le: linux_64
 conda_build:
   pkg_format: '2'
+conda_build_tool: rattler-build
 conda_forge_output_validation: true
 conda_install_tool: pixi
 github:
@@ -15,8 +16,9 @@ github_actions:
   - pull_request
 provider:
   linux_64: github_actions
+  linux_aarch64: github_actions
   win_64: github_actions
-  osx_arm64: default
+  osx_arm64: github_actions
 test: native_and_emulated
 workflow_settings:
   build_workspace_dir:
