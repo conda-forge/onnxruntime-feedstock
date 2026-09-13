@@ -22,6 +22,14 @@ cxx_compiler:
 - clangxx
 cxx_compiler_version:
 - '21'
+flatbuffers:
+- 25.9.23
+libabseil:
+- '20260526'
+libonnx:
+- 1.22.0
+libprotobuf:
+- 7.35.1
 macos_machine:
 - arm64-apple-darwin20.0.0
 numpy:
@@ -32,6 +40,8 @@ pin_run_as_build:
     max_pin: x.x
 python:
 - 3.14.* *_cp314
+re2:
+- 2025.11.05
 suffix:
 - ''
 target_platform:
