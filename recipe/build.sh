@@ -116,7 +116,6 @@ python tools/ci_build/build.py \
     --update \
     --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
     --skip_submodule_sync \
-    --path_to_protoc_exe $BUILD_PREFIX/bin/protoc \
     ${BUILD_ARGS}
 
 # Install the project into cwd.

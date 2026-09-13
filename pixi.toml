@@ -5,7 +5,7 @@
 
 [workspace]
 name = "onnxruntime-feedstock"
-version = "2026.9.1"  # conda-smithy version used to generate this file
+version = "2026.9.10"  # conda-smithy version used to generate this file
 description = "Pixi configuration for conda-forge/onnxruntime-feedstock"
 authors = ["@conda-forge/onnxruntime"]
 channels = ["conda-forge"]
@@ -76,6 +76,15 @@ description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_vers
 [feature.build.tasks."inspect-linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.14.____cp314suffix"
+[feature.build.tasks."build-linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"
 [feature.build.tasks."build-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec"]
 cmd = "conda-build build recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec.yaml"
 description = "Build onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec directly (without setup scripts)"
@@ -148,6 +157,24 @@ description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_vers
 [feature.build.tasks."inspect-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.14.____cp314suffix"
+[feature.build.tasks."build-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"]
+cmd = "conda-build build recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml"
+description = "Build onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."debug-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"]
+cmd = "conda-build debug recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"
+[feature.build.tasks."build-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"
 [feature.build.tasks."build-linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix"]
 cmd = "conda-build build recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix.yaml"
 description = "Build onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix directly (without setup scripts)"
@@ -184,6 +211,15 @@ description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_vers
 [feature.build.tasks."inspect-linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.14.____cp314suffix"
+[feature.build.tasks."build-linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"
 [feature.build.tasks."build-linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.11.____cpythonsuffix"]
 cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.11.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.11.____cpythonsuffix.yaml"
 description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.11.____cpythonsuffix directly (without setup scripts)"
@@ -220,6 +256,15 @@ description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler
 [feature.build.tasks."inspect-linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.14.____cp314suffix"
+[feature.build.tasks."build-linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version14c_stdlib_version2.17cuda_compiler_version12.9cxx_compiler_version14python3.15.____cp315suffix"
 [feature.build.tasks."build-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec"]
 cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec.yaml"
 description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.11.____cpythonsuffix-novec directly (without setup scripts)"
@@ -292,6 +337,24 @@ description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler
 [feature.build.tasks."inspect-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.14.____cp314suffix"
+[feature.build.tasks."build-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"]
+cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml"
+description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."debug-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"]
+cmd = "conda-build debug recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix-novec"
+[feature.build.tasks."build-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version15c_stdlib_version2.17cuda_compiler_versionNonecxx_compiler_version15python3.15.____cp315suffix"
 [feature.build.tasks."build-linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix"]
 cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix.yaml"
 description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.11.____cpythonsuffix directly (without setup scripts)"
@@ -328,6 +391,15 @@ description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler
 [feature.build.tasks."inspect-linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.14.____cp314suffix"
+[feature.build.tasks."build-linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant linux_aarch64_c_compiler_version15c_stdlib_version2.28cuda_compiler_version13.0cxx_compiler_version15python3.15.____cp315suffix"
 [feature.build.tasks."build-osx_arm64_python3.11.____cpythonsuffix-novec"]
 cmd = "conda-build build recipe -m .ci_support/osx_arm64_python3.11.____cpythonsuffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_osx_arm64_python3.11.____cpythonsuffix-novec.yaml"
 description = "Build onnxruntime-feedstock with variant osx_arm64_python3.11.____cpythonsuffix-novec directly (without setup scripts)"
@@ -400,6 +472,24 @@ description = "Debug onnxruntime-feedstock with variant osx_arm64_python3.14.___
 [feature.build.tasks."inspect-osx_arm64_python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/osx_arm64_python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant osx_arm64_python3.14.____cp314suffix"
+[feature.build.tasks."build-osx_arm64_python3.15.____cp315suffix-novec"]
+cmd = "conda-build build recipe -m .ci_support/osx_arm64_python3.15.____cp315suffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_osx_arm64_python3.15.____cp315suffix-novec.yaml"
+description = "Build onnxruntime-feedstock with variant osx_arm64_python3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."debug-osx_arm64_python3.15.____cp315suffix-novec"]
+cmd = "conda-build debug recipe -m .ci_support/osx_arm64_python3.15.____cp315suffix-novec.yaml"
+description = "Debug onnxruntime-feedstock with variant osx_arm64_python3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."inspect-osx_arm64_python3.15.____cp315suffix-novec"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/osx_arm64_python3.15.____cp315suffix-novec.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant osx_arm64_python3.15.____cp315suffix-novec"
+[feature.build.tasks."build-osx_arm64_python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/osx_arm64_python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_osx_arm64_python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant osx_arm64_python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-osx_arm64_python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/osx_arm64_python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant osx_arm64_python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-osx_arm64_python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/osx_arm64_python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant osx_arm64_python3.15.____cp315suffix"
 [feature.build.tasks."build-win_64_cuda_compiler_version12.9python3.11.____cpythonsuffix"]
 cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_version12.9python3.11.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_version12.9python3.11.____cpythonsuffix.yaml"
 description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_version12.9python3.11.____cpythonsuffix directly (without setup scripts)"
@@ -436,6 +526,15 @@ description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_ver
 [feature.build.tasks."inspect-win_64_cuda_compiler_version12.9python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_version12.9python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_version12.9python3.14.____cp314suffix"
+[feature.build.tasks."build-win_64_cuda_compiler_version12.9python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_version12.9python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_version12.9python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_version12.9python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-win_64_cuda_compiler_version12.9python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/win_64_cuda_compiler_version12.9python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_version12.9python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-win_64_cuda_compiler_version12.9python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_version12.9python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_version12.9python3.15.____cp315suffix"
 [feature.build.tasks."build-win_64_cuda_compiler_version13.0python3.11.____cpythonsuffix"]
 cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_version13.0python3.11.____cpythonsuffix.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_version13.0python3.11.____cpythonsuffix.yaml"
 description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_version13.0python3.11.____cpythonsuffix directly (without setup scripts)"
@@ -472,6 +571,15 @@ description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_ver
 [feature.build.tasks."inspect-win_64_cuda_compiler_version13.0python3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_version13.0python3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_version13.0python3.14.____cp314suffix"
+[feature.build.tasks."build-win_64_cuda_compiler_version13.0python3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_version13.0python3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_version13.0python3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_version13.0python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-win_64_cuda_compiler_version13.0python3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/win_64_cuda_compiler_version13.0python3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_version13.0python3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-win_64_cuda_compiler_version13.0python3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_version13.0python3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_version13.0python3.15.____cp315suffix"
 [feature.build.tasks."build-win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec"]
 cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec.yaml"
 description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_versionNonepython3.11.____cpythonsuffix-novec directly (without setup scripts)"
@@ -544,6 +652,24 @@ description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_ver
 [feature.build.tasks."inspect-win_64_cuda_compiler_versionNonepython3.14.____cp314suffix"]
 cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.14.____cp314suffix.yaml"
 description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_versionNonepython3.14.____cp314suffix"
+[feature.build.tasks."build-win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec"]
+cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec.yaml"
+description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."debug-win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec"]
+cmd = "conda-build debug recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec.yaml"
+description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec directly (without setup scripts)"
+[feature.build.tasks."inspect-win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_versionNonepython3.15.____cp315suffix-novec"
+[feature.build.tasks."build-win_64_cuda_compiler_versionNonepython3.15.____cp315suffix"]
+cmd = "conda-build build recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.15.____cp315suffix.yaml --suppress-variables --clobber-file .ci_support/clobber_win_64_cuda_compiler_versionNonepython3.15.____cp315suffix.yaml"
+description = "Build onnxruntime-feedstock with variant win_64_cuda_compiler_versionNonepython3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."debug-win_64_cuda_compiler_versionNonepython3.15.____cp315suffix"]
+cmd = "conda-build debug recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.15.____cp315suffix.yaml"
+description = "Debug onnxruntime-feedstock with variant win_64_cuda_compiler_versionNonepython3.15.____cp315suffix directly (without setup scripts)"
+[feature.build.tasks."inspect-win_64_cuda_compiler_versionNonepython3.15.____cp315suffix"]
+cmd = "inspect_artifacts --recipe-dir recipe -m .ci_support/win_64_cuda_compiler_versionNonepython3.15.____cp315suffix.yaml"
+description = "List contents of onnxruntime-feedstock packages built for variant win_64_cuda_compiler_versionNonepython3.15.____cp315suffix"
 
 [environments]
 build = ["build"]

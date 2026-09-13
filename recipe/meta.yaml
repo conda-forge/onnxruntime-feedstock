@@ -1,6 +1,6 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
-{% set version = "1.29.1" %}
+{% set version = "1.30.0" %}
 {% set suffix = "" %}  # [suffix == None]
 {% set build = 0 %}
 
@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: aba6ff915ffa3689af9bd6a84102a221ad35427e602f22bb18ae8323997d0f0d
+  sha256: f6681ecbddf53898adf0cc9e8e9e84657485b84d2eca3c8aa353de6d7dd417ef
   patches:
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
     - patches/0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch     # [win]
@@ -38,11 +38,7 @@ source:
     # autoep test gained a module-level onnx import in 1.28.0 but runs before
     # build.py's "onnx is not installed" gate
     - patches/0007-Guard-onnx-import-in-autoep-test.patch
-    # 1.29.0 delay-loads shell32.dll from the pybind module but never links
-    # delayimp.lib; only the MSBuild generator adds it implicitly, so the Ninja
-    # build fails with "unresolved external symbol __delayLoadHelper2".
-    # https://github.com/microsoft/onnxruntime/pull/31637
-    - patches/0008-Link-delayimp.lib-for-onnxruntime_pybind11_state.patch      # [win]
+    - patches/0008-Copy-python-test-files-in-batches.patch
 
 build:
   number: {{ build }}
@@ -75,8 +71,6 @@ requirements:
     {% endif %}
     - cmake <4
     - ninja
-    # we need protoc in the build environment for cross compilations
-    - libprotobuf 3.21
   host:
     - python
     - pip
