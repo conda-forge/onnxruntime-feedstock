@@ -38,6 +38,11 @@ if errorlevel 1 exit 1
 python onnxruntime\lora\adapter_format\compile_schema.py --flatc "%BUILD_PREFIX%\Library\bin\flatc.exe"
 if errorlevel 1 exit 1
 
+:: TEMPORARY: libonnx's function.h puts ONNX_API (dllimport) on header-defined
+:: member function templates, which MSVC rejects with C2491. Remove once libonnx is fixed.
+python "%RECIPE_DIR%\strip_onnx_api_from_templates.py" "%LIBRARY_INC%\onnx\defs\function.h"
+if errorlevel 1 exit 1
+
 :: Since 1.29.0 telemetry is opt-out rather than opt-in; a conda-forge package should
 :: not report usage to Microsoft, so it is disabled explicitly on every platform.
 python tools/ci_build/build.py ^
