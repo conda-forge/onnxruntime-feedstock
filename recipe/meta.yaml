@@ -135,6 +135,13 @@ requirements:
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
+    # libonnx's run_exports pin only the version. Builds 0-2 of libonnx 1.22.0 do not
+    # export the ONNX symbols onnxruntime links against, so require a build >= 3
+    # (https://github.com/conda-forge/onnx-feedstock/pull/157) at runtime too. The spec is
+    # quoted and scoped with jinja because conda-build reads a trailing [...] as a selector.
+    {% if libonnx == "1.22.0" %}
+    - "libonnx >=1.22.0,<1.22.1.0a0[build_number='>=3']"
+    {% endif %}
 
 test:
   imports:
@@ -194,6 +201,10 @@ outputs:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
+        # See the libonnx build_number constraint on the onnxruntime output.
+        {% if libonnx == "1.22.0" %}
+        - "libonnx >=1.22.0,<1.22.1.0a0[build_number='>=3']"
+        {% endif %}
     test:
       requires:
         - {{ compiler('cxx') }}
