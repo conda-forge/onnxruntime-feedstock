@@ -136,11 +136,13 @@ requirements:
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
     # libonnx's run_exports pin only the version. Builds 0-2 of libonnx 1.22.0 do not
-    # export the ONNX symbols onnxruntime links against, so require a build >= 3
-    # (https://github.com/conda-forge/onnx-feedstock/pull/157) at runtime too. The spec is
-    # quoted and scoped with jinja because conda-build reads a trailing [...] as a selector.
+    # export the ONNX symbols onnxruntime links against
+    # (https://github.com/conda-forge/onnx-feedstock/pull/157), so require build 3 at
+    # runtime too. [build_number='>=3'] cannot be used: conda-build re-parses the
+    # rendered recipe before testing and reads the trailing [...] as a selector.
+    # Scoped to the 1.22.0 pin so a libonnx migration drops it.
     {% if libonnx == "1.22.0" %}
-    - "libonnx >=1.22.0,<1.22.1.0a0[build_number='>=3']"
+    - libonnx >=1.22.0,<1.22.1.0a0 *_3
     {% endif %}
 
 test:
@@ -203,7 +205,7 @@ outputs:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
         # See the libonnx build_number constraint on the onnxruntime output.
         {% if libonnx == "1.22.0" %}
-        - "libonnx >=1.22.0,<1.22.1.0a0[build_number='>=3']"
+        - libonnx >=1.22.0,<1.22.1.0a0 *_3
         {% endif %}
     test:
       requires:
