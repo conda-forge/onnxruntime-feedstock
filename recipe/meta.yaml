@@ -39,11 +39,17 @@ source:
     # build.py's "onnx is not installed" gate
     - patches/0007-Guard-onnx-import-in-autoep-test.patch
     - patches/0008-Copy-python-test-files-in-batches.patch
+    - patches/0009-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
+    - patches/0010-Use-the-conda-forge-libabseil-package.patch
+    # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
+    - patches/0011-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
 
 build:
   number: {{ build }}
   # don't build cuda versions with novec
   skip: true  # [ (cuda_compiler_version != "None") and suffix == "-novec"]
+  # TEMPORARY: exploratory phase, build and test python 3.12 only. Revert before merge.
+  skip: true  # [py != 312]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [osx and x86_64]
@@ -71,6 +77,11 @@ requirements:
     {% endif %}
     - cmake <4
     - ninja
+    # we need protoc in the build environment for cross compilations
+    - libprotobuf
+    # flatc (from flatbuffers) regenerates the schema headers in build.sh and
+    # must run on the build platform when cross compiling
+    - flatbuffers
   host:
     - python
     - pip
@@ -89,12 +100,31 @@ requirements:
     - flake8
     - gmock
     - libdate
+    # Known limitation: the conda-forge libonnx does not carry onnxruntime's
+    # vendored patch that un-deprecates the opset-18 GroupNormalization op, so
+    # models with an ai.onnx GroupNormalization node at opset 18-20 are rejected
+    # (INVALID_GRAPH); re-export or version-convert them to opset >= 21. Rare in
+    # practice -- mainstream exporters decompose group norm rather than emit it.
+    - libabseil
+    - libprotobuf
+    - libonnx
+    # The conda `onnx` (Python) package supplies ONNX's .proto sources for the
+    # onnx_test_data_proto C++ unit-test target (see build.sh; onnx_SOURCE_DIR).
+    # build.py's python test phase is not run, so we don't import python onnx
+    # alongside onnxruntime here and any onnx providing the .proto suffices.
+    # (At python *runtime*, sharing onnx-ml.proto with onnxruntime needs an onnx
+    # that links the shared libonnx -- onnx-feedstock PR #146; not required for
+    # this build.)
+    - onnx
+    - re2
+    - flatbuffers
     - packaging
     - python-flatbuffers
     - optional-lite
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
+    - libcoremltools  # [osx and arm64]
     - zlib
     - numpy
     - pybind11
@@ -107,17 +137,34 @@ requirements:
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
+    # libonnx's run_exports pin only the version. Builds 0-4 of libonnx 1.22.0 do not
+    # export all the ONNX symbols onnxruntime links against, or ship a second copy of
+    # the onnx protobuf descriptors in libonnx_proto (conda-forge/onnx-feedstock
+    # PRs 157, 158 and 159), so require build 5 at runtime too. A build_number bracket spec cannot be used: conda-build
+    # re-parses the rendered recipe before testing and reads it as a selector.
+    # Scoped to the 1.22.0 pin so a libonnx migration drops it; bump by hand otherwise.
+    {% if libonnx == "1.22.0" %}
+    - libonnx >=1.22.0,<1.22.1.0a0 *_5
+    {% endif %}
 
 test:
   imports:
     - onnxruntime
+  files:
+    - test_onnxruntime_runtime.py
   commands:
     - pip check
     - onnxruntime_test --help
-    # The CoreML execution provider is built into onnxruntime on Apple Silicon.
-    - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
+    # Runtime tests against onnx's reference evaluator: onnx and onnxruntime in
+    # one process, contrib fusions, ORT format and LoRA adapters (flatbuffers),
+    # CoreML on Apple Silicon and loading the CUDA provider library. On a machine
+    # with a GPU, set ONNXRUNTIME_TEST_REQUIRE_CUDA=1 to also run on CUDA.
+    - python test_onnxruntime_runtime.py
   requires:
     - pip
+    # onnx builds the test models, checks them and provides the reference
+    # evaluator, sharing libonnx with onnxruntime in the same process.
+    - onnx
     # 2024/05 hmaarrfk/jtilly
     # Test the pip check command with numpy < 2
     # which was included in the requirements file for
@@ -139,18 +186,42 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        # libonnxruntime links these now-unvendored shared libraries
+        # (onnx, protobuf, abseil, re2, and coremltools on osx-arm64). The main
+        # onnxruntime output picks them
+        # up automatically because it compiles libonnxruntime, but this output
+        # only repackages the prebuilt libs via install-cpp.sh/.bat, so
+        # conda-build cannot infer them. List them here so their run_exports
+        # pin them into this package's run requirements; otherwise downstream
+        # C++ consumers (and the cmake-package-check test) fail to link with
+        # undefined onnx::/google::protobuf:: symbols, or on Windows fail to
+        # load onnx.dll/libprotobuf.dll at runtime.
+        - libonnx
+        - libprotobuf
+        - libabseil
+        - re2
+        - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
+        # See the libonnx build_number constraint on the onnxruntime output.
+        {% if libonnx == "1.22.0" %}
+        - libonnx >=1.22.0,<1.22.1.0a0 *_5
+        {% endif %}
     test:
       requires:
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
         - cmake-package-check
+        - cmake
+        - ninja
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
+        - cpp_interop/CMakeLists.txt
+        - cpp_interop/test_onnx_interop.cpp
       commands:
         - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
         - test -f $PREFIX/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h  # [osx and arm64]
@@ -169,28 +240,26 @@ outputs:
         - ./a.out  # [unix]
         - call .\run_cpp_test.bat  # [win]
         - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+        # A C++ program using libonnx, libprotobuf and onnxruntime in one process.
+        - cmake -S cpp_interop -B build_interop -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX  # [unix]
+        - cmake -S cpp_interop -B build_interop -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%  # [win]
+        - cmake --build build_interop
+        - ./build_interop/test_onnx_interop  # [unix]
+        - build_interop\test_onnx_interop.exe  # [win]
 
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0  # [not (osx and arm64)]
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]
+  license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
-    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    - build-ci/Release/_deps/onnx-src/LICENSE
-    - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
-    # Vendored at build time by onnxruntime for the CoreML execution provider.
-    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
-    - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
-    - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
+    - build-ci/Release/_deps/fp16-src/LICENSE   # [osx and arm64]
+    - build-ci/Release/_deps/psimd-src/LICENSE  # [osx and arm64]
 
 extra:
   recipe-maintainers:
