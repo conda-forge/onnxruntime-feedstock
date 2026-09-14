@@ -52,8 +52,9 @@ if errorlevel 1 exit 1
 :: libprotobuf is a DLL. Its CMake target adds PROTOBUF_USE_DLLS only to targets that
 :: link it, but e.g. onnxruntime_flatbuffers includes the onnx .pb.h headers without
 :: linking protobuf and then emits protobuf inline functions that clash with the DLL's
-:: exports (LNK2005). Define it for every translation unit.
-set "CXXFLAGS=%CXXFLAGS% /DPROTOBUF_USE_DLLS"
+:: exports (LNK2005). Define it for every translation unit. Use cl.exe's CL variable:
+:: CXXFLAGS is ignored when build.py passes -DCMAKE_CXX_FLAGS (it does for --parallel).
+set "CL=/DPROTOBUF_USE_DLLS %CL%"
 
 :: Since 1.29.0 telemetry is opt-out rather than opt-in; a conda-forge package should
 :: not report usage to Microsoft, so it is disabled explicitly on every platform.
