@@ -41,6 +41,8 @@ source:
     - patches/0008-Copy-python-test-files-in-batches.patch
     - patches/0009-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
     - patches/0010-Use-the-conda-forge-libabseil-package.patch
+    # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
+    - patches/0011-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
 
 build:
   number: {{ build }}
