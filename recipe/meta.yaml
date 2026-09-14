@@ -135,34 +135,33 @@ requirements:
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
-    # libonnx's run_exports pin only the version. Builds 0-2 of libonnx 1.22.0 do not
-    # export the ONNX symbols onnxruntime links against
-    # (https://github.com/conda-forge/onnx-feedstock/pull/157), so require build 3 at
-    # runtime too. [build_number='>=3'] cannot be used: conda-build re-parses the
-    # rendered recipe before testing and reads the trailing [...] as a selector.
-    # Scoped to the 1.22.0 pin so a libonnx migration drops it.
+    # libonnx's run_exports pin only the version. Builds 0-3 of libonnx 1.22.0 do not
+    # export all the ONNX symbols onnxruntime links against
+    # (https://github.com/conda-forge/onnx-feedstock/pull/157 and /158), so require
+    # build 4 at runtime too. A build_number bracket spec cannot be used: conda-build
+    # re-parses the rendered recipe before testing and reads it as a selector.
+    # Scoped to the 1.22.0 pin so a libonnx migration drops it; bump by hand otherwise.
     {% if libonnx == "1.22.0" %}
-    - libonnx >=1.22.0,<1.22.1.0a0 *_3
+    - libonnx >=1.22.0,<1.22.1.0a0 *_4
     {% endif %}
 
 test:
   imports:
     - onnxruntime
   files:
-    - test_onnxruntime_inference.py
+    - test_onnxruntime_runtime.py
   commands:
     - pip check
     - onnxruntime_test --help
-    # The CoreML execution provider is built into onnxruntime on Apple Silicon.
-    - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
-    # Runtime smoke test on the always-available CPUExecutionProvider: import
-    # onnx and onnxruntime into one process (guards the unvendored libonnx
-    # schema-registration wiring) and run real inference.
-    - python test_onnxruntime_inference.py
+    # Runtime tests against onnx's reference evaluator: onnx and onnxruntime in
+    # one process, contrib fusions, ORT format and LoRA adapters (flatbuffers),
+    # CoreML on Apple Silicon and loading the CUDA provider library. On a machine
+    # with a GPU, set ONNXRUNTIME_TEST_REQUIRE_CUDA=1 to also run on CUDA.
+    - python test_onnxruntime_runtime.py
   requires:
     - pip
-    # onnx builds the tiny test model; importing it alongside onnxruntime also
-    # exercises the shared-libonnx coexistence the unvendoring relies on.
+    # onnx builds the test models, checks them and provides the reference
+    # evaluator, sharing libonnx with onnxruntime in the same process.
     - onnx
     # 2024/05 hmaarrfk/jtilly
     # Test the pip check command with numpy < 2
@@ -205,16 +204,20 @@ outputs:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
         # See the libonnx build_number constraint on the onnxruntime output.
         {% if libonnx == "1.22.0" %}
-        - libonnx >=1.22.0,<1.22.1.0a0 *_3
+        - libonnx >=1.22.0,<1.22.1.0a0 *_4
         {% endif %}
     test:
       requires:
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
         - cmake-package-check
+        - cmake
+        - ninja
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
+        - cpp_interop/CMakeLists.txt
+        - cpp_interop/test_onnx_interop.cpp
       commands:
         - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
         - test -f $PREFIX/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h  # [osx and arm64]
@@ -233,6 +236,12 @@ outputs:
         - ./a.out  # [unix]
         - call .\run_cpp_test.bat  # [win]
         - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+        # A C++ program using libonnx, libprotobuf and onnxruntime in one process.
+        - cmake -S cpp_interop -B build_interop -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX  # [unix]
+        - cmake -S cpp_interop -B build_interop -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%  # [win]
+        - cmake --build build_interop
+        - ./build_interop/test_onnx_interop  # [unix]
+        - build_interop\test_onnx_interop.exe  # [win]
 
 about:
   home: https://github.com/microsoft/onnxruntime/
