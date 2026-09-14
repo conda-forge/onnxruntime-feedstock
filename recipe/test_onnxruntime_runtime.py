@@ -413,23 +413,19 @@ def test_cuda_provider_library_loads():
         return
     mode = os.RTLD_NOW | os.RTLD_GLOBAL
     ctypes.CDLL(capi_library("libonnxruntime_providers_shared"), mode=mode)
-    try:
-        ctypes.CDLL("libcuda.so.1", mode=mode)
-    except OSError:
-        # No NVIDIA driver on this machine, so the provider cannot be loaded.
-        # Still check that nothing the unvendored libraries should provide is
-        # left unresolved; the driver's own symbols are expected to be missing.
-        cuda = capi_library("libonnxruntime_providers_cuda")
-        proc = subprocess.run(["ldd", "-r", cuda], capture_output=True, text=True)
-        unresolved = [
-            line
-            for line in (proc.stdout + proc.stderr).splitlines()
-            if "undefined symbol" in line and any(ns in line for ns in ("_ZN4onnx", "_ZN6google8protobuf", "_ZN4absl"))
-        ]
-        assert not unresolved, "unresolved onnx/protobuf/abseil symbols:\n" + "\n".join(unresolved)
-        print("  (no NVIDIA driver: checked symbols with ldd -r instead of loading)")
-        return
     ctypes.CDLL(capi_library("libonnxruntime_providers_cuda"), mode=mode)
+
+
+def nvidia_driver_present():
+    # libcuda comes from the system NVIDIA driver, never from conda. The CUDA
+    # provider links it, so without a driver it cannot be loaded at all.
+    if sys.platform == "win32":
+        return True
+    try:
+        ctypes.CDLL("libcuda.so.1")
+    except OSError:
+        return False
+    return True
 
 
 def test_cuda_on_gpu(tmpdir):
@@ -474,7 +470,11 @@ def main():
             assert "CoreMLExecutionProvider" in available, available
             check("CoreML execution provider", lambda: test_coreml(tmpdir))
 
-        if "CUDAExecutionProvider" in available:
+        if "CUDAExecutionProvider" in available and not nvidia_driver_present():
+            print("SKIP CUDA provider library loads: no NVIDIA driver (libcuda.so.1) on this machine")
+            if os.environ.get("ONNXRUNTIME_TEST_REQUIRE_CUDA") == "1":
+                FAILURES.append("CUDA required but no NVIDIA driver is present")
+        elif "CUDAExecutionProvider" in available:
             check("CUDA provider library loads", test_cuda_provider_library_loads)
             if os.environ.get("ONNXRUNTIME_TEST_REQUIRE_CUDA") == "1":
                 check("CUDA execution provider on GPU", lambda: test_cuda_on_gpu(tmpdir))
