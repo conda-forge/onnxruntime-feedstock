@@ -188,7 +188,8 @@ outputs:
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
       host:
         # libonnxruntime links these now-unvendored shared libraries
-        # (onnx, protobuf, abseil, re2). The main onnxruntime output picks them
+        # (onnx, protobuf, abseil, re2, and coremltools on osx-arm64). The main
+        # onnxruntime output picks them
         # up automatically because it compiles libonnxruntime, but this output
         # only repackages the prebuilt libs via install-cpp.sh/.bat, so
         # conda-build cannot infer them. List them here so their run_exports
@@ -200,6 +201,7 @@ outputs:
         - libprotobuf
         - libabseil
         - re2
+        - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
