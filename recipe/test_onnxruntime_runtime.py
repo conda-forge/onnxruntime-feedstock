@@ -410,10 +410,26 @@ def test_cuda_provider_library_loads():
         os.add_dll_directory(os.path.dirname(capi_library("onnxruntime_providers_shared")))
         ctypes.WinDLL(capi_library("onnxruntime_providers_shared"))
         ctypes.WinDLL(capi_library("onnxruntime_providers_cuda"))
-    else:
-        mode = os.RTLD_NOW | os.RTLD_GLOBAL
-        ctypes.CDLL(capi_library("libonnxruntime_providers_shared"), mode=mode)
-        ctypes.CDLL(capi_library("libonnxruntime_providers_cuda"), mode=mode)
+        return
+    mode = os.RTLD_NOW | os.RTLD_GLOBAL
+    ctypes.CDLL(capi_library("libonnxruntime_providers_shared"), mode=mode)
+    try:
+        ctypes.CDLL("libcuda.so.1", mode=mode)
+    except OSError:
+        # No NVIDIA driver on this machine, so the provider cannot be loaded.
+        # Still check that nothing the unvendored libraries should provide is
+        # left unresolved; the driver's own symbols are expected to be missing.
+        cuda = capi_library("libonnxruntime_providers_cuda")
+        proc = subprocess.run(["ldd", "-r", cuda], capture_output=True, text=True)
+        unresolved = [
+            line
+            for line in (proc.stdout + proc.stderr).splitlines()
+            if "undefined symbol" in line and any(ns in line for ns in ("_ZN4onnx", "_ZN6google8protobuf", "_ZN4absl"))
+        ]
+        assert not unresolved, "unresolved onnx/protobuf/abseil symbols:\n" + "\n".join(unresolved)
+        print("  (no NVIDIA driver: checked symbols with ldd -r instead of loading)")
+        return
+    ctypes.CDLL(capi_library("libonnxruntime_providers_cuda"), mode=mode)
 
 
 def test_cuda_on_gpu(tmpdir):
@@ -428,8 +444,11 @@ def test_cuda_on_gpu(tmpdir):
             options.enable_profiling = True
             options.profile_file_prefix = os.path.join(tmpdir, "profile")
             options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        session, actual = run_session(model, feeds, providers=["CUDAExecutionProvider"], options=options)
-        assert_close(actual, expected, 1e-3, f"CUDA {name}")
+        # TF32 matmuls on Ampere and newer GPUs differ from float32 by ~1e-2 in
+        # attention; turn it off to compare the kernels against the reference.
+        providers = [("CUDAExecutionProvider", {"use_tf32": "0"})]
+        session, actual = run_session(model, feeds, providers=providers, options=options)
+        assert_close(actual, expected, 1e-4, f"CUDA {name}")
         used = providers_used(session)
         assert "CUDAExecutionProvider" in used, f"CUDA {name} ran nodes on {used}"
 
