@@ -20,6 +20,12 @@ provider:
   osx_arm64: github_actions
 test: native_and_emulated
 workflow_settings:
+  # TEMPORARY: upload the linux-64 packages (CUDA included) as CI artifacts so the
+  # CUDA execution provider can be tested on a real GPU. Remove before merging.
+  store_build_artifacts:
+  - provider: github_actions
+    platform: linux_64
+    value: true
   build_workspace_dir:
   - provider: azure
     os: win
