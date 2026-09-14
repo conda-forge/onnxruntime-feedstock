@@ -41,6 +41,12 @@ else
     # assertion. It reads uninitialized memory upstream and fails
     # intermittently on linux-64.
     export GTEST_FILTER='-QDQTransformerTests.DefaultPath_TagsGeneratedWeightWithStableContentIdentity'
+    if [[ "${target_platform}" == osx-* ]]; then
+        # Known limitation of the unvendored libonnx: onnxruntime's vendored onnx
+        # un-deprecates opset-18 GroupNormalization, conda-forge's libonnx follows
+        # upstream ONNX, which rejects it. These tests only exist for CoreML.
+        export GTEST_FILTER="${GTEST_FILTER}:GroupNormalizationOpTest/*"
+    fi
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then

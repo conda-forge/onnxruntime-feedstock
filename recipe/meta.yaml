@@ -137,14 +137,14 @@ requirements:
     - __cuda                                    # [cuda_compiler_version != "None"]
   run_constrained:
     - onnxruntime <0a0  # [suffix == "-novec"]
-    # libonnx's run_exports pin only the version. Builds 0-3 of libonnx 1.22.0 do not
-    # export all the ONNX symbols onnxruntime links against
-    # (https://github.com/conda-forge/onnx-feedstock/pull/157 and /158), so require
-    # build 4 at runtime too. A build_number bracket spec cannot be used: conda-build
+    # libonnx's run_exports pin only the version. Builds 0-4 of libonnx 1.22.0 do not
+    # export all the ONNX symbols onnxruntime links against, or ship a second copy of
+    # the onnx protobuf descriptors in libonnx_proto (conda-forge/onnx-feedstock
+    # PRs 157, 158 and 159), so require build 5 at runtime too. A build_number bracket spec cannot be used: conda-build
     # re-parses the rendered recipe before testing and reads it as a selector.
     # Scoped to the 1.22.0 pin so a libonnx migration drops it; bump by hand otherwise.
     {% if libonnx == "1.22.0" %}
-    - libonnx >=1.22.0,<1.22.1.0a0 *_4
+    - libonnx >=1.22.0,<1.22.1.0a0 *_5
     {% endif %}
 
 test:
@@ -206,7 +206,7 @@ outputs:
         - onnxruntime-cpp <0a0  # [suffix == "-novec"]
         # See the libonnx build_number constraint on the onnxruntime output.
         {% if libonnx == "1.22.0" %}
-        - libonnx >=1.22.0,<1.22.1.0a0 *_4
+        - libonnx >=1.22.0,<1.22.1.0a0 *_5
         {% endif %}
     test:
       requires:
