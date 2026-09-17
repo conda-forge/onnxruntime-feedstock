@@ -66,7 +66,7 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
 	12.9)
             export CUDA_ARCH_LIST="70-real;75-real;80-real;86-real;89-real;90-real;100-real;120"
             ;;
-	13.0)
+	13.0|13.4)
             export CUDA_ARCH_LIST="75-real;80-real;86-real;89-real;90-real;100-real;110-real;120"
             ;;
 	*)
