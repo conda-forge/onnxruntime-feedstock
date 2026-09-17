@@ -1,5 +1,13 @@
 @echo on
 
+:: The onnxruntime-novec package is built without eigen's vectorization, as
+:: build.sh does on unix; the two outputs were otherwise identical on Windows.
+if "%PKG_NAME%"=="onnxruntime-novec" (
+    set "DONT_VECTORIZE=ON"
+) else (
+    set "DONT_VECTORIZE=OFF"
+)
+
 :: Enable CUDA support and set CUDA architectures based on CUDA version
 if "%cuda_compiler_version%"=="None" (
     set "BUILD_ARGS="
@@ -29,7 +37,7 @@ python tools/ci_build/build.py ^
     --compile_no_warning_as_error ^
     --no_telemetry ^
     --build_dir build-ci ^
-    --cmake_extra_defines EIGEN_MPL2_ONLY=ON "onnxruntime_USE_COREML=OFF" "onnxruntime_BUILD_SHARED_LIB=ON" "onnxruntime_BUILD_UNIT_TESTS=%onnxruntime_BUILD_UNIT_TESTS%" CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON CMAKE_CUDA_ARCHITECTURES=%CUDA_ARCH_LIST% ^
+    --cmake_extra_defines EIGEN_MPL2_ONLY=ON "onnxruntime_DONT_VECTORIZE=%DONT_VECTORIZE%" "onnxruntime_USE_COREML=OFF" "onnxruntime_BUILD_SHARED_LIB=ON" "onnxruntime_BUILD_UNIT_TESTS=%onnxruntime_BUILD_UNIT_TESTS%" CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% CMAKE_DISABLE_FIND_PACKAGE_Protobuf=ON CMAKE_CUDA_ARCHITECTURES=%CUDA_ARCH_LIST% ^
     --cmake_generator Ninja ^
     --build_wheel ^
     --config Release ^
