@@ -1,5 +1,4 @@
 build_platform:
-  linux_aarch64: linux_64
   linux_ppc64le: linux_64
 conda_build:
   pkg_format: '2'
@@ -15,25 +14,26 @@ github_actions:
   - pull_request
 provider:
   linux_64: github_actions
-  win_64: github_actions
+  linux_aarch64: default
   osx_arm64: default
+  win_64: github_actions
 test: native_and_emulated
 workflow_settings:
   build_workspace_dir:
-  - provider: azure
-    os: win
+  - os: win
+    provider: azure
     value: C:\bld\
   free_disk_space:
   - provider: azure
     value: quick
   pagefile_size:
-  - provider: azure
-    os: linux
+  - os: linux
+    provider: azure
     value: 10
-  - provider: azure
-    os: win
+  - os: win
+    provider: azure
     value: 16
   tools_install_dir:
-  - provider: azure
-    os: win
+  - os: win
+    provider: azure
     value: C:\Miniforge
