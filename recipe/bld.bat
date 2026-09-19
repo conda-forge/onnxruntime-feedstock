@@ -50,9 +50,9 @@ python onnxruntime\lora\adapter_format\compile_schema.py --flatc "%BUILD_PREFIX%
 if errorlevel 1 exit 1
 
 :: TEMPORARY: conda-forge's abseil marks its classes __declspec(dllimport), and
-:: nvcc 13.4 then generates host code MSVC rejects in absl/hash/internal/hash.h.
+:: nvcc 13.4 then generates host code MSVC rejects in absl's hash headers.
 :: Remove once the libabseil package carries the fix.
-python "%RECIPE_DIR%\patch_absl_dllimport_friend.py" "%LIBRARY_INC%\absl\hash\internal\hash.h"
+python "%RECIPE_DIR%\patch_absl_dllimport_friend.py" "%LIBRARY_INC%" "%BUILD_PREFIX%\Library\include"
 if errorlevel 1 exit 1
 
 :: libprotobuf is a DLL. Its CMake target adds PROTOBUF_USE_DLLS only to targets that
