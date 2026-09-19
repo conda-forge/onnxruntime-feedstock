@@ -1,0 +1,56 @@
+From 120a1abca957fa5e497442e28f38c7f15b130d86 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sat, 19 Sep 2026 10:15:53 -0400
+Subject: [PATCH] Compile the CUDA EP in conformance mode on MSVC
+
+config_cuda_provider_shared_module() adds MSVC's /permissive for the
+CUTLASS cute headers (NVIDIA/cutlass#3065). Under nvcc 13.4 the host code
+generated for onnxruntime_providers_cuda is then rejected wherever abseil
+names a base class through the derived class:
+
+    friend class MixingHashState::HashStateBase;          # absl/hash
+    using Base = typename flat_hash_map::raw_hash_map;    # absl/container
+
+    absl/hash/internal/hash.h(1428): error C3856: 'HashStateBase': symbol
+      is not a class template
+    absl/container/flat_hash_map.h(141): error C2248: cannot access private
+      typedef declared in class 'raw_hash_map'
+
+Adding /Zc:twoPhase is not enough. None of this target's sources include
+cute or cutlass headers; those kernels are built in the separate
+onnxruntime_providers_cuda_sm*_tma object libraries, which keep
+/permissive. Compile this target in conformance mode instead.
+---
+ cmake/onnxruntime_providers_cuda.cmake | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/cmake/onnxruntime_providers_cuda.cmake b/cmake/onnxruntime_providers_cuda.cmake
+index 52eb245..8d2aa48 100644
+--- a/cmake/onnxruntime_providers_cuda.cmake
++++ b/cmake/onnxruntime_providers_cuda.cmake
+@@ -492,6 +492,22 @@
+   config_cuda_provider_shared_module(onnxruntime_providers_cuda)
+   target_compile_options(onnxruntime_providers_cuda PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--threads \"${onnxruntime_NVCC_THREADS}\">")
+ 
++  if (MSVC)
++    # config_cuda_provider_shared_module() adds /permissive for the CUTLASS cute
++    # headers. Under nvcc 13.4 the host code generated for this target's sources
++    # is then rejected where abseil names a base class through the derived class:
++    #   friend class MixingHashState::HashStateBase;        (absl/hash)
++    #   using Base = typename flat_hash_map::raw_hash_map;  (absl/container)
++    # giving C3856 / C2248. The CUTLASS kernels live in the separate
++    # onnxruntime_providers_cuda_sm*_tma object libraries, which keep
++    # /permissive, so compile this target in conformance mode instead. Listed
++    # after the configuration call so that it wins on the command line.
++    target_compile_options(onnxruntime_providers_cuda PRIVATE
++      "$<$<COMPILE_LANGUAGE:CXX>:/permissive->"
++      "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-Xcompiler /permissive->"
++    )
++  endif()
++
+   # Create OBJECT libraries for SM-specific contrib CUDA sources that must be compiled
+   # with restricted CUDA architectures. These files use CUTLASS 3.x SM90+/SM120+ features
+   # (GMMA, TMA) that cannot produce useful device code for older architectures.
+-- 
+2.55.0
+
