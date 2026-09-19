@@ -45,8 +45,6 @@ source:
     - patches/0011-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
     # https://github.com/microsoft/onnxruntime/pull/32584, needed for CUDA 13.4
     - patches/0012-Fix-SM120-QMoE-MoE-GEMM-TMA-build-failure-with-GCC.patch
-    # NVCC-generated host stubs vs abseil with CUDA 13 on MSVC
-    - patches/0013-Turn-off-Zc-__cplusplus-for-the-CUDA-EP-with-CUDA-13.patch
 
 build:
   number: {{ build }}

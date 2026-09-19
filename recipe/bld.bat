@@ -49,6 +49,13 @@ if errorlevel 1 exit 1
 python onnxruntime\lora\adapter_format\compile_schema.py --flatc "%BUILD_PREFIX%\Library\bin\flatc.exe"
 if errorlevel 1 exit 1
 
+:: TEMPORARY: nvcc 13.4 cannot compile abseil's headers where they name a base
+:: class through the derived class; rewrite those declarations. nvcc 13.0 is
+:: fine, and onnxruntime's vendored abseil has the same code, so this is an
+:: nvcc regression. Remove once nvcc or abseil fixes it.
+python "%RECIPE_DIR%\patch_absl_injected_base_names.py" "%LIBRARY_INC%" "%BUILD_PREFIX%\Library\include"
+if errorlevel 1 exit 1
+
 :: libprotobuf is a DLL. Its CMake target adds PROTOBUF_USE_DLLS only to targets that
 :: link it, but e.g. onnxruntime_flatbuffers includes the onnx .pb.h headers without
 :: linking protobuf and then emits protobuf inline functions that clash with the DLL's
