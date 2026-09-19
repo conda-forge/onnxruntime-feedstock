@@ -52,8 +52,6 @@ build:
   skip: true  # [ (cuda_compiler_version != "None") and suffix == "-novec"]
   # TEMPORARY: exploratory phase, build and test python 3.12 only. Revert before merge.
   skip: true  # [py != 312]
-  # TEMPORARY: iterating on the win-64 CUDA 13.4 build; skip everything else.
-  skip: true  # [not win]
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [osx and x86_64]
