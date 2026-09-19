@@ -2,7 +2,7 @@
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.30.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 1 %}
+{% set build = 2 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -39,12 +39,12 @@ source:
     # build.py's "onnx is not installed" gate
     - patches/0007-Guard-onnx-import-in-autoep-test.patch
     - patches/0008-Copy-python-test-files-in-batches.patch
-    - patches/0009-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
-    - patches/0010-Use-the-conda-forge-libabseil-package.patch
-    # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
-    - patches/0011-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
     # https://github.com/microsoft/onnxruntime/pull/32584, needed for CUDA 13.4
-    - patches/0012-Fix-SM120-QMoE-MoE-GEMM-TMA-build-failure-with-GCC.patch
+    - patches/0009-Fix-SM120-QMoE-MoE-GEMM-TMA-build-failure-with-GCC.patch
+    - patches/0010-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
+    - patches/0011-Use-the-conda-forge-libabseil-package.patch
+    # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
+    - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
 
 build:
   number: {{ build }}
