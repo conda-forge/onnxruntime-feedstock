@@ -39,6 +39,8 @@ source:
     # build.py's "onnx is not installed" gate
     - patches/0007-Guard-onnx-import-in-autoep-test.patch
     - patches/0008-Copy-python-test-files-in-batches.patch
+    # https://github.com/microsoft/onnxruntime/pull/32584, needed for CUDA 13.4
+    - patches/0009-Fix-SM120-QMoE-MoE-GEMM-TMA-build-failure-with-GCC.patch
 
 build:
   number: {{ build }}
