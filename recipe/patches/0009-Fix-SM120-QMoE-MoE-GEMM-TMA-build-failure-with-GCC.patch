@@ -1,0 +1,27 @@
+From 5f44b5b59c0000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Microsoft ONNX Runtime
+Date: Mon, 15 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Fix SM120 QMoE MoE GEMM TMA build failure with GCC
+
+Backport of https://github.com/microsoft/onnxruntime/commit/5f44b5b59c
+(microsoft/onnxruntime#32584), merged two days after the 1.30.0 release.
+
+EpilogueArguments{}.thread is an xvalue, so decltype gives an rvalue
+reference and construct_if_true is instantiated with ReturnType = T&&.
+The functional cast then fails on GCC with "expression list treated as
+compound expression in functional cast", which breaks every
+moe_gemm_tma_ws_sm120_*.generated.cu with CUDA 13.4.
+---
+diff --git a/onnxruntime/contrib_ops/cuda/llm/moe_gemm/launchers/moe_gemm_tma_ws_launcher.inl b/onnxruntime/contrib_ops/cuda/llm/moe_gemm/launchers/moe_gemm_tma_ws_launcher.inl
+index 19bb1a0975720..fca45db589a4b 100644
+--- a/onnxruntime/contrib_ops/cuda/llm/moe_gemm/launchers/moe_gemm_tma_ws_launcher.inl
++++ b/onnxruntime/contrib_ops/cuda/llm/moe_gemm/launchers/moe_gemm_tma_ws_launcher.inl
+@@ -532,7 +532,7 @@ using SafeBF16 = void;
+             auto const mainloop_params = make_mainloop_params();                                                                                                                                                                                  \
+                                                                                                                                                                                                                                                   \
+             using EpilogueArguments = typename CollectiveEpilogue::Arguments;                                                                                                                                                                     \
+-            using EpilogueScalars = decltype(EpilogueArguments{}.thread);                                                                                                                                                                         \
++            using EpilogueScalars = std::remove_reference_t<decltype(EpilogueArguments{}.thread)>;                                                                                                       \
+             auto make_epilogue_scalars = [&]()                                                                                                                                                                                                    \
+             {                                                                                                                                                                                                                                     \
+                 if constexpr (IsBlackwell)                                                                                                                                                                                                        \
