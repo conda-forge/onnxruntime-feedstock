@@ -41,6 +41,9 @@ source:
     - patches/0008-Copy-python-test-files-in-batches.patch
     # https://github.com/microsoft/onnxruntime/pull/32584, needed for CUDA 13.4
     - patches/0009-Fix-SM120-QMoE-MoE-GEMM-TMA-build-failure-with-GCC.patch
+    - patches/0011-Use-the-conda-forge-libabseil-package.patch
+    # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
+    - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
 
 build:
   number: {{ build }}
@@ -73,6 +76,11 @@ requirements:
     {% endif %}
     - cmake <4
     - ninja
+    # we need protoc in the build environment for cross compilations
+    - libprotobuf
+    # flatc (from flatbuffers) regenerates the schema headers in build.sh and
+    # must run on the build platform when cross compiling
+    - flatbuffers
   host:
     - python
     - pip
@@ -91,6 +99,24 @@ requirements:
     - flake8
     - gmock
     - libdate
+    # Known limitation: the conda-forge libonnx does not carry onnxruntime's
+    # vendored patch that un-deprecates the opset-18 GroupNormalization op, so
+    # models with an ai.onnx GroupNormalization node at opset 18-20 are rejected
+    # (INVALID_GRAPH); re-export or version-convert them to opset >= 21. Rare in
+    # practice -- mainstream exporters decompose group norm rather than emit it.
+    - libabseil
+    - libprotobuf
+    - libonnx
+    # The conda `onnx` (Python) package supplies ONNX's .proto sources for the
+    # onnx_test_data_proto C++ unit-test target (see build.sh; onnx_SOURCE_DIR).
+    # build.py's python test phase is not run, so we don't import python onnx
+    # alongside onnxruntime here and any onnx providing the .proto suffices.
+    # (At python *runtime*, sharing onnx-ml.proto with onnxruntime needs an onnx
+    # that links the shared libonnx -- onnx-feedstock PR #146; not required for
+    # this build.)
+    - onnx
+    - re2
+    - flatbuffers
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -141,6 +167,21 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        # libonnxruntime links these now-unvendored shared libraries
+        # (onnx, protobuf, abseil and re2). The main
+        # onnxruntime output picks them
+        # up automatically because it compiles libonnxruntime, but this output
+        # only repackages the prebuilt libs via install-cpp.sh/.bat, so
+        # conda-build cannot infer them. List them here so their run_exports
+        # pin them into this package's run requirements; otherwise downstream
+        # C++ consumers (and the cmake-package-check test) fail to link with
+        # undefined onnx::/google::protobuf:: symbols, or on Windows fail to
+        # load onnx.dll/libprotobuf.dll at runtime.
+        - libonnx
+        - libprotobuf
+        - libabseil
+        - re2
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -179,15 +220,10 @@ about:
   license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]
   license_file:
     - LICENSE
-    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
-    - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
-    - build-ci/Release/_deps/onnx-src/LICENSE
-    - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/re2-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
     # Vendored at build time by onnxruntime for the CoreML execution provider.
     - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
