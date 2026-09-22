@@ -43,6 +43,7 @@ source:
     - patches/0009-Use-CC-AR-NM-from-environment-in-test_gen_def.patch
     # new QMoE test in 1.31.0 imports onnx but runs before build.py's onnx gate
     - patches/0010-Skip-QMoE-expert-distribution-test-without-onnx.patch
+    - patches/0010-Use-the-conda-forge-libcoremltools-package-for-the-C.patch  # [osx and arm64]
     - patches/0011-Use-the-conda-forge-libabseil-package.patch
     # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
     - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
@@ -125,6 +126,7 @@ requirements:
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
+    - libcoremltools  # [osx and arm64]
     - zlib
     - numpy
     - pybind11
@@ -174,7 +176,7 @@ outputs:
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
       host:
         # libonnxruntime links these now-unvendored shared libraries
-        # (onnx, protobuf, abseil and re2). The main
+        # (onnx, protobuf, abseil, re2, and coremltools on osx-arm64). The main
         # onnxruntime output picks them
         # up automatically because it compiles libonnxruntime, but this output
         # only repackages the prebuilt libs via install-cpp.sh/.bat, so
@@ -187,6 +189,7 @@ outputs:
         - libprotobuf
         - libabseil
         - re2
+        - libcoremltools  # [osx and arm64]
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -221,8 +224,7 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0  # [not (osx and arm64)]
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]
+  license: MIT AND BSL-1.0  # mp11 is BSL 1.0
   license_file:
     - LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
@@ -230,10 +232,8 @@ about:
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
-    # Vendored at build time by onnxruntime for the CoreML execution provider.
-    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
-    - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
-    - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
+    - build-ci/Release/_deps/fp16-src/LICENSE   # [osx and arm64]
+    - build-ci/Release/_deps/psimd-src/LICENSE  # [osx and arm64]
 
 extra:
   recipe-maintainers:
