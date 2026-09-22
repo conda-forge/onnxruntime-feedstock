@@ -149,13 +149,22 @@ requirements:
 test:
   imports:
     - onnxruntime
+  files:
+    - test_onnxruntime_runtime.py
   commands:
     - pip check
     - onnxruntime_test --help
-    # The CoreML execution provider is built into onnxruntime on Apple Silicon.
-    - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
+    # Runtime tests against onnx's reference evaluator: onnx and onnxruntime in
+    # one process, contrib fusions, ORT format and LoRA adapters (flatbuffers),
+    # CoreML on Apple Silicon and loading the CUDA provider library. On a machine
+    # with a GPU, set ONNXRUNTIME_TEST_REQUIRE_CUDA=1 to also run on CUDA.
+    - python test_onnxruntime_runtime.py
   requires:
     - pip
+    # onnx builds the test models, checks them and provides the reference
+    # evaluator, sharing libonnx with onnxruntime in the same process. Kept on
+    # libonnx's version, as in host.
+    - onnx >=1.23.0,<1.23.1.0a0
     # 2024/05 hmaarrfk/jtilly
     # Test the pip check command with numpy < 2
     # which was included in the requirements file for
@@ -202,9 +211,13 @@ outputs:
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
         - cmake-package-check
+        - cmake
+        - ninja
       files:
         - test.cpp
         - run_cpp_test.bat  # [win]
+        - cpp_interop/CMakeLists.txt
+        - cpp_interop/test_onnx_interop.cpp
       commands:
         - test -f $PREFIX/include/onnxruntime/core/session/onnxruntime_cxx_api.h  # [unix]
         - test -f $PREFIX/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h  # [osx and arm64]
@@ -223,6 +236,12 @@ outputs:
         - ./a.out  # [unix]
         - call .\run_cpp_test.bat  # [win]
         - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+        # A C++ program using libonnx, libprotobuf and onnxruntime in one process.
+        - cmake -S cpp_interop -B build_interop -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX  # [unix]
+        - cmake -S cpp_interop -B build_interop -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%  # [win]
+        - cmake --build build_interop
+        - ./build_interop/test_onnx_interop  # [unix]
+        - build_interop\test_onnx_interop.exe  # [win]
 
 about:
   home: https://github.com/microsoft/onnxruntime/
