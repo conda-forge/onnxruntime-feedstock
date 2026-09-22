@@ -1,0 +1,529 @@
+From b61af6fa0bdbc726c331bf36c59a35753a27a8e0 Mon Sep 17 00:00:00 2001
+From: Microsoft ONNX Runtime
+Date: Sun, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Support ONNX 1.23.0: new float6 types and opset 28
+
+Backport of the source changes from
+https://github.com/microsoft/onnxruntime/pull/32359 ("Integrate ONNX
+1.23.0 base plumbing"), which is still open upstream at the time of
+writing.
+
+onnxruntime 1.30.0 was released against ONNX 1.22.  ONNX 1.23.0 adds two
+TensorProto data types, FLOAT6E2M3 (27) and FLOAT6E3M2 (28), and bumps
+the ai.onnx opset to 28.  Building 1.30.0 against the conda-forge
+libonnx 1.23.0 therefore fails at compile time:
+
+    onnxruntime/core/framework/tensorprotoutils.h:76:58: error:
+      static assertion failed: TensorProto data type element-size map
+      must cover every numeric data type.
+
+because kTensorProtoDataTypeElementSizes is sized by
+TensorProto_DataType_DataType_ARRAYSIZE and the two new slots default to
+zero.  onnxruntime_map_type_info.h has an equivalent consteval
+bijectivity check against the ORT element-type enum.
+
+This backport takes the upstream hunks under include/onnxruntime/ and
+onnxruntime/core/ plus the C++ unit-test files, so the compiled ctest
+suite keeps passing:
+
+  * add ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3/FLOAT6E3M2 to the C API
+    enum and map them in both directions;
+  * extend the element-size table with the two packed 6-bit types;
+  * raise the maximum supported opset from 27 to 28 in the transpose
+    optimizer and the CoreML/NNAPI/VSINPU/WebNN op builders, keeping
+    Q/DQ builders at 27 where upstream did;
+  * teach the EmbedLayerNorm fusion about the opset-28 Cast, Squeeze and
+    Range signatures;
+  * honour session.allow_released_opsets_only when loading from memory.
+
+Three upstream hunks are deliberately omitted:
+
+  * onnxruntime/core/providers/webgpu/compute_context.h -- an unrelated
+    Logger refactor for the EP adapter API that does not apply to 1.30.0
+    and touches a provider this feedstock does not build;
+  * onnxruntime/test/optimizer/qdq_transformer_test.cc -- pins a test
+    that does not exist in 1.30.0;
+  * the cmake/, vcpkg and requirements changes, which pin onnxruntime's
+    own vendored ONNX; the conda-forge build links the packaged libonnx
+    instead.
+---
+diff --git a/include/onnxruntime/core/graph/schema_registry.h b/include/onnxruntime/core/graph/schema_registry.h
+index ca51e36..f60589a 100644
+--- a/include/onnxruntime/core/graph/schema_registry.h
++++ b/include/onnxruntime/core/graph/schema_registry.h
+@@ -37,7 +37,7 @@ class IOnnxRuntimeOpSchemaCollection : public ONNX_NAMESPACE::ISchemaRegistry {
+ 
+   using ISchemaRegistry::GetSchema;
+ 
+-  const ONNX_NAMESPACE::OpSchema* GetSchema(const std::string& key, const int maxInclusiveVersion,
++  const ONNX_NAMESPACE::OpSchema* GetSchema(const std::string& key, int maxInclusiveVersion,
+                                             const std::string& domain) const final {
+     const ONNX_NAMESPACE::OpSchema* latest_schema = nullptr;
+     int earliest_opset_where_unchanged = std::numeric_limits<int>::max();
+diff --git a/include/onnxruntime/core/session/onnxruntime_c_api.h b/include/onnxruntime/core/session/onnxruntime_c_api.h
+index a254e99..3fee0a3 100644
+--- a/include/onnxruntime/core/session/onnxruntime_c_api.h
++++ b/include/onnxruntime/core/session/onnxruntime_c_api.h
+@@ -223,6 +223,9 @@ typedef enum ONNXTensorElementDataType {
+   ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2,   // maps to 4 packed int2 values (size == 1 byte)
+   // Float8E8M0 type introduced in ONNX 1.21. 8-bit float with 8 exponent bits, 0 mantissa bits, no sign bit.
+   ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0,  // Non-IEEE floating-point format, all values are powers of two
++  // Float6 types introduced in ONNX 1.23.
++  ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3,  // 6-bit float stored in an int32_data entry
++  ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2,  // 6-bit float stored in an int32_data entry
+ } ONNXTensorElementDataType;
+ 
+ // Synced with onnx TypeProto oneof
+diff --git a/onnxruntime/core/framework/onnxruntime_map_type_info.h b/onnxruntime/core/framework/onnxruntime_map_type_info.h
+index 71c680a..4e51aa0 100644
+--- a/onnxruntime/core/framework/onnxruntime_map_type_info.h
++++ b/onnxruntime/core/framework/onnxruntime_map_type_info.h
+@@ -26,7 +26,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
+     return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+   }
+ 
+-  // The enums have the same values through FLOAT4E2M1. Their final three entries
++  // The enums have the same values through FLOAT4E2M1. The following three entries
+   // differ because ONNX inserted FLOAT8E8M0 before UINT2 and INT2.
+   switch (data_type) {
+     case ONNX_NAMESPACE::TensorProto_DataType_FLOAT8E8M0:
+@@ -42,7 +42,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
+ 
+ consteval bool IsTensorProtoToOrtElementTypeMapBijective() {
+   constexpr size_t ort_element_type_count =
+-      static_cast<size_t>(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0) + 1;
++      static_cast<size_t>(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2) + 1;
+   constexpr size_t onnx_element_type_count = ONNX_NAMESPACE::TensorProto_DataType_DataType_ARRAYSIZE;
+   if constexpr (onnx_element_type_count != ort_element_type_count) {
+     return false;
+diff --git a/onnxruntime/core/framework/tensor_type_and_shape.cc b/onnxruntime/core/framework/tensor_type_and_shape.cc
+index e91d039..8f9ec22 100644
+--- a/onnxruntime/core/framework/tensor_type_and_shape.cc
++++ b/onnxruntime/core/framework/tensor_type_and_shape.cc
+@@ -187,6 +187,12 @@ constexpr ONNXTensorElementDataType TensorDataTypeToOnnxRuntimeTensorElementData
+     case o::TensorProto_DataType_FLOAT8E8M0:
+       type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0;
+       break;
++    case o::TensorProto_DataType_FLOAT6E2M3:
++      type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3;
++      break;
++    case o::TensorProto_DataType_FLOAT6E3M2:
++      type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2;
++      break;
+     case o::TensorProto_DataType_FLOAT16:
+       type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+       break;
+diff --git a/onnxruntime/core/framework/tensorprotoutils.h b/onnxruntime/core/framework/tensorprotoutils.h
+index 6e72d0b..4389be4 100644
+--- a/onnxruntime/core/framework/tensorprotoutils.h
++++ b/onnxruntime/core/framework/tensorprotoutils.h
+@@ -58,6 +58,8 @@ inline constexpr std::array<uint8_t, ONNX_NAMESPACE::TensorProto_DataType_DataTy
+         sizeof(uint8_t),   // FLOAT8E8M0
+         sizeof(uint8_t),   // UINT2
+         sizeof(uint8_t),   // INT2
++        sizeof(uint8_t),   // FLOAT6E2M3: packed 6-bit elements
++        sizeof(uint8_t),   // FLOAT6E3M2: packed 6-bit elements
+     };
+ 
+ consteval bool IsTensorProtoDataTypeElementSizeMapComplete() {
+diff --git a/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc b/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
+index 421cc1b..8caae01 100644
+--- a/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
++++ b/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
+@@ -247,8 +247,8 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_1{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Cast", {9, 13, 19, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}, kOnnxDomain},
++      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Transpose", {1, 13, 21, 23, 24, 25}, kOnnxDomain},
+       {0, 0, "NonZero", {9, 13}, kOnnxDomain},
+       {0, 0, "ConstantOfShape", {9, 20, 21, 23, 24, 25}, kOnnxDomain},
+@@ -259,7 +259,7 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_2{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Transpose", {1, 13, 21, 23, 24, 25}, kOnnxDomain},
+       {0, 0, "NonZero", {9, 13}, kOnnxDomain},
+       {0, 0, "ConstantOfShape", {9, 20, 21, 23, 24, 25}, kOnnxDomain},
+@@ -271,15 +271,15 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_3{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Range", {11, 27}, kOnnxDomain},
+-      {0, 1, "Cast", {9, 13, 19, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Range", {11, 27, 28}, kOnnxDomain},
++      {0, 1, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Gather", {1, 11, 13}, kOnnxDomain},
+       {0, 0, "Shape", {1, 13, 15, 19, 21, 23, 24, 25}, kOnnxDomain}};
+   // Path 4 pattern (Path 3 with no "Cast"):
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_4{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Range", {11, 27}, kOnnxDomain},
++      {0, 0, "Range", {11, 27, 28}, kOnnxDomain},
+       {0, 1, "Gather", {1, 11, 13}, kOnnxDomain},
+       {0, 0, "Shape", {1, 13, 15, 19, 21, 23, 24, 25}, kOnnxDomain}};
+   // Match one of the three path patterns.
+diff --git a/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h b/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h
+index cd00948..ea3af9a 100644
+--- a/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h
++++ b/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h
+@@ -478,7 +478,7 @@ class GraphRef {
+ }  // namespace api
+ 
+ constexpr int64_t kMinSupportedOpset = 7;
+-constexpr int64_t kMaxSupportedOpset = 27;
++constexpr int64_t kMaxSupportedOpset = 28;
+ 
+ // enum of results that a CostCheckFn can return.
+ enum class CostCheckResult {
+diff --git a/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h b/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h
+index 609a965..0e49f48 100644
+--- a/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h
+@@ -46,7 +46,7 @@ class BaseOpBuilder : public IOpBuilder {
+                                       const logging::Logger& logger) const;
+ 
+   virtual int GetMinSupportedOpSet(const Node& /*node*/) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const Node& /*node*/) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const Node& /*node*/) const { return 28; }
+ 
+   bool HasSupportedOpSet(const Node& node, const logging::Logger& logger) const;
+   bool HasSupportedInputs(const Node& node, const OpBuilderInputParams& input_params,
+diff --git a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h
+index a573b73..c52458b 100644
+--- a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h
+@@ -72,7 +72,7 @@ class BaseOpBuilder : public IOpBuilder {
+                                             const OpSupportCheckParams& params) const;
+ 
+   virtual int GetMinSupportedOpSet(const NodeUnit& /* node_unit */) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 28; }
+ 
+   // Check if this node_unit's type is supported
+   // SingleNode type NodeUnit is supported
+diff --git a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc
+index ed9062f..72544d8 100644
+--- a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc
++++ b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc
+@@ -37,6 +37,8 @@ class DequantizeLinearOpBuilder : public BaseOpBuilder {
+     return ANEURALNETWORKS_FEATURE_LEVEL_1;
+   }
+ 
++  int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const override { return 27; }
++
+   bool HasSupportedInputOutputsImpl(
+       const GraphViewer& graph_viewer, const NodeUnit& node_unit,
+       const OpSupportCheckParams& params) const override {
+diff --git a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc
+index eb81f5e..9a94f37 100644
+--- a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc
++++ b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc
+@@ -37,6 +37,8 @@ class QuantizeLinearOpBuilder : public BaseOpBuilder {
+     return ANEURALNETWORKS_FEATURE_LEVEL_3;
+   }
+ 
++  int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const override { return 27; }
++
+   bool HasSupportedInputOutputsImpl(
+       const GraphViewer& graph_viewer, const NodeUnit& node_unit,
+       const OpSupportCheckParams& params) const override {
+diff --git a/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h b/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h
+index 488581d..8a9f342 100644
+--- a/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h
+@@ -49,7 +49,7 @@ class BaseOpBuilder : public IOpBuilder {
+   virtual bool IsQuantizedOp(const NodeUnit& /* node_unit */) const { return false; }
+ 
+   virtual int GetMinSupportedOpSet(const NodeUnit& /* node_unit */) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 28; }
+ 
+   virtual bool HasSupportedInputOutputsImpl(
+       const InitializedTensorSet& initializers, const NodeUnit& node_unit) const;
+diff --git a/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h b/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h
+index f4429fb..d1334ba 100644
+--- a/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h
+@@ -52,7 +52,7 @@ class BaseOpBuilder : public IOpBuilder {
+   // We still set the minimal supported opset to 1 as we couldn't
+   // get the model opset version at this stage.
+   virtual int GetMinSupportedOpSet(const Node& /* node */) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const Node& /* node */) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const Node& /* node */) const { return 28; }
+ 
+  private:
+   bool HasSupportedOpSet(const Node& node, const logging::Logger& logger) const;
+diff --git a/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc b/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc
+index e4e3a09..5b6ab64 100644
+--- a/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc
++++ b/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc
+@@ -25,6 +25,8 @@ class QDQOpBuilder : public BaseOpBuilder {
+                          const WebnnDeviceType /* device_type */, const logging::Logger& logger) const override;
+   bool HasSupportedInputsImpl(const GraphViewer&, const Node& node,
+                               const emscripten::val& wnn_limits, const logging::Logger& logger) const override;
++
++  int GetMaxSupportedOpSet(const Node& /* node */) const override { return 27; }
+ };
+ 
+ Status QDQOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
+diff --git a/onnxruntime/core/session/inference_session.cc b/onnxruntime/core/session/inference_session.cc
+index be0536d..978f94f 100644
+--- a/onnxruntime/core/session/inference_session.cc
++++ b/onnxruntime/core/session/inference_session.cc
+@@ -1308,6 +1308,8 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
+ 
+     const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
+                                                  kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
++    const bool allow_released_opsets_only = session_options_.config_options.GetConfigOrDefault(
++                                                kOrtSessionOptionsConfigStrictAllowReleasedOpsetsOnly, "1") == "1";
+ 
+     PathString external_data_model_path = GetExternalInitializersFolderModelPath(session_options_.config_options);
+     if (!external_data_model_path.empty()) {
+@@ -1316,7 +1318,7 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
+ 
+     return onnxruntime::Model::Load(std::move(model_proto), model_location_, model,
+                                     HasLocalSchema() ? &custom_schema_registries_ : nullptr, *session_logger_,
+-                                    ModelOptions(true, strict_shape_type_inference,
++                                    ModelOptions(allow_released_opsets_only, strict_shape_type_inference,
+                                                  check_load_cancellation_fn_));
+   };
+ 
+diff --git a/onnxruntime/test/framework/tensorutils_test.cc b/onnxruntime/test/framework/tensorutils_test.cc
+index d238627..5f5bcd5 100644
+--- a/onnxruntime/test/framework/tensorutils_test.cc
++++ b/onnxruntime/test/framework/tensorutils_test.cc
+@@ -61,6 +61,8 @@ constexpr bool TensorProtoElementSizesAreConstexpr() {
+       sizeof(uint8_t),   // FLOAT8E8M0
+       sizeof(uint8_t),   // UINT2
+       sizeof(uint8_t),   // INT2
++      sizeof(uint8_t),   // FLOAT6E2M3
++      sizeof(uint8_t),   // FLOAT6E3M2
+   };
+ 
+   for (size_t index = 0; index < expected_sizes.size(); ++index) {
+diff --git a/onnxruntime/test/framework/type_info_test.cc b/onnxruntime/test/framework/type_info_test.cc
+index c611977..d1b0e41 100644
+--- a/onnxruntime/test/framework/type_info_test.cc
++++ b/onnxruntime/test/framework/type_info_test.cc
+@@ -47,6 +47,8 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
+           ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0,
+           ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2,
+           ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2,
++          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3,
++          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2,
+       };
+ 
+   for (size_t index = 0; index < expected_types.size(); ++index) {
+diff --git a/onnxruntime/test/onnx/TestCase.cc b/onnxruntime/test/onnx/TestCase.cc
+index 86eb962..38aed8c 100644
+--- a/onnxruntime/test/onnx/TestCase.cc
++++ b/onnxruntime/test/onnx/TestCase.cc
+@@ -958,6 +958,8 @@ std::unique_ptr<std::set<BrokenTest>> GetBrokenTests(const std::string& provider
+       {"cast_UINT4_to_FLOAT", "Skipped until onnxruntime/cmake/external/onnx points to onnx 1.19 which should include @onnx/onnx/pull/7074"},
+       {"cast_UINT4_to_FLOAT16", "Skipped until onnxruntime/cmake/external/onnx points to onnx 1.19 which should include @onnx/onnx/pull/7074"},
+       {"cast_UINT4_to_UINT8", "Skipped until onnxruntime/cmake/external/onnx points to onnx 1.19 which should include @onnx/onnx/pull/7074"},
++      {"reduce_max_empty_set_bool",
++       "ReduceMax does not support bool; mirrors onnx_backend_test_series_filters.jsonc global exclusion"},
+       // onnx#7959: the materialized node corpus now runs on the CPU EP via the
+       // onnx_test_node_materialized ctest (previously the C++ node runner was QNN-only). ORT has
+       // no per-channel-quantization ConvInteger support on any EP -- the CPU kernel throws and
+diff --git a/onnxruntime/test/onnx/main.cc b/onnxruntime/test/onnx/main.cc
+index 5740a40..1817a92 100644
+--- a/onnxruntime/test/onnx/main.cc
++++ b/onnxruntime/test/onnx/main.cc
+@@ -908,6 +908,9 @@ select from 'TF8', 'TF16', 'UINT8', 'FLOAT', 'ITENSOR'. \n)");
+         ORT_TSTR("rotary_embedding_3d_input_expanded"),
+         ORT_TSTR("rotary_embedding_expanded"),
+         ORT_TSTR("rotary_embedding_interleaved_expanded"),
++        // QNN CPU returns uniform Softmax probabilities for the expanded function's all-negative-infinity rows,
++        // so its zero-row guard is not preserved. Keep the native Attention case enabled.
++        ORT_TSTR("attention_4d_causal_nonpad_negative_offset_structural_empty_expanded"),
+         // QNN don't support fmod = 1
+         ORT_TSTR("mod_mixed_sign_float64"),
+         ORT_TSTR("mod_mixed_sign_float32"),
+diff --git a/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc b/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
+index c092c66..c9fa32d 100644
+--- a/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
++++ b/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
+@@ -27,9 +27,15 @@ TEST(LayoutTransformationPotentiallyAddedOpsTests, OpsHaveLatestVersions) {
+     if (prev_domain != it->domain || prev_op_type != it->op_type) {
+       const auto* schema = schema_registry->GetSchema(std::string{it->op_type}, INT_MAX, std::string{it->domain});
+       ASSERT_NE(schema, nullptr);
+-      EXPECT_EQ(schema->SinceVersion(), it->since_version)
+-          << "A new version for op " << it->op_type << " (" << schema->SinceVersion()
+-          << ") is available. Please update kLayoutTransformationPotentiallyAddedOps to include it.";
++      const bool is_staged_opset_28_qdq =
++          it->domain == kOnnxDomain && schema->SinceVersion() == 28 &&
++          (it->op_type == "DequantizeLinear" || it->op_type == "QuantizeLinear");
++      if (!is_staged_opset_28_qdq) {
++        EXPECT_EQ(schema->SinceVersion(), it->since_version)
++            << "A new version for op " << it->op_type << " (" << schema->SinceVersion()
++            << ") is available. Please update kLayoutTransformationPotentiallyAddedOps to include it.";
++      }
++      // TODO(#32372): Remove this exception when the opset-28 Q/DQ kernels land.
+       prev_domain = it->domain;
+       prev_op_type = it->op_type;
+     }
+diff --git a/onnxruntime/test/providers/cpu/controlflow/scan_test.cc b/onnxruntime/test/providers/cpu/controlflow/scan_test.cc
+index 4583b77..c35a45d 100644
+--- a/onnxruntime/test/providers/cpu/controlflow/scan_test.cc
++++ b/onnxruntime/test/providers/cpu/controlflow/scan_test.cc
+@@ -1061,7 +1061,8 @@ TEST(Scan8, NumScanInputsExceedsVariadicInputs) {
+   test.AddOutput<float>("scan_output_2", {1, 2, 1}, {0.f, 0.f});
+   test.AddOutput<float>("scan_output_3", {1, 2, 1}, {0.f, 0.f});
+ 
+-  test.Run(OpTester::ExpectResult::kExpectFailure, "Invalid 'num_scan_inputs' of 10. Value must be between 1 and 3",
++  test.Run(OpTester::ExpectResult::kExpectFailure,
++           "num_scan_inputs (10) plus the sequence_lens input cannot exceed the number of Scan inputs (4).",
+            options.excluded_provider_types);
+ }
+ 
+@@ -1165,7 +1166,7 @@ TEST(Scan9, NumScanInputsExceedsVariadicInputs) {
+   // inferencing error wrapping a shape-inference error, rather than the kernel-level message produced
+   // by the opset 8 test above.
+   test.Run(OpTester::ExpectResult::kExpectFailure,
+-           "[ShapeInferenceError] Mismatch between number of inferred and declared dimensions",
++           "num_scan_inputs (10) cannot exceed the number of Scan inputs (3).",
+            options.excluded_provider_types);
+ }
+ #endif  // !defined(ORT_NO_EXCEPTIONS)
+diff --git a/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc b/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc
+index 495fea5..36c3f61 100644
+--- a/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc
++++ b/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc
+@@ -1,6 +1,9 @@
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
++#include <unordered_map>
++#include <vector>
++
+ #include "gtest/gtest.h"
+ #include "test/providers/provider_test_utils.h"
+ 
+@@ -166,8 +169,13 @@ TEST(CompressTest, Compress_3dims_neg_axis) {
+ // inputs to {0, 1}) and asserts the output is sized by truthiness.
+ TEST(CompressTest, Compress_cuda_non_canonical_bool_condition) {
+   // Build: output = Compress(input, condition, axis=0)
+-  auto model = std::make_unique<onnxruntime::Model>("compress_non_canonical_bool", false,
+-                                                    DefaultLoggingManager().DefaultLogger());
++  const std::unordered_map<std::string, int> domain_to_version{{kOnnxDomain, 27}};
++  auto model = std::make_unique<onnxruntime::Model>(
++      "compress_non_canonical_bool", false, ModelMetaData(), PathString(), IOnnxRuntimeOpSchemaRegistryList(),
++      domain_to_version, std::vector<ONNX_NAMESPACE::FunctionProto>{}, DefaultLoggingManager().DefaultLogger());
++  ASSERT_EQ(model->ToProto().opset_import_size(), 1);
++  EXPECT_EQ(model->ToProto().opset_import(0).domain(), kOnnxDomain);
++  EXPECT_EQ(model->ToProto().opset_import(0).version(), 27);
+   onnxruntime::Graph& graph = model->MainGraph();
+ 
+   ONNX_NAMESPACE::TypeProto tensor_float;
+diff --git a/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc b/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc
+index c9d0d19..6855b30 100644
+--- a/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc
++++ b/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc
+@@ -59,10 +59,9 @@ enum class ValueAttributePayload {
+ // IMLOperatorAttributes1::GetTensorAttribute, which wraps the raw AttributeProto tensor in an
+ // OnnxTensorWrapper.
+ //
+-// Attribute tensors are not graph initializers, so none of the framework-level guards apply to them:
+-// Graph::ConvertInitializersIntoOrtValues never sees them, and ONNX shape inference for
+-// ConstantOfShape only reads the attribute's data_type (to type the output), never its data. That
+-// leaves OnnxTensorWrapper as the only place the payload can be validated.
++// Attribute tensors are not graph initializers, so Graph::ConvertInitializersIntoOrtValues never
++// sees them. Older ONNX versions also did not validate byte-aligned raw_data sizes in check_tensor,
++// leaving OnnxTensorWrapper as the only place the payload could be validated.
+ std::string BuildConstantOfShapeModel(ValueAttributePayload payload) {
+   ONNX_NAMESPACE::ModelProto model;
+   model.set_ir_version(ONNX_NAMESPACE::Version::IR_VERSION);
+@@ -113,8 +112,8 @@ std::string BuildConstantOfShapeModel(ValueAttributePayload payload) {
+   return serialized;
+ }
+ 
+-// Loads |serializedModel| into a session that has only the DML EP registered, and returns the status
+-// of Initialize(). |skipped| is set when no DirectML device is available.
++// Loads |serializedModel| into a session that has only the DML EP registered, and returns the first
++// failure from Load() or Initialize(). |skipped| is set when no DirectML device is available.
+ //
+ // Constant folding is disabled so the ConstantOfShape node survives graph optimization and is handed
+ // to the DML EP. Without this, the CPU EP would evaluate the node during Level1 optimization and the
+@@ -166,15 +165,19 @@ TEST(DmlOnnxTensorWrapperTest, TruncatedRawDataAttributeTensorIsRejected) {
+     GTEST_SKIP() << "DirectML execution provider is not available on this machine.";
+   }
+ 
+-  ASSERT_FALSE(status.IsOK()) << "Session initialization should reject a tensor whose declared shape "
+-                                 "exceeds the data it carries.";
+-
+-  // The detailed message raised inside the constructor does not survive: OnnxTensorWrapper is
+-  // constructed behind the IMLOperatorAttributes1 COM boundary, whose ORT_CATCH_RETURN reduces the
+-  // exception to a bare HRESULT before it is rethrown. 0x80070057 is E_INVALIDARG, so this asserts the
+-  // model was rejected as malformed rather than failing for an unrelated reason.
+-  EXPECT_NE(status.ErrorMessage().find("80070057"), std::string::npos)
+-      << "Unexpected failure reason: " << status.ErrorMessage();
++  ASSERT_FALSE(status.IsOK()) << "Model loading or session initialization should reject a tensor whose declared "
++                                 "shape exceeds the data it carries.";
++
++  // ONNX 1.23 rejects the malformed attribute during Graph::Resolve. With older ONNX versions it
++  // reaches OnnxTensorWrapper, where the detailed constructor exception is reduced to E_INVALIDARG
++  // (0x80070057) at the IMLOperatorAttributes1 COM boundary.
++  const std::string& errorMessage = status.ErrorMessage();
++  EXPECT_TRUE(
++      errorMessage.find("80070057") != std::string::npos ||
++      errorMessage.find(
++          "raw_data size (1 bytes) is too small for the declared shape and type (8 bytes required)") !=
++          std::string::npos)
++      << "Unexpected failure reason: " << errorMessage;
+ }
+ 
+ // The constructor's typed-field branch has the same defect in principle: UnpackTensor sizes the buffer
+diff --git a/onnxruntime/test/unittest_util/graph_transform_test_builder.cc b/onnxruntime/test/unittest_util/graph_transform_test_builder.cc
+index 325f820..4e67113 100644
+--- a/onnxruntime/test/unittest_util/graph_transform_test_builder.cc
++++ b/onnxruntime/test/unittest_util/graph_transform_test_builder.cc
+@@ -169,9 +169,7 @@ void TransformerTester(const std::function<void(ModelTestBuilder& helper)>& buil
+     SessionOptions session_options;
+     session_options.graph_optimization_level = transformer ? baseline_level : level;
+     // Mirror the model build's shape/type-inference strictness onto the session so that
+-    // loading the serialized model applies the same options. (allow_released_opsets_only is
+-    // passed explicitly to Load below, since the byte/proto Load overloads don't read it
+-    // from the config options.)
++    // loading the serialized model applies the same options.
+     ASSERT_STATUS_OK(session_options.config_options.AddConfigEntry(
+         kOrtSessionOptionsConfigStrictShapeTypeInference,
+         model_options.strict_shape_type_inference ? "1" : "0"));
+@@ -187,8 +185,7 @@ void TransformerTester(const std::function<void(ModelTestBuilder& helper)>& buil
+       ASSERT_STATUS_OK(session.RegisterExecutionProvider(ep_shared));
+     }
+ 
+-    // Load via an istream so the under-development opset flag can be honored: the istream Load
+-    // overload takes allow_released_opsets_only explicitly (the byte/proto overloads hardcode it).
++    // Load via an istream so the under-development opset flag can be passed explicitly.
+     // This lets models built at an unreleased ONNX opset (e.g. opset 27 in ONNX 1.22) load on
+     // strict (ALLOW_RELEASED_ONNX_OPSET_ONLY default) CI legs.
+     std::istringstream model_istream(model_data);
+diff --git a/onnxruntime/test/unittest_util/op_tester.cc b/onnxruntime/test/unittest_util/op_tester.cc
+index b633989..2b1f4d8 100644
+--- a/onnxruntime/test/unittest_util/op_tester.cc
++++ b/onnxruntime/test/unittest_util/op_tester.cc
+@@ -40,6 +40,12 @@ onnxruntime::Model& OpTester::BuildModel(const std::unordered_map<std::string, i
+   // Create a simple model
+   std::unordered_map<std::string, int> domain_to_version(extra_domain_to_version);
+   const auto& domain = Domain();
++  if (domain != kOnnxDomain && domain_to_version.count(kOnnxDomain) == 0) {
++    const auto& last_released_versions =
++        ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().LastReleaseVersionMap();
++    domain_to_version.insert({kOnnxDomain, last_released_versions.at(kOnnxDomain)});
++  }
++
+   if (domain_to_version.count(domain) == 0) {
+     domain_to_version.insert({domain, Opset()});
+   } else {
+-- 
+2.51.0
+
