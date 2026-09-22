@@ -1,0 +1,38 @@
+From 8be63c5013324afa8117d2ad21509bd99f339fc3 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sat, 16 May 2026 23:00:00 -0400
+Subject: [PATCH] Use the conda-forge libabseil package
+
+onnxruntime declares abseil with FIND_PACKAGE_ARGS that include an
+explicit version floor (20250814). Abseil's installed CMake config is
+generated with COMPATIBILITY ExactVersion, so find_package(absl <ver>)
+only succeeds when <ver> matches the installed release *exactly*; any
+other value forces FetchContent to download and statically build a
+vendored abseil.
+
+Drop the version from FIND_PACKAGE_ARGS so the conda-forge libabseil
+package is used. The abseil version is governed by conda-forge pinning
+and is kept consistent with libprotobuf, which hard-depends on a
+specific libabseil release.
+---
+ cmake/external/abseil-cpp.cmake | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/external/abseil-cpp.cmake b/cmake/external/abseil-cpp.cmake
+index a8e925c..fef5ce9 100644
+--- a/cmake/external/abseil-cpp.cmake
++++ b/cmake/external/abseil-cpp.cmake
+@@ -37,7 +37,12 @@ onnxruntime_fetchcontent_declare(
+     URL_HASH SHA1=${DEP_SHA1_abseil_cpp}
+     EXCLUDE_FROM_ALL
+     PATCH_COMMAND ${ABSL_PATCH_COMMAND}
+-    FIND_PACKAGE_ARGS 20250814 NAMES absl
++    # conda-forge: drop the explicit 20250814 version floor. Abseil's installed
++    # CMake config uses COMPATIBILITY ExactVersion, so a version constraint here
++    # only matches that exact release and otherwise forces a vendored build.
++    # The abseil version is instead governed by conda-forge pinning (and kept
++    # consistent with libprotobuf, which hard-depends on a specific libabseil).
++    FIND_PACKAGE_ARGS NAMES absl
+ )
+ 
+ onnxruntime_fetchcontent_makeavailable(abseil_cpp)
