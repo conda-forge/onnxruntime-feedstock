@@ -45,6 +45,9 @@ source:
     - patches/0011-Use-the-conda-forge-libabseil-package.patch
     # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
     - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
+    # onnx 1.23 adds the FLOAT6E2M3/FLOAT6E3M2 data types and opset 28;
+    # https://github.com/microsoft/onnxruntime/pull/32359 (still open upstream)
+    - patches/0013-Support-ONNX-1.23.0-new-float6-types-and-opset-28.patch
 
 build:
   number: {{ build }}
@@ -115,7 +118,12 @@ requirements:
     # (At python *runtime*, sharing onnx-ml.proto with onnxruntime needs an onnx
     # that links the shared libonnx -- onnx-feedstock PR #146; not required for
     # this build.)
-    - onnx
+    # Kept on libonnx's version: onnx 1.22.0 builds 0 and 1 predate the libonnx
+    # split, ship their own lib/libonnx.so and lib/libonnx_proto.so and do not
+    # depend on libonnx, so they install alongside it, overwrite its files and
+    # leave onnxruntime linking an ONNX without the symbols it needs. onnx 1.23.0
+    # pins the exact libonnx build itself.
+    - onnx >=1.23.0,<1.23.1.0a0
     - re2
     - flatbuffers
     - packaging
