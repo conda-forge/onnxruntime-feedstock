@@ -283,14 +283,18 @@ outputs:
         # TensorRT runtime is opt-in here rather than forced on every CUDA user.
         - libnvinfer-devel
         - libnvonnxparser-devel
-        # The provider links these too (see cmake/onnxruntime_providers_tensorrt
-        # .cmake: onnx, PROTOBUF_LIB, ABSEIL_LIBS, CUDA::cudart). On this branch
-        # they are the shared conda-forge libraries rather than vendored static
-        # ones, so they have to be here for the linkage check to resolve and for
-        # their run_exports to reach this package.
-        - libonnx
+        # The provider also links protobuf and cudart (see
+        # cmake/onnxruntime_providers_tensorrt.cmake), and on this branch
+        # protobuf is the shared conda-forge library rather than a vendored
+        # static one, so it has to be here for the linkage check to resolve and
+        # for its run_exports to reach this package.
+        #
+        # onnx and abseil are link inputs of that target too, but --gc-sections
+        # plus the version script strip them and neither ends up in NEEDED --
+        # conda-build reports both as overdepending on linux-64 and
+        # linux-aarch64 if they are listed. Do not add them back without
+        # checking that report.
         - libprotobuf
-        - libabseil
         - cuda-cudart-dev
       run:
         - python
