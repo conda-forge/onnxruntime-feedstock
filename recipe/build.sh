@@ -82,6 +82,22 @@ if [[ "${BUILD_UNIT_TESTS}" == "ON" ]]; then
     cmake_extra_defines+=( "onnx_SOURCE_DIR=${ONNX_PROTO_ROOT}" )
 fi
 
+# TensorRT execution provider. Enabled purely by the presence of the TensorRT
+# headers in the host prefix, so meta.yaml alone decides which variants get it
+# (the CUDA 13.4 linux builds -- see the host section for why only those).
+# onnxruntime_providers_tensorrt is a standalone module library: the core gains
+# the provider-bridge entry points but no link dependency on libnvinfer, so the
+# main outputs stay TensorRT-free and the EP ships in its own package.
+# USE_TENSORRT_BUILTIN_PARSER=ON links the shared libnvonnxparser rather than
+# vendoring onnx-tensorrt, which is the whole point of doing this here.
+if [[ -f "${PREFIX}/include/NvInfer.h" ]]; then
+    echo "TensorRT execution provider is enabled"
+    cmake_extra_defines+=( "onnxruntime_USE_TENSORRT=ON" \
+                           "onnxruntime_USE_TENSORRT_BUILTIN_PARSER=ON" \
+                           "onnxruntime_TENSORRT_HOME=${PREFIX}"
+    )
+fi
+
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
 # into --cmake_extra_defines.
 read -a CMAKE_ARGS_ARRAY <<< "${CMAKE_ARGS}"
@@ -171,3 +187,12 @@ cmake --install build-ci/Release --prefix "install-ci"
 for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
     python -m pip install "$whl_file"
 done
+
+# setup.py bundles every provider library it finds into the wheel's capi/
+# directory (dl_libs), so a TensorRT-enabled build drops
+# libonnxruntime_providers_tensorrt.so in there. That library NEEDs
+# libnvinfer.so.11, and the 1.9 GB TensorRT runtime is deliberately not a
+# dependency of the core package, so leaving it here would ship a shared object
+# nothing can load. Remove it; install-ep-tensorrt.sh copies it out of
+# build-ci/Release into the onnxruntime-ep-tensorrt package instead.
+rm -f "${SP_DIR}/onnxruntime/capi/libonnxruntime_providers_tensorrt.so"

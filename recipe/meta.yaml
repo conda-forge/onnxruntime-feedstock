@@ -59,6 +59,12 @@ build:
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
+    # libnvinfer is 1.9 GB. libonnxruntime itself does not link it -- only the
+    # separate onnxruntime_providers_tensorrt module does -- so the TensorRT
+    # runtime belongs to the onnxruntime-ep-tensorrt output alone and must not
+    # be pinned into the core packages by these run_exports.
+    - libnvinfer-devel        # [linux and cuda_compiler_version == "13.4"]
+    - libnvonnxparser-devel   # [linux and cuda_compiler_version == "13.4"]
   # This needs to be coherent with the entry_points list defined around
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
@@ -126,6 +132,12 @@ requirements:
     - onnx >=1.23.0,<1.23.1.0a0
     - re2
     - flatbuffers
+    # TensorRT execution provider. Only the CUDA 13.4 linux builds can have it:
+    # conda-forge's TensorRT 11.1 requires __glibc >=2.28 and libstdcxx >=15 for
+    # its CUDA 13 build, which matches this variant (glibc 2.28, gcc 15) and not
+    # the CUDA 12.9 one (glibc 2.17). Availability decides the scope, not taste.
+    - libnvinfer-devel        # [linux and cuda_compiler_version == "13.4"]
+    - libnvonnxparser-devel   # [linux and cuda_compiler_version == "13.4"]
     - packaging
     - python-flatbuffers
     - optional-lite
@@ -242,6 +254,49 @@ outputs:
         - cmake --build build_interop
         - ./build_interop/test_onnx_interop  # [unix]
         - build_interop\test_onnx_interop.exe  # [win]
+
+  - name: onnxruntime{{ suffix }}-ep-tensorrt
+    build:
+      # Only the CUDA 13.4 linux builds carry the TensorRT headers; see the host
+      # section of the top-level requirements for why.
+      skip: true  # [not (linux and cuda_compiler_version == "13.4")]
+      string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+    script: install-ep-tensorrt.sh
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+      host:
+        - python
+        # run_exports of these pin libnvinfer, libnvinfer-plugin and
+        # libnvonnxparser into this package -- which is the point: the 1.9 GB
+        # TensorRT runtime is opt-in here rather than forced on every CUDA user.
+        - libnvinfer-devel
+        - libnvonnxparser-devel
+      run:
+        - python
+        # The provider bridge between libonnxruntime and an in-tree execution
+        # provider is an unversioned internal C++ ABI: a ProviderHost vtable
+        # handed to Provider_SetHost, with no negotiation and no error on
+        # mismatch. A version range would let a mismatched pair load and then
+        # misbehave, so pin the exact build.
+        - {{ pin_subpackage('onnxruntime' + suffix, exact=True) }}
+    test:
+      requires:
+        # numpy reaches the test env through onnxruntime's run_exports-derived
+        # pin, but onnx does not -- it is only a host dependency of the build --
+        # and the test compares against its reference evaluator.
+        - onnx >=1.23.0,<1.23.1.0a0
+      files:
+        - test_ep_tensorrt.py
+      commands:
+        - test -f $SP_DIR/onnxruntime/capi/libonnxruntime_providers_tensorrt.so
+        # Checks that the EP is registered and, when a driver and GPU are
+        # present, that it actually runs a model. Without a GPU it verifies the
+        # provider is compiled in and the library's dependencies resolve.
+        - python test_ep_tensorrt.py
 
 about:
   home: https://github.com/microsoft/onnxruntime/
