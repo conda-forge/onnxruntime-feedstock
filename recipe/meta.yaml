@@ -262,6 +262,15 @@ outputs:
       skip: true  # [not (linux and cuda_compiler_version == "13.4")]
       string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
     script: install-ep-tensorrt.sh
+    build:
+      # onnxruntime_providers_tensorrt links onnxruntime_providers_shared, which
+      # is not a conda package: it is built here and shipped inside the python
+      # onnxruntime package's capi/ directory. This library is installed into
+      # that same directory, so $ORIGIN resolves it at load time, and the exact
+      # pin below guarantees the matching copy is present. Nothing else may be
+      # whitelisted -- every other NEEDED entry has a host dependency.
+      missing_dso_whitelist:
+        - '*/libonnxruntime_providers_shared.so'
     requirements:
       build:
         - {{ stdlib('c') }}
@@ -275,6 +284,15 @@ outputs:
         # TensorRT runtime is opt-in here rather than forced on every CUDA user.
         - libnvinfer-devel
         - libnvonnxparser-devel
+        # The provider links these too (see cmake/onnxruntime_providers_tensorrt
+        # .cmake: onnx, PROTOBUF_LIB, ABSEIL_LIBS, CUDA::cudart). On this branch
+        # they are the shared conda-forge libraries rather than vendored static
+        # ones, so they have to be here for the linkage check to resolve and for
+        # their run_exports to reach this package.
+        - libonnx
+        - libprotobuf
+        - libabseil
+        - cuda-cudart-dev
       run:
         - python
         # The provider bridge between libonnxruntime and an in-tree execution
