@@ -261,8 +261,6 @@ outputs:
       # section of the top-level requirements for why.
       skip: true  # [not (linux and cuda_compiler_version == "13.4")]
       string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
-    script: install-ep-tensorrt.sh
-    build:
       # onnxruntime_providers_tensorrt links onnxruntime_providers_shared, which
       # is not a conda package: it is built here and shipped inside the python
       # onnxruntime package's capi/ directory. This library is installed into
@@ -271,6 +269,7 @@ outputs:
       # whitelisted -- every other NEEDED entry has a host dependency.
       missing_dso_whitelist:
         - '*/libonnxruntime_providers_shared.so'
+    script: install-ep-tensorrt.sh
     requirements:
       build:
         - {{ stdlib('c') }}
