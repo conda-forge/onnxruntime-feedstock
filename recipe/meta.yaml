@@ -166,10 +166,10 @@ test:
   commands:
     - pip check
     - onnxruntime_test --help
-    # Runtime tests against onnx's reference evaluator: onnx and onnxruntime in
-    # one process, contrib fusions, ORT format and LoRA adapters (flatbuffers),
-    # CoreML on Apple Silicon and loading the CUDA provider library. On a machine
-    # with a GPU, set ONNXRUNTIME_TEST_REQUIRE_CUDA=1 to also run on CUDA.
+    # onnx and onnxruntime in one process on the shared libonnx and libprotobuf,
+    # compared against onnx's reference evaluator on every execution provider the
+    # hardware allows. On a machine with a GPU, set
+    # ONNXRUNTIME_TEST_REQUIRE_CUDA=1 to make a skipped CUDA run a failure.
     - python test_onnxruntime_runtime.py
   requires:
     - pip
@@ -313,10 +313,10 @@ outputs:
       files:
         - test_ep_tensorrt.py
       commands:
-        - test -f $SP_DIR/onnxruntime/capi/libonnxruntime_providers_tensorrt.so
-        # Checks that the EP is registered and, when a driver and GPU are
-        # present, that it actually runs a model. Without a GPU it verifies the
-        # provider is compiled in and the library's dependencies resolve.
+        # Loads the EP library from the directory onnxruntime searches, which
+        # catches both ways a bad install fails: wrong directory, or unresolved
+        # libnvinfer. With a GPU it runs a model through TensorRT instead. Set
+        # ONNXRUNTIME_TEST_REQUIRE_TENSORRT=1 to make a skipped GPU run a failure.
         - python test_ep_tensorrt.py
 
 about:
