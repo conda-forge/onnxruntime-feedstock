@@ -125,3 +125,18 @@ cmake --install build-ci/Release --prefix "install-ci"
 for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
     python -m pip install "$whl_file"
 done
+
+# With --use_cuda, upstream names the wheel onnxruntime-gpu, the name of the separate
+# CUDA project on PyPI. On conda-forge both variants are the onnxruntime package, so
+# add an onnxruntime alias dist-info: packages requiring either PyPI name are satisfied.
+if [[ "${cuda_compiler_version:-None}" != "None" ]]; then
+    alias_dir="${SP_DIR}/onnxruntime-${PKG_VERSION}.dist-info"
+    test ! -e "${alias_dir}"
+    mkdir "${alias_dir}"
+    cat > "${alias_dir}/METADATA" <<EOF
+Metadata-Version: 2.1
+Name: onnxruntime
+Version: ${PKG_VERSION}
+EOF
+    echo conda > "${alias_dir}/INSTALLER"
+fi

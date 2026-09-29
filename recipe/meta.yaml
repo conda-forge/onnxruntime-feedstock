@@ -2,7 +2,7 @@
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.30.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 1 %}
+{% set build = 2 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -115,6 +115,9 @@ test:
     - onnxruntime
   commands:
     - pip check
+    # CUDA builds must satisfy both PyPI names, see build.sh.
+    - python -c "from importlib.metadata import version; assert version('onnxruntime') == '{{ version }}'"
+    - python -c "from importlib.metadata import version; assert version('onnxruntime-gpu') == '{{ version }}'"  # [cuda_compiler_version != "None"]
     - onnxruntime_test --help
     # The CoreML execution provider is built into onnxruntime on Apple Silicon.
     - python -c "import onnxruntime as ort; assert 'CoreMLExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()"  # [osx and arm64]
