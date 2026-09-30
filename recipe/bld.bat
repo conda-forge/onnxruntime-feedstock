@@ -64,3 +64,16 @@ for %%F in (build-ci\Release\dist\onnxruntime*.whl) do (
     python -m pip install %%F
     if errorlevel 1 exit 1
 )
+
+:: With --use_cuda, upstream names the wheel onnxruntime-gpu, see build.sh.
+if not "%cuda_compiler_version%"=="None" (
+    if exist "%SP_DIR%\onnxruntime-%PKG_VERSION%.dist-info" exit 1
+    mkdir "%SP_DIR%\onnxruntime-%PKG_VERSION%.dist-info"
+    if errorlevel 1 exit 1
+    (
+        echo Metadata-Version: 2.1
+        echo Name: onnxruntime
+        echo Version: %PKG_VERSION%
+    ) > "%SP_DIR%\onnxruntime-%PKG_VERSION%.dist-info\METADATA"
+    echo conda> "%SP_DIR%\onnxruntime-%PKG_VERSION%.dist-info\INSTALLER"
+)
