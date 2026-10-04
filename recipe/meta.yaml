@@ -46,7 +46,10 @@ source:
     # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
     - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
     # onnx 1.23 adds the FLOAT6E2M3/FLOAT6E3M2 data types and opset 28;
-    # https://github.com/microsoft/onnxruntime/pull/32359 (still open upstream)
+    # https://github.com/microsoft/onnxruntime/pull/32359 as merged (9b87005).
+    # Upstream reverted it in https://github.com/microsoft/onnxruntime/pull/33073
+    # to wait for an ONNX release fixing onnx/onnx#8529; we link libonnx 1.23.0
+    # and cannot go back to ONNX 1.22, so the backport stays.
     - patches/0013-Support-ONNX-1.23.0-new-float6-types-and-opset-28.patch
 
 build:
