@@ -27,7 +27,7 @@ flatbuffers:
 libabseil:
 - '20260526'
 libonnx:
-- 1.23.0
+- 1.23.1
 libprotobuf:
 - 7.35.1
 macos_machine:
