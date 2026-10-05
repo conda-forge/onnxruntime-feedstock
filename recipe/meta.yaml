@@ -89,8 +89,8 @@ requirements:
     {% endif %}
     - cmake <4
     - ninja
-    # bld.bat applies the libabseil header patch from
-    # https://github.com/conda-forge/abseil-cpp-feedstock/pull/117 for nvcc 13.4
+    # bld.bat applies the libabseil header patches for nvcc 13.4, see there and
+    # https://github.com/conda-forge/abseil-cpp-feedstock/pull/117
     - m2-patch                               # [win and cuda_compiler_version == "13.4"]
     # we need protoc in the build environment for cross compilations
     - libprotobuf

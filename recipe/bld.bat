@@ -59,22 +59,29 @@ if errorlevel 1 exit 1
 python onnxruntime\lora\adapter_format\compile_schema.py --flatc "%BUILD_PREFIX%\Library\bin\flatc.exe"
 if errorlevel 1 exit 1
 
-:: TEMPORARY: nvcc 13.4 with MSVC cannot compile abseil's hash headers, which
-:: befriend a base class through the derived class's injected-class-name.
-:: onnxruntime patches the abseil it vendors for this; we use the conda-forge
-:: libabseil, so apply the same two-line patch to the libabseil headers in the
-:: host and build prefixes, only for the CUDA 13.4 builds that need it. The
-:: patch file is a verbatim copy of the one proposed for libabseil itself in
-:: https://github.com/conda-forge/abseil-cpp-feedstock/pull/117
-:: Remove this block, the patch file and m2-patch once that is merged and the
-:: libabseil we build against carries it.
-set "ABSL_PATCH=%RECIPE_DIR%\libabseil-0004-Name-HashStateBase-explicitly-in-friend-declarations.patch"
+:: TEMPORARY: nvcc 13.4 with MSVC cannot compile abseil's hash and hash
+:: container headers, which name a base class through the derived class's
+:: injected-class-name. onnxruntime patches the abseil it vendors for part of
+:: this; we use the conda-forge libabseil, so patch its headers in the host and
+:: build prefixes, only for the CUDA 13.4 builds that need it.
+::   0004 (friend declarations) is a verbatim copy of the patch merged in
+::        https://github.com/conda-forge/abseil-cpp-feedstock/pull/117
+::        That only reached libabseil 20260817.0; we are pinned to 20260526.
+::   0005 (container base classes) is not in abseil-cpp-feedstock yet; without
+::        it the build still fails with C2248 in flat_hash_map.h.
+:: Remove this block, the patch files and m2-patch once the libabseil we build
+:: against carries both.
 if "%cuda_compiler_version%"=="13.4" (
-    patch -p1 --binary -d "%LIBRARY_INC%" -i "%ABSL_PATCH%"
-    if errorlevel 1 exit 1
-    if exist "%BUILD_PREFIX%\Library\include\absl\hash\hash.h" (
-        patch -p1 --binary -d "%BUILD_PREFIX%\Library\include" -i "%ABSL_PATCH%"
+    for %%P in (
+        libabseil-0004-Name-HashStateBase-explicitly-in-friend-declarations.patch
+        libabseil-0005-Name-the-raw_hash-base-classes-explicitly.patch
+    ) do (
+        patch -p1 --binary --no-backup-if-mismatch -d "%LIBRARY_INC%" -i "%RECIPE_DIR%\%%P"
         if errorlevel 1 exit 1
+        if exist "%BUILD_PREFIX%\Library\include\absl\hash\hash.h" (
+            patch -p1 --binary --no-backup-if-mismatch -d "%BUILD_PREFIX%\Library\include" -i "%RECIPE_DIR%\%%P"
+            if errorlevel 1 exit 1
+        )
     )
 )
 
