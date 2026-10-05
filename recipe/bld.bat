@@ -59,12 +59,24 @@ if errorlevel 1 exit 1
 python onnxruntime\lora\adapter_format\compile_schema.py --flatc "%BUILD_PREFIX%\Library\bin\flatc.exe"
 if errorlevel 1 exit 1
 
-:: TEMPORARY: nvcc 13.4 cannot compile abseil's headers where they name a base
-:: class through the derived class; rewrite those declarations. nvcc 13.0 is
-:: fine, and onnxruntime's vendored abseil has the same code, so this is an
-:: nvcc regression. Remove once nvcc or abseil fixes it.
-python "%RECIPE_DIR%\patch_absl_injected_base_names.py" "%LIBRARY_INC%" "%BUILD_PREFIX%\Library\include"
-if errorlevel 1 exit 1
+:: TEMPORARY: nvcc 13.4 with MSVC cannot compile abseil's hash headers, which
+:: befriend a base class through the derived class's injected-class-name.
+:: onnxruntime patches the abseil it vendors for this; we use the conda-forge
+:: libabseil, so apply the same two-line patch to the libabseil headers in the
+:: host and build prefixes, only for the CUDA 13.4 builds that need it. The
+:: patch file is a verbatim copy of the one proposed for libabseil itself in
+:: https://github.com/conda-forge/abseil-cpp-feedstock/pull/117
+:: Remove this block, the patch file and m2-patch once that is merged and the
+:: libabseil we build against carries it.
+set "ABSL_PATCH=%RECIPE_DIR%\libabseil-0004-Name-HashStateBase-explicitly-in-friend-declarations.patch"
+if "%cuda_compiler_version%"=="13.4" (
+    patch -p1 --binary -d "%LIBRARY_INC%" -i "%ABSL_PATCH%"
+    if errorlevel 1 exit 1
+    if exist "%BUILD_PREFIX%\Library\include\absl\hash\hash.h" (
+        patch -p1 --binary -d "%BUILD_PREFIX%\Library\include" -i "%ABSL_PATCH%"
+        if errorlevel 1 exit 1
+    )
+)
 
 :: libprotobuf is a DLL. Its CMake target adds PROTOBUF_USE_DLLS only to targets that
 :: link it, but e.g. onnxruntime_flatbuffers includes the onnx .pb.h headers without
