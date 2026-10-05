@@ -170,6 +170,9 @@ test:
     - python test_onnxruntime_runtime.py
   requires:
     - pip
+    # onnx builds the test models, checks them and provides the reference
+    # evaluator, sharing libonnx with onnxruntime in the same process.
+    - onnx
     # 2024/05 hmaarrfk/jtilly
     # Test the pip check command with numpy < 2
     # which was included in the requirements file for
