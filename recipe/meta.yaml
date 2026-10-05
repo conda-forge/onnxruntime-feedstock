@@ -295,7 +295,7 @@ outputs:
         # numpy reaches the test env through onnxruntime's run_exports-derived
         # pin, but onnx does not -- it is only a host dependency of the build --
         # and the test compares against its reference evaluator.
-        - onnx >=1.23.0,<1.23.1.0a0
+        - onnx
       files:
         - test_ep_tensorrt.py
       commands:
