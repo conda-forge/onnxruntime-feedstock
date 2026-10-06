@@ -1,0 +1,1943 @@
+From 9b87005d050668a5998fdc7a711cab40707aa6d1 Mon Sep 17 00:00:00 2001
+From: Justin Chu <justinchuby@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 15:34:09 +0000
+Subject: [PATCH] Support ONNX 1.23.0: new float6 types and opset 28
+
+Backport of the source changes from
+https://github.com/microsoft/onnxruntime/pull/32359 ("Integrate ONNX
+1.23.0 base plumbing"), as merged in
+https://github.com/microsoft/onnxruntime/commit/9b87005d050668a5998fdc7a711cab40707aa6d1
+
+Upstream reverted that commit three days later in
+https://github.com/microsoft/onnxruntime/pull/33073, not because of a
+defect in these hunks but to wait for an ONNX release that fixes
+onnx/onnx#8471 (external tensor re-save, fixed in ONNX 1.23.1) and
+onnx/onnx#8529 (the C++ LastReleaseVersionMap still reports ai.onnx
+opset 27, open).  The conda-forge build links the packaged libonnx
+1.23.0 and cannot go back to ONNX 1.22, so it keeps the integration.
+
+onnxruntime 1.30.0 was released against ONNX 1.22.  ONNX 1.23.0 adds two
+TensorProto data types, FLOAT6E2M3 (27) and FLOAT6E3M2 (28), and bumps
+the ai.onnx opset to 28.  Building 1.30.0 against the conda-forge
+libonnx 1.23.0 therefore fails at compile time:
+
+    onnxruntime/core/framework/tensorprotoutils.h:76:58: error:
+      static assertion failed: TensorProto data type element-size map
+      must cover every numeric data type.
+
+because kTensorProtoDataTypeElementSizes is sized by
+TensorProto_DataType_DataType_ARRAYSIZE and the two new slots default to
+zero.  onnxruntime_map_type_info.h has an equivalent consteval
+bijectivity check against the ORT element-type enum.
+
+This backport takes every upstream hunk under include/ and onnxruntime/
+that applies to 1.30.0:
+
+  * add ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3/FLOAT6E3M2 to the C API
+    enum and map them in both directions;
+  * extend the element-size table with the two packed 6-bit types;
+  * raise the maximum supported opset from 27 to 28 in the transpose
+    optimizer and the CoreML/NNAPI/VSINPU/WebNN op builders, keeping
+    Q/DQ builders at 27 where upstream did;
+  * accept the opset-28 Cast in the attention, FastGelu, IsInf/ReduceSum,
+    LayerNorm and Pad fusions, and the opset-28 Cast, Squeeze and Range
+    in the EmbedLayerNorm fusion;
+  * register opset-28 Mod (floating-point floor mod) on the CPU and CUDA
+    EPs and opset-28 signed BitShift on the CPU EP, capping the previous
+    registrations at 27 (and the DML BitShift kernel at 27);
+  * honour session.allow_released_opsets_only on every model load path,
+    and pass it through the Python onnx backend;
+  * the matching C++ and Python test updates.
+
+Upstream hunks deliberately omitted:
+
+  * onnxruntime/core/providers/webgpu/compute_context.h -- an unrelated
+    Logger refactor for the EP adapter API that does not apply to 1.30.0
+    and touches a provider this feedstock does not build;
+  * onnxruntime/test/optimizer/qdq_transformer_test.cc -- pins a test
+    that does not exist in 1.30.0;
+  * the cmake/, vcpkg, tools/, docs/, js/, csharp/ and requirements
+    changes, which pin and test onnxruntime's own vendored ONNX; the
+    conda-forge build links the packaged libonnx instead.
+
+One hunk is adapted: the <type_traits> include in
+onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc is rebased
+onto 1.30.0's include block.
+---
+diff --git a/include/onnxruntime/core/graph/schema_registry.h b/include/onnxruntime/core/graph/schema_registry.h
+index ca51e36..f60589a 100644
+--- a/include/onnxruntime/core/graph/schema_registry.h
++++ b/include/onnxruntime/core/graph/schema_registry.h
+@@ -37,7 +37,7 @@ class IOnnxRuntimeOpSchemaCollection : public ONNX_NAMESPACE::ISchemaRegistry {
+ 
+   using ISchemaRegistry::GetSchema;
+ 
+-  const ONNX_NAMESPACE::OpSchema* GetSchema(const std::string& key, const int maxInclusiveVersion,
++  const ONNX_NAMESPACE::OpSchema* GetSchema(const std::string& key, int maxInclusiveVersion,
+                                             const std::string& domain) const final {
+     const ONNX_NAMESPACE::OpSchema* latest_schema = nullptr;
+     int earliest_opset_where_unchanged = std::numeric_limits<int>::max();
+diff --git a/include/onnxruntime/core/session/onnxruntime_c_api.h b/include/onnxruntime/core/session/onnxruntime_c_api.h
+index a254e99..917807e 100644
+--- a/include/onnxruntime/core/session/onnxruntime_c_api.h
++++ b/include/onnxruntime/core/session/onnxruntime_c_api.h
+@@ -223,6 +223,11 @@ typedef enum ONNXTensorElementDataType {
+   ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2,   // maps to 4 packed int2 values (size == 1 byte)
+   // Float8E8M0 type introduced in ONNX 1.21. 8-bit float with 8 exponent bits, 0 mantissa bits, no sign bit.
+   ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0,  // Non-IEEE floating-point format, all values are powers of two
++  // Float6 types introduced in ONNX 1.23.
++  // ORT tensor storage uses one byte per element. TensorProto typed serialization uses int32_data;
++  // TensorProto raw_data uses bit-packed 6-bit values.
++  ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3,
++  ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2,
+ } ONNXTensorElementDataType;
+ 
+ // Synced with onnx TypeProto oneof
+diff --git a/onnxruntime/core/framework/onnxruntime_map_type_info.h b/onnxruntime/core/framework/onnxruntime_map_type_info.h
+index 71c680a..4e51aa0 100644
+--- a/onnxruntime/core/framework/onnxruntime_map_type_info.h
++++ b/onnxruntime/core/framework/onnxruntime_map_type_info.h
+@@ -26,7 +26,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
+     return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+   }
+ 
+-  // The enums have the same values through FLOAT4E2M1. Their final three entries
++  // The enums have the same values through FLOAT4E2M1. The following three entries
+   // differ because ONNX inserted FLOAT8E8M0 before UINT2 and INT2.
+   switch (data_type) {
+     case ONNX_NAMESPACE::TensorProto_DataType_FLOAT8E8M0:
+@@ -42,7 +42,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
+ 
+ consteval bool IsTensorProtoToOrtElementTypeMapBijective() {
+   constexpr size_t ort_element_type_count =
+-      static_cast<size_t>(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0) + 1;
++      static_cast<size_t>(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2) + 1;
+   constexpr size_t onnx_element_type_count = ONNX_NAMESPACE::TensorProto_DataType_DataType_ARRAYSIZE;
+   if constexpr (onnx_element_type_count != ort_element_type_count) {
+     return false;
+diff --git a/onnxruntime/core/framework/tensor_type_and_shape.cc b/onnxruntime/core/framework/tensor_type_and_shape.cc
+index e91d039..8f9ec22 100644
+--- a/onnxruntime/core/framework/tensor_type_and_shape.cc
++++ b/onnxruntime/core/framework/tensor_type_and_shape.cc
+@@ -187,6 +187,12 @@ constexpr ONNXTensorElementDataType TensorDataTypeToOnnxRuntimeTensorElementData
+     case o::TensorProto_DataType_FLOAT8E8M0:
+       type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0;
+       break;
++    case o::TensorProto_DataType_FLOAT6E2M3:
++      type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3;
++      break;
++    case o::TensorProto_DataType_FLOAT6E3M2:
++      type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2;
++      break;
+     case o::TensorProto_DataType_FLOAT16:
+       type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+       break;
+diff --git a/onnxruntime/core/framework/tensorprotoutils.cc b/onnxruntime/core/framework/tensorprotoutils.cc
+index d58de35..ce1b8ba 100644
+--- a/onnxruntime/core/framework/tensorprotoutils.cc
++++ b/onnxruntime/core/framework/tensorprotoutils.cc
+@@ -2053,6 +2053,8 @@ ONNXTensorElementDataType CApiElementTypeFromProtoType(int type) {
+ #if !defined(DISABLE_FLOAT4_TYPES)
+     CASE_TYPE(FLOAT4E2M1)
+ #endif
++    CASE_TYPE(FLOAT6E2M3)
++    CASE_TYPE(FLOAT6E3M2)
+ 
+     default:
+       return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+diff --git a/onnxruntime/core/framework/tensorprotoutils.h b/onnxruntime/core/framework/tensorprotoutils.h
+index 6e72d0b..4389be4 100644
+--- a/onnxruntime/core/framework/tensorprotoutils.h
++++ b/onnxruntime/core/framework/tensorprotoutils.h
+@@ -58,6 +58,8 @@ inline constexpr std::array<uint8_t, ONNX_NAMESPACE::TensorProto_DataType_DataTy
+         sizeof(uint8_t),   // FLOAT8E8M0
+         sizeof(uint8_t),   // UINT2
+         sizeof(uint8_t),   // INT2
++        sizeof(uint8_t),   // FLOAT6E2M3: packed 6-bit elements
++        sizeof(uint8_t),   // FLOAT6E3M2: packed 6-bit elements
+     };
+ 
+ consteval bool IsTensorProtoDataTypeElementSizeMapComplete() {
+diff --git a/onnxruntime/core/optimizer/attention_fusion_helper.h b/onnxruntime/core/optimizer/attention_fusion_helper.h
+index b7bd36c..64fd195 100644
+--- a/onnxruntime/core/optimizer/attention_fusion_helper.h
++++ b/onnxruntime/core/optimizer/attention_fusion_helper.h
+@@ -400,7 +400,7 @@ bool MatchUnidirMaskSubgraph(const Graph& graph, const Node& add_node, MatchUnid
+   }
+ 
+   std::vector<graph_utils::EdgeEndToMatch> path1{
+-      {0, 0, "Cast", {9, 13, 19, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Slice", {10, 11, 13}, kOnnxDomain},  // Last Slice
+       {0, 0, "Slice", {10, 11, 13}, kOnnxDomain},  // Mask Slice
+       {0, 1, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+diff --git a/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc b/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
+index 421cc1b..8caae01 100644
+--- a/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
++++ b/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
+@@ -247,8 +247,8 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_1{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Cast", {9, 13, 19, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}, kOnnxDomain},
++      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Transpose", {1, 13, 21, 23, 24, 25}, kOnnxDomain},
+       {0, 0, "NonZero", {9, 13}, kOnnxDomain},
+       {0, 0, "ConstantOfShape", {9, 20, 21, 23, 24, 25}, kOnnxDomain},
+@@ -259,7 +259,7 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_2{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Squeeze", {1, 11, 13, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Transpose", {1, 13, 21, 23, 24, 25}, kOnnxDomain},
+       {0, 0, "NonZero", {9, 13}, kOnnxDomain},
+       {0, 0, "ConstantOfShape", {9, 20, 21, 23, 24, 25}, kOnnxDomain},
+@@ -271,15 +271,15 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_3{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Range", {11, 27}, kOnnxDomain},
+-      {0, 1, "Cast", {9, 13, 19, 21, 23, 24, 25}, kOnnxDomain},
++      {0, 0, "Range", {11, 27, 28}, kOnnxDomain},
++      {0, 1, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}, kOnnxDomain},
+       {0, 0, "Gather", {1, 11, 13}, kOnnxDomain},
+       {0, 0, "Shape", {1, 13, 15, 19, 21, 23, 24, 25}, kOnnxDomain}};
+   // Path 4 pattern (Path 3 with no "Cast"):
+   std::vector<graph_utils::EdgeEndToMatch> parent_path_4{
+       {0, 1, "Expand", {8, 13}, kOnnxDomain},
+       {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
+-      {0, 0, "Range", {11, 27}, kOnnxDomain},
++      {0, 0, "Range", {11, 27, 28}, kOnnxDomain},
+       {0, 1, "Gather", {1, 11, 13}, kOnnxDomain},
+       {0, 0, "Shape", {1, 13, 15, 19, 21, 23, 24, 25}, kOnnxDomain}};
+   // Match one of the three path patterns.
+diff --git a/onnxruntime/core/optimizer/fast_gelu_fusion.cc b/onnxruntime/core/optimizer/fast_gelu_fusion.cc
+index 13efcaa..4909ae9 100644
+--- a/onnxruntime/core/optimizer/fast_gelu_fusion.cc
++++ b/onnxruntime/core/optimizer/fast_gelu_fusion.cc
+@@ -175,7 +175,7 @@ MatchResult FastGeluFusion::CheckSecondFormula(Graph& graph, Node& pow1_node,
+   if (p_cast1_node != nullptr) {
+     Node& cast1_node = *graph.GetNode(p_cast1_node->Index());
+     // this is fused Cast node, so expect 2 output edges
+-    if (!(graph_utils::IsSupportedOptypeVersionAndDomain(cast1_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++    if (!(graph_utils::IsSupportedOptypeVersionAndDomain(cast1_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+           cast1_node.InputDefs().size() == 1 &&
+           CheckNode(graph, cast1_node, pow1_node.GetExecutionProviderType(), false)) ||
+         cast1_node.GetOutputEdgesCount() != 2) {
+@@ -291,7 +291,7 @@ Status FastGeluFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+         if (p_cast3_node == nullptr) continue;
+ 
+         Node& cast3_node = *graph.GetNode(p_cast3_node->Index());
+-        if (!(graph_utils::IsSupportedOptypeVersionAndDomain(cast3_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++        if (!(graph_utils::IsSupportedOptypeVersionAndDomain(cast3_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+               cast3_node.InputDefs().size() == 1 &&
+               CheckNode(graph, cast3_node, node.GetExecutionProviderType(), true))) {
+           continue;
+diff --git a/onnxruntime/core/optimizer/isinf_reducesum_fusion.cc b/onnxruntime/core/optimizer/isinf_reducesum_fusion.cc
+index 3f963e8..2185261 100644
+--- a/onnxruntime/core/optimizer/isinf_reducesum_fusion.cc
++++ b/onnxruntime/core/optimizer/isinf_reducesum_fusion.cc
+@@ -45,7 +45,7 @@ Status IsInfReduceSumFusion::ApplyImpl(Graph& graph, bool& modified, int graph_l
+     // This Cast can be skipped as we are replacing the subgraph with IsAllFinite, which supports FP16
+     auto cast1_node_iter = isinf_node.InputNodesBegin();
+     if (cast1_node_iter != isinf_node.InputNodesEnd() &&
+-        graph_utils::IsSupportedOptypeVersionAndDomain(*cast1_node_iter, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++        graph_utils::IsSupportedOptypeVersionAndDomain(*cast1_node_iter, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+         cast1_node_iter->GetOutputEdgesCount() == 1) {
+       // check input type of cast node
+       Node& cast1_node = *graph.GetNode(cast1_node_iter->Index());
+@@ -65,7 +65,7 @@ Status IsInfReduceSumFusion::ApplyImpl(Graph& graph, bool& modified, int graph_l
+     }
+ 
+     Node& cast2_node = *graph.GetNode(cast2_node_itr->Index());
+-    if (!graph_utils::IsSupportedOptypeVersionAndDomain(cast2_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) ||
++    if (!graph_utils::IsSupportedOptypeVersionAndDomain(cast2_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) ||
+         cast2_node.GetOutputEdgesCount() != 1 ||
+         graph.NodeProducesGraphOutput(cast2_node)) {
+       continue;
+diff --git a/onnxruntime/core/optimizer/layer_norm_fusion.cc b/onnxruntime/core/optimizer/layer_norm_fusion.cc
+index e4716b5..9978175 100644
+--- a/onnxruntime/core/optimizer/layer_norm_fusion.cc
++++ b/onnxruntime/core/optimizer/layer_norm_fusion.cc
+@@ -145,7 +145,7 @@ static bool IsPowExponentTwo(const Graph& graph, const Node& pow_node) {
+ 
+   const Node* exponent_input_node = graph_utils::GetInputNode(pow_node, 1);
+   if (exponent_input_node == nullptr ||
+-      !graph_utils::IsSupportedOptypeVersionAndDomain(*exponent_input_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) ||
++      !graph_utils::IsSupportedOptypeVersionAndDomain(*exponent_input_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) ||
+       exponent_input_node->InputDefs().empty() || exponent_input_node->InputDefs()[0] == nullptr) {
+     return false;
+   }
+@@ -334,7 +334,7 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+     if (p_reduce_mean_input_node) {
+       Node& reduce_mean_input_node = *graph.GetNode(p_reduce_mean_input_node->Index());
+       // If input to the 1st ReduceMean is a Cast, and the Cast has same consumer count as subCnt + 1
+-      if (graph_utils::IsSupportedOptypeVersionAndDomain(reduce_mean_input_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++      if (graph_utils::IsSupportedOptypeVersionAndDomain(reduce_mean_input_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+           reduce_mean_input_node.GetExecutionProviderType() == reduce_mean_node.GetExecutionProviderType() &&
+           optimizer_utils::CheckOutputEdges(graph, reduce_mean_input_node, static_cast<size_t>(subCnt) + 1)) {
+         nodes_to_remove.insert(nodes_to_remove.begin(), reduce_mean_input_node);
+@@ -347,7 +347,7 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+     const Node* p_cast1 = nullptr;
+     if (!p_sub_node_dup && sub_node.GetOutputEdgesCount() == 1) {
+       Node& cast_node = *graph.GetNode(sub_node.OutputNodesBegin()->Index());
+-      if (graph_utils::IsSupportedOptypeVersionAndDomain(cast_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++      if (graph_utils::IsSupportedOptypeVersionAndDomain(cast_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+           cast_node.GetExecutionProviderType() == reduce_mean_node.GetExecutionProviderType() &&
+           optimizer_utils::CheckOutputEdges(graph, cast_node, 2u) && IsSupportedDataType(cast_node)) {
+         p_cast1 = &cast_node;
+@@ -446,7 +446,7 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+     const Node* p_cast2 = graph_utils::FirstParentByType(pow_node, "Cast");
+     if (p_cast2 != nullptr && p_cast2 != p_cast1) {
+       Node& cast_node = *graph.GetNode(p_cast2->Index());
+-      if (!graph_utils::IsSupportedOptypeVersionAndDomain(cast_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) ||
++      if (!graph_utils::IsSupportedOptypeVersionAndDomain(cast_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) ||
+           cast_node.GetExecutionProviderType() != reduce_mean_node.GetExecutionProviderType() ||
+           !optimizer_utils::CheckOutputEdges(graph, cast_node, 1)) {
+         continue;
+@@ -464,7 +464,7 @@ Status LayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+     // can be removed. This is one possible place a Cast Op can exist, that is between Div and Mul nodes.
+     // div --> mul or div --> cast --> mul
+     Node* next_node = graph.GetNode(div_node.OutputNodesBegin()->Index());
+-    if (graph_utils::IsSupportedOptypeVersionAndDomain(*next_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++    if (graph_utils::IsSupportedOptypeVersionAndDomain(*next_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+         optimizer_utils::CheckOutputEdges(graph, *next_node, 1)) {
+       nodes_to_remove.push_back(*next_node);
+       next_node = graph.GetNode(next_node->OutputNodesBegin()->Index());
+@@ -735,7 +735,7 @@ Status SimplifiedLayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int gr
+     if (is_gpu_ep && p_pow_input_node) {
+       Node& pow_input_node = *graph.GetNode(p_pow_input_node->Index());
+       // If input to Pow is a Cast, and the Cast has 2 consumers only (Pow, Div)
+-      if (graph_utils::IsSupportedOptypeVersionAndDomain(pow_input_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++      if (graph_utils::IsSupportedOptypeVersionAndDomain(pow_input_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+           pow_input_node.GetExecutionProviderType() == pow_node.GetExecutionProviderType() &&
+           optimizer_utils::CheckOutputEdges(graph, pow_input_node, 2)) {
+         nodes_to_remove.insert(nodes_to_remove.begin(), pow_input_node);
+@@ -745,7 +745,7 @@ Status SimplifiedLayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int gr
+ 
+     // div --> mul or div --> cast --> mul
+     Node* next_node = graph.GetNode(div_node.OutputNodesBegin()->Index());
+-    if (graph_utils::IsSupportedOptypeVersionAndDomain(*next_node, "Cast", {9, 13, 19, 21, 23, 24, 25}) &&
++    if (graph_utils::IsSupportedOptypeVersionAndDomain(*next_node, "Cast", {9, 13, 19, 21, 23, 24, 25, 28}) &&
+         optimizer_utils::CheckOutputEdges(graph, *next_node, 1)) {
+       if (!is_gpu_ep) continue;
+       nodes_to_remove.push_back(*next_node);
+diff --git a/onnxruntime/core/optimizer/pad_fusion.cc b/onnxruntime/core/optimizer/pad_fusion.cc
+index 179a08e..9a54f06 100644
+--- a/onnxruntime/core/optimizer/pad_fusion.cc
++++ b/onnxruntime/core/optimizer/pad_fusion.cc
+@@ -132,7 +132,7 @@ bool PadFusion::SatisfyCondition(const Graph& graph, const Node& node, const log
+   }
+ 
+   const Node& child_node = *node.OutputNodesBegin();
+-  if (graph_utils::IsSupportedOptypeVersionAndDomain(child_node, "Cast", {1, 6, 9, 13, 19, 21, 23, 24, 25})) {
++  if (graph_utils::IsSupportedOptypeVersionAndDomain(child_node, "Cast", {1, 6, 9, 13, 19, 21, 23, 24, 25, 28})) {
+     if (child_node.GetOutputEdgesCount() != 1) {
+       return false;
+     }
+diff --git a/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h b/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h
+index cd00948..ea3af9a 100644
+--- a/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h
++++ b/onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h
+@@ -478,7 +478,7 @@ class GraphRef {
+ }  // namespace api
+ 
+ constexpr int64_t kMinSupportedOpset = 7;
+-constexpr int64_t kMaxSupportedOpset = 27;
++constexpr int64_t kMaxSupportedOpset = 28;
+ 
+ // enum of results that a CostCheckFn can return.
+ enum class CostCheckResult {
+diff --git a/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h b/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h
+index 609a965..0e49f48 100644
+--- a/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/coreml/builders/impl/base_op_builder.h
+@@ -46,7 +46,7 @@ class BaseOpBuilder : public IOpBuilder {
+                                       const logging::Logger& logger) const;
+ 
+   virtual int GetMinSupportedOpSet(const Node& /*node*/) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const Node& /*node*/) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const Node& /*node*/) const { return 28; }
+ 
+   bool HasSupportedOpSet(const Node& node, const logging::Logger& logger) const;
+   bool HasSupportedInputs(const Node& node, const OpBuilderInputParams& input_params,
+diff --git a/onnxruntime/core/providers/cpu/cpu_execution_provider.cc b/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
+index b91565d..7d13ce4 100644
+--- a/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
++++ b/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
+@@ -596,9 +596,10 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
+ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, MLFloat16, Gemm);
+ #endif
+ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, GatherElements);
+-class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, uint8_t, BitShift);
+-class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, uint32_t, BitShift);
+-class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, uint64_t, BitShift);
++class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27, uint8_t, BitShift);
++class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27, uint16_t, BitShift);
++class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27, uint32_t, BitShift);
++class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27, uint64_t, BitShift);
+ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Pad);
+ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11, GatherND);
+ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 26, Range);
+@@ -834,7 +835,8 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int16_t, Neg);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int32_t, Neg);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int64_t, Neg);
+-class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, Mod);
++class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 27, Mod);
++class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, Mod);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, float, Abs);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, double, Abs);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int8_t, Abs);
+@@ -1550,6 +1552,16 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
+ // Opset 27
+ class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 27, Range);
+ 
++// Opset 28
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int8_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int16_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int32_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int64_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint8_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint16_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint32_t, BitShift);
++class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint64_t, BitShift);
++
+ // !!PLEASE READ BELOW!! Following that, add new entries above this comment
+ 
+ /*  *** IMPORTANT! ***
+@@ -2312,12 +2324,14 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+                                                                             double, Gemm)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12,
+                                                                       GatherElements)>,
+-      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, uint8_t,
+-                                                                  BitShift)>,
+-      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, uint32_t,
+-                                                                  BitShift)>,
+-      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, uint64_t,
+-                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27,
++                                                                            uint8_t, BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27,
++                                                                            uint16_t, BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27,
++                                                                            uint32_t, BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 27,
++                                                                            uint64_t, BitShift)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Pad)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11,
+                                                                       GatherND)>,
+@@ -2761,7 +2775,8 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int16_t, Neg)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int32_t, Neg)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int64_t, Neg)>,
+-      BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, Mod)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 27, Mod)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, Mod)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, float, Abs)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, double, Abs)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int8_t, Abs)>,
+@@ -3745,6 +3760,24 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+ 
+       // opset 27
+       BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 27, Range)>,
++
++      // opset 28
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int8_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int16_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int32_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, int64_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint8_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint16_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint32_t,
++                                                                  BitShift)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint64_t,
++                                                                  BitShift)>,
+   };
+   for (auto& function_table_entry : function_table) {
+     KernelCreateInfo info = function_table_entry();
+diff --git a/onnxruntime/core/providers/cpu/math/element_wise_ops.cc b/onnxruntime/core/providers/cpu/math/element_wise_ops.cc
+index 4a9c464..f4d8b9b 100644
+--- a/onnxruntime/core/providers/cpu/math/element_wise_ops.cc
++++ b/onnxruntime/core/providers/cpu/math/element_wise_ops.cc
+@@ -12,6 +12,9 @@
+ #include "core/mlas/inc/mlas.h"
+ 
+ #include <cmath>
++#include <cstring>
++#include <limits>
++#include <type_traits>
+ 
+ namespace onnxruntime {
+ // Supported types for operators that have type reduction enabled
+@@ -489,10 +492,18 @@ REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(Mean, 8, 12, float, Mean_8);
+ // Supposed to add BFloat16 but we are not supporting now, however, separate registration
+ REG_ELEMENTWISE_TYPED_KERNEL(Mean, 13, float, Mean_8);
+ 
+-REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 11, uint8_t, BitShift);
+-// REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 11, uint16_t, BitShift);
+-REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 11, uint32_t, BitShift);
+-REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 11, uint64_t, BitShift);
++REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(BitShift, 11, 27, uint8_t, BitShift);
++REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(BitShift, 11, 27, uint16_t, BitShift);
++REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(BitShift, 11, 27, uint32_t, BitShift);
++REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(BitShift, 11, 27, uint64_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, int8_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, int16_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, int32_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, int64_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, uint8_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, uint16_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, uint32_t, BitShift);
++REG_ELEMENTWISE_TYPED_KERNEL(BitShift, 28, uint64_t, BitShift);
+ 
+ REG_ELEMENTWISE_TYPED_KERNEL(BitwiseAnd, 18, int8_t, BitwiseAnd);
+ REG_ELEMENTWISE_TYPED_KERNEL(BitwiseAnd, 18, int16_t, BitwiseAnd);
+@@ -1334,17 +1345,54 @@ BitShift<T>::BitShift(const OpKernelInfo& info) : OpKernel(info) {
+     ORT_THROW("Invalid direction value of '", direction, "'. Valid values are 'LEFT' or 'RIGHT'.");
+ }
+ 
+-// Shifting by >= the bit width of an unsigned type is undefined behavior in C++.
+-// On x86, 64-bit shifts mask the shift amount to 6 bits, so shift by 64 acts like shift by 0.
+-// Guard against this by returning 0 when the shift amount >= the bit width.
++template <typename T>
++T FromUnsignedBits(std::make_unsigned_t<T> bits) {
++  static_assert(std::is_integral_v<T>);
++  T value;
++  std::memcpy(&value, &bits, sizeof(value));
++  return value;
++}
++
++template <typename T>
++inline bool IsInvalidShift(T shift) {
++  using UnsignedT = std::make_unsigned_t<T>;
++  constexpr UnsignedT bit_width = std::numeric_limits<UnsignedT>::digits;
++  return (std::is_signed_v<T> && shift < 0) || static_cast<UnsignedT>(shift) >= bit_width;
++}
++
+ template <typename T>
+ inline T SafeShiftLeft(T value, T shift) {
+-  return shift >= sizeof(T) * 8 ? T{0} : value << shift;
++  if (IsInvalidShift(shift)) {
++    return T{0};
++  }
++
++  using UnsignedT = std::make_unsigned_t<T>;
++  const auto result = static_cast<UnsignedT>(
++      static_cast<UnsignedT>(value) << static_cast<UnsignedT>(shift));
++  return FromUnsignedBits<T>(result);
+ }
+ 
+ template <typename T>
+ inline T SafeShiftRight(T value, T shift) {
+-  return shift >= sizeof(T) * 8 ? T{0} : value >> shift;
++  if (IsInvalidShift(shift)) {
++    if constexpr (std::is_signed_v<T>) {
++      return value < 0 ? T{-1} : T{0};
++    } else {
++      return T{0};
++    }
++  }
++
++  using UnsignedT = std::make_unsigned_t<T>;
++  constexpr UnsignedT bit_width = std::numeric_limits<UnsignedT>::digits;
++  const auto shift_amount = static_cast<UnsignedT>(shift);
++  auto result = static_cast<UnsignedT>(static_cast<UnsignedT>(value) >> shift_amount);
++  if constexpr (std::is_signed_v<T>) {
++    if (value < 0 && shift_amount != 0) {
++      result |= std::numeric_limits<UnsignedT>::max() << (bit_width - shift_amount);
++    }
++  }
++
++  return FromUnsignedBits<T>(result);
+ }
+ 
+ template <typename T>
+@@ -2110,9 +2158,19 @@ ONNX_CPU_OPERATOR_VERSIONED_KERNEL(
+             BuildKernelDefConstraintsFromTypeList<EnabledModTypes>()),
+     Mod);
+ 
+-ONNX_CPU_OPERATOR_KERNEL(
++ONNX_CPU_OPERATOR_VERSIONED_KERNEL(
+     Mod,
+     13,
++    27,
++    KernelDefBuilder()
++        .TypeConstraint(
++            "T",
++            BuildKernelDefConstraintsFromTypeList<EnabledModTypes>()),
++    Mod);
++
++ONNX_CPU_OPERATOR_KERNEL(
++    Mod,
++    28,
+     KernelDefBuilder()
+         .TypeConstraint(
+             "T",
+@@ -2160,11 +2218,20 @@ void BroadCastFMod(OpKernelContext* context) {
+ 
+ template <class T>
+ inline T Modulus(T x, T y) {
+-  auto res = x % y;
++  T res;
++  if constexpr (std::is_floating_point_v<T>) {
++    res = std::fmod(x, y);
++    if (res == T{0}) {
++      return std::copysign(T{0}, y);
++    }
++  } else {
++    res = x % y;
++  }
++
+   if ((res < 0 && y > 0) || (res > 0 && y < 0)) {
+     res += y;
+   }
+-  return static_cast<T>(res);
++  return res;
+ }
+ 
+ template <class T>
+@@ -2242,6 +2309,42 @@ void BroadCastMLFloat16FMod(OpKernelContext* context) {
+   UntypedBroadcastTwo(*context, funcs);
+ }
+ 
++void BroadCastMLFloat16Mod(OpKernelContext* context) {
++  ProcessBroadcastSpanFuncs funcs{
++      [](BroadcastHelper& per_iter_bh) {
++        const auto X = per_iter_bh.ScalarInput0<MLFloat16>();
++        auto Y = per_iter_bh.SpanInput1<MLFloat16>();
++        auto output = per_iter_bh.OutputSpan<MLFloat16>();
++
++        std::transform(Y.begin(), Y.end(), output.begin(),
++                       [X_fl = math::halfToFloat(X.val)](const MLFloat16& y) {
++                         return MLFloat16(Modulus(X_fl, y.ToFloat()));
++                       });
++      },
++      [](BroadcastHelper& per_iter_bh) {
++        auto X = per_iter_bh.SpanInput0<MLFloat16>();
++        const MLFloat16 Y = per_iter_bh.ScalarInput1<MLFloat16>();
++        auto output = per_iter_bh.OutputSpan<MLFloat16>();
++
++        std::transform(X.begin(), X.end(), output.begin(),
++                       [Y_fl = math::halfToFloat(Y.val)](const MLFloat16& x) {
++                         return MLFloat16(Modulus(x.ToFloat(), Y_fl));
++                       });
++      },
++      [](BroadcastHelper& per_iter_bh) {
++        auto X = per_iter_bh.SpanInput0<MLFloat16>();
++        auto Y = per_iter_bh.SpanInput1<MLFloat16>();
++        auto output = per_iter_bh.OutputSpan<MLFloat16>();
++
++        std::transform(X.begin(), X.end(), Y.begin(), output.begin(),
++                       [](const MLFloat16& x, const MLFloat16& y) {
++                         return MLFloat16(Modulus(x.ToFloat(), y.ToFloat()));
++                       });
++      }};
++
++  UntypedBroadcastTwo(*context, funcs);
++}
++
+ template <class T, typename Enable = void>
+ struct CallModImpl;
+ 
+@@ -2276,8 +2379,11 @@ struct CallModImpl<T, typename std::enable_if<!std::is_floating_point<T>::value>
+ template <class T>
+ struct CallModImpl<T, typename std::enable_if<std::is_floating_point<T>::value, void>::type> {
+   void operator()(bool fmod, OpKernelContext* ctx) const {
+-    ORT_ENFORCE(fmod, "fmod attribute must be true for floating point types");
+-    BroadCastFMod<T>(ctx);
++    if (fmod) {
++      BroadCastFMod<T>(ctx);
++    } else {
++      BroadCastMod<T>(ctx);
++    }
+   }
+ };
+ 
+@@ -2285,8 +2391,11 @@ struct CallModImpl<T, typename std::enable_if<std::is_floating_point<T>::value,
+ template <>
+ struct CallModImpl<MLFloat16> {
+   void operator()(bool fmod, OpKernelContext* ctx) const {
+-    ORT_ENFORCE(fmod, "fmod attribute must be true for floating point types");
+-    BroadCastMLFloat16FMod(ctx);
++    if (fmod) {
++      BroadCastMLFloat16FMod(ctx);
++    } else {
++      BroadCastMLFloat16Mod(ctx);
++    }
+   }
+ };
+ 
+diff --git a/onnxruntime/core/providers/cuda/cu_inc/common.cuh b/onnxruntime/core/providers/cuda/cu_inc/common.cuh
+index f53da98..a46385c 100644
+--- a/onnxruntime/core/providers/cuda/cu_inc/common.cuh
++++ b/onnxruntime/core/providers/cuda/cu_inc/common.cuh
+@@ -509,6 +509,40 @@ __device__ __inline__ T _Mod(T a, T b) {
+   return r;
+ }
+ 
++template <>
++__device__ __inline__ float _Mod(float a, float b) {
++  float r = fmodf(a, b);
++  if (r == 0.0f) {
++    return copysignf(0.0f, b);
++  }
++  if ((r > 0.0f && b < 0.0f) || (r < 0.0f && b > 0.0f)) {
++    r += b;
++  }
++  return r;
++}
++
++template <>
++__device__ __inline__ double _Mod(double a, double b) {
++  double r = fmod(a, b);
++  if (r == 0.0) {
++    return copysign(0.0, b);
++  }
++  if ((r > 0.0 && b < 0.0) || (r < 0.0 && b > 0.0)) {
++    r += b;
++  }
++  return r;
++}
++
++template <>
++__device__ __inline__ half _Mod(half a, half b) {
++  return half(_Mod(static_cast<float>(a), static_cast<float>(b)));
++}
++
++template <>
++__device__ __inline__ BFloat16 _Mod(BFloat16 a, BFloat16 b) {
++  return BFloat16(_Mod(static_cast<float>(a), static_cast<float>(b)));
++}
++
+ template <typename T>
+ __device__ __inline__ T _Fmod(T a, T b) {
+   return a % b;
+diff --git a/onnxruntime/core/providers/cuda/cuda_execution_provider.cc b/onnxruntime/core/providers/cuda/cuda_execution_provider.cc
+index 6ee39bf..ac04da4 100755
+--- a/onnxruntime/core/providers/cuda/cuda_execution_provider.cc
++++ b/onnxruntime/core/providers/cuda/cuda_execution_provider.cc
+@@ -1351,7 +1351,8 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain,
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Tanh);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Gemm);
+ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, ReduceSum);
+-class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, Mod);
++class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 27, Mod);
++class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 28, Mod);
+ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, int8_t, QuantizeLinear);
+ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, uint8_t, QuantizeLinear);
+ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, int8_t, DequantizeLinear);
+@@ -2644,7 +2645,8 @@ static Status RegisterCudaKernels(KernelRegistry& kernel_registry) {
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Tanh)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Gemm)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, ReduceSum)>,
+-      BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, Mod)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 27, Mod)>,
++      BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 28, Mod)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, int8_t, QuantizeLinear)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, uint8_t, QuantizeLinear)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, int8_t, DequantizeLinear)>,
+diff --git a/onnxruntime/core/providers/cuda/math/binary_elementwise_ops.cc b/onnxruntime/core/providers/cuda/math/binary_elementwise_ops.cc
+index babbb4b..ce4d089 100644
+--- a/onnxruntime/core/providers/cuda/math/binary_elementwise_ops.cc
++++ b/onnxruntime/core/providers/cuda/math/binary_elementwise_ops.cc
+@@ -467,7 +467,14 @@ ONNX_OPERATOR_VERSIONED_KERNEL_EX(
+                         BuildKernelDefConstraints<int32_t, int64_t, uint32_t, uint64_t, float, double, MLFloat16>()),
+     Mod);
+ 
+-ONNX_OPERATOR_KERNEL_EX(Mod, kOnnxDomain, 13, kCudaExecutionProvider,
++ONNX_OPERATOR_VERSIONED_KERNEL_EX(
++    Mod, kOnnxDomain, 13, 27, kCudaExecutionProvider,
++    (*KernelDefBuilder::Create())
++        .TypeConstraint("T", BuildKernelDefConstraints<int32_t, int64_t, uint32_t, uint64_t, float, double, MLFloat16,
++                                                       BFloat16>()),
++    Mod);
++
++ONNX_OPERATOR_KERNEL_EX(Mod, kOnnxDomain, 28, kCudaExecutionProvider,
+                         (*KernelDefBuilder::Create())
+                             .TypeConstraint("T", BuildKernelDefConstraints<int32_t, int64_t, uint32_t, uint64_t, float,
+                                                                            double, MLFloat16, BFloat16>()),
+@@ -478,10 +485,6 @@ Status Mod::ComputeInternal(OpKernelContext* context) const {
+   BinaryElementwisePreparation prepare;
+   ORT_RETURN_IF_ERROR(Prepare(context, &prepare));
+   auto element_type = prepare.lhs_tensor->GetElementType();
+-  ORT_ENFORCE(fmod_ || element_type == on::TensorProto_DataType_INT32 ||
+-                  element_type == on::TensorProto_DataType_INT64 || element_type == on::TensorProto_DataType_UINT32 ||
+-                  element_type == on::TensorProto_DataType_UINT64,
+-              "Non-fmod can support integer types only.");
+ #define CASE_MOD_ELEMENT_TYPE(name, onnx_type, data_type)                                                           \
+   case onnx_type: {                                                                                                 \
+     Impl_##name<typename ToCudaType<data_type>::MappedType>(                                                        \
+@@ -514,6 +517,10 @@ Status Mod::ComputeInternal(OpKernelContext* context) const {
+       CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_INT64, int64_t);
+       CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_UINT32, uint32_t);
+       CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_UINT64, uint64_t);
++      CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_FLOAT, float);
++      CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_DOUBLE, double);
++      CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_FLOAT16, MLFloat16);
++      CASE_MOD_ELEMENT_TYPE(Mod, on::TensorProto_DataType_BFLOAT16, BFloat16);
+       default:
+         return ORT_MAKE_STATUS(ONNXRUNTIME, INVALID_ARGUMENT,
+                                "Unsupported element type: ", DataTypeImpl::ToString(prepare.lhs_tensor->DataType()));
+diff --git a/onnxruntime/core/providers/cuda/math/binary_elementwise_ops_impl.cu b/onnxruntime/core/providers/cuda/math/binary_elementwise_ops_impl.cu
+index 4e71a9f..2b08614 100644
+--- a/onnxruntime/core/providers/cuda/math/binary_elementwise_ops_impl.cu
++++ b/onnxruntime/core/providers/cuda/math/binary_elementwise_ops_impl.cu
+@@ -162,7 +162,7 @@ SPECIALIZED_BINARY_ELEMENTWISE_IMPL(Xor, bool)
+ SPECIALIZED_BINARY_ELEMENTWISE_IMPL_HFD(PRelu)
+ SPECIALIZED_BINARY_ELEMENTWISE_IMPL_UZILHFD(Max)
+ SPECIALIZED_BINARY_ELEMENTWISE_IMPL_UZILHFD(Min)
+-SPECIALIZED_BINARY_ELEMENTWISE_IMPL_UZIL(Mod)
++SPECIALIZED_BINARY_ELEMENTWISE_IMPL_UZILHFD(Mod)
+ SPECIALIZED_BINARY_ELEMENTWISE_IMPL_UZILHFD(Fmod)
+ 
+ // create declarations for impl for Pow
+diff --git a/onnxruntime/core/providers/dml/DmlExecutionProvider/src/AbiCustomRegistry.cpp b/onnxruntime/core/providers/dml/DmlExecutionProvider/src/AbiCustomRegistry.cpp
+index 076027d..3edc8d2 100644
+--- a/onnxruntime/core/providers/dml/DmlExecutionProvider/src/AbiCustomRegistry.cpp
++++ b/onnxruntime/core/providers/dml/DmlExecutionProvider/src/AbiCustomRegistry.cpp
+@@ -391,6 +391,16 @@ HRESULT STDMETHODCALLTYPE AbiCustomRegistry::RegisterOperatorKernel(
+     builder.SetDomain(opKernel->domain)
+             .SinceVersion(opKernel->minimumOperatorSetVersion)
+             .Provider(providerType);
++    if (isInternalOperator &&
++        opKernel->executionType == MLOperatorExecutionType::D3D12 &&
++        opKernel->domain != nullptr &&
++        std::string_view(opKernel->domain).empty() &&
++        std::string_view(opKernel->name) == "BitShift" &&
++        opKernel->minimumOperatorSetVersion == 11)
++    {
++        // DirectML masks out-of-range shift counts, which does not satisfy the opset-28 semantics.
++        builder.SinceVersion(11, 27);
++    }
+ 
+     std::string_view name(opKernel->name);
+     if (name == "MemcpyToHost")
+diff --git a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h
+index a573b73..c52458b 100644
+--- a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/base_op_builder.h
+@@ -72,7 +72,7 @@ class BaseOpBuilder : public IOpBuilder {
+                                             const OpSupportCheckParams& params) const;
+ 
+   virtual int GetMinSupportedOpSet(const NodeUnit& /* node_unit */) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 28; }
+ 
+   // Check if this node_unit's type is supported
+   // SingleNode type NodeUnit is supported
+diff --git a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc
+index ed9062f..72544d8 100644
+--- a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc
++++ b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/dequantizelinear_op_builder.cc
+@@ -37,6 +37,8 @@ class DequantizeLinearOpBuilder : public BaseOpBuilder {
+     return ANEURALNETWORKS_FEATURE_LEVEL_1;
+   }
+ 
++  int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const override { return 27; }
++
+   bool HasSupportedInputOutputsImpl(
+       const GraphViewer& graph_viewer, const NodeUnit& node_unit,
+       const OpSupportCheckParams& params) const override {
+diff --git a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc
+index eb81f5e..9a94f37 100644
+--- a/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc
++++ b/onnxruntime/core/providers/nnapi/nnapi_builtin/builders/impl/quantizelinear_op_builder.cc
+@@ -37,6 +37,8 @@ class QuantizeLinearOpBuilder : public BaseOpBuilder {
+     return ANEURALNETWORKS_FEATURE_LEVEL_3;
+   }
+ 
++  int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const override { return 27; }
++
+   bool HasSupportedInputOutputsImpl(
+       const GraphViewer& graph_viewer, const NodeUnit& node_unit,
+       const OpSupportCheckParams& params) const override {
+diff --git a/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h b/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h
+index 488581d..8a9f342 100644
+--- a/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/vsinpu/builders/impl/base_op_builder.h
+@@ -49,7 +49,7 @@ class BaseOpBuilder : public IOpBuilder {
+   virtual bool IsQuantizedOp(const NodeUnit& /* node_unit */) const { return false; }
+ 
+   virtual int GetMinSupportedOpSet(const NodeUnit& /* node_unit */) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const NodeUnit& /* node_unit */) const { return 28; }
+ 
+   virtual bool HasSupportedInputOutputsImpl(
+       const InitializedTensorSet& initializers, const NodeUnit& node_unit) const;
+diff --git a/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h b/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h
+index f4429fb..d1334ba 100644
+--- a/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h
++++ b/onnxruntime/core/providers/webnn/builders/impl/base_op_builder.h
+@@ -52,7 +52,7 @@ class BaseOpBuilder : public IOpBuilder {
+   // We still set the minimal supported opset to 1 as we couldn't
+   // get the model opset version at this stage.
+   virtual int GetMinSupportedOpSet(const Node& /* node */) const { return 1; }
+-  virtual int GetMaxSupportedOpSet(const Node& /* node */) const { return 27; }
++  virtual int GetMaxSupportedOpSet(const Node& /* node */) const { return 28; }
+ 
+  private:
+   bool HasSupportedOpSet(const Node& node, const logging::Logger& logger) const;
+diff --git a/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc b/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc
+index e4e3a09..5b6ab64 100644
+--- a/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc
++++ b/onnxruntime/core/providers/webnn/builders/impl/qdq_op_builder.cc
+@@ -25,6 +25,8 @@ class QDQOpBuilder : public BaseOpBuilder {
+                          const WebnnDeviceType /* device_type */, const logging::Logger& logger) const override;
+   bool HasSupportedInputsImpl(const GraphViewer&, const Node& node,
+                               const emscripten::val& wnn_limits, const logging::Logger& logger) const override;
++
++  int GetMaxSupportedOpSet(const Node& /* node */) const override { return 27; }
+ };
+ 
+ Status QDQOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
+diff --git a/onnxruntime/core/session/inference_session.cc b/onnxruntime/core/session/inference_session.cc
+index be0536d..610bc79 100644
+--- a/onnxruntime/core/session/inference_session.cc
++++ b/onnxruntime/core/session/inference_session.cc
+@@ -1212,7 +1212,9 @@ common::Status InferenceSession::LoadOnnxModel(const PathString& model_uri) {
+ 
+     const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
+                                                  kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
+-    ModelOptions model_opts(true, strict_shape_type_inference, check_load_cancellation_fn_);
++    const bool allow_released_opsets_only = session_options_.config_options.GetConfigOrDefault(
++                                                kOrtSessionOptionsConfigStrictAllowReleasedOpsetsOnly, "1") == "1";
++    ModelOptions model_opts(allow_released_opsets_only, strict_shape_type_inference, check_load_cancellation_fn_);
+ 
+     // When set, the external initializers folder overrides the model's own directory as the
+     // base for resolving external data. The model bytes are still read from model_uri.
+@@ -1308,6 +1310,8 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
+ 
+     const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
+                                                  kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
++    const bool allow_released_opsets_only = session_options_.config_options.GetConfigOrDefault(
++                                                kOrtSessionOptionsConfigStrictAllowReleasedOpsetsOnly, "1") == "1";
+ 
+     PathString external_data_model_path = GetExternalInitializersFolderModelPath(session_options_.config_options);
+     if (!external_data_model_path.empty()) {
+@@ -1316,7 +1320,7 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
+ 
+     return onnxruntime::Model::Load(std::move(model_proto), model_location_, model,
+                                     HasLocalSchema() ? &custom_schema_registries_ : nullptr, *session_logger_,
+-                                    ModelOptions(true, strict_shape_type_inference,
++                                    ModelOptions(allow_released_opsets_only, strict_shape_type_inference,
+                                                  check_load_cancellation_fn_));
+   };
+ 
+@@ -1372,6 +1376,8 @@ common::Status InferenceSession::LoadOnnxModel(ModelProto model_proto) {
+ #endif
+     const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
+                                                  kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
++    const bool allow_released_opsets_only = session_options_.config_options.GetConfigOrDefault(
++                                                kOrtSessionOptionsConfigStrictAllowReleasedOpsetsOnly, "1") == "1";
+ 
+     PathString external_data_model_path = GetExternalInitializersFolderModelPath(session_options_.config_options);
+     if (!external_data_model_path.empty()) {
+@@ -1381,7 +1387,7 @@ common::Status InferenceSession::LoadOnnxModel(ModelProto model_proto) {
+     // This call will move model_proto to the constructed model instance
+     return onnxruntime::Model::Load(std::move(model_proto), model_location_, model,
+                                     HasLocalSchema() ? &custom_schema_registries_ : nullptr, *session_logger_,
+-                                    ModelOptions(true, strict_shape_type_inference,
++                                    ModelOptions(allow_released_opsets_only, strict_shape_type_inference,
+                                                  check_load_cancellation_fn_));
+   };
+ 
+@@ -1483,12 +1489,15 @@ common::Status InferenceSession::Load(const OrtModel& model_editor_api_model) {
+ 
+   const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
+                                                kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
++  const bool allow_released_opsets_only = session_options_.config_options.GetConfigOrDefault(
++                                              kOrtSessionOptionsConfigStrictAllowReleasedOpsetsOnly, "1") == "1";
+ 
+   // need to go from unique_ptr to shared_ptr when moving into model_
+   std::unique_ptr<Model> tmp_model;
+   ORT_RETURN_IF_ERROR(Model::LoadFromModelEditorApiModel(model_editor_api_model,
+                                                          HasLocalSchema() ? &custom_schema_registries_ : nullptr,
+-                                                         ModelOptions(true, strict_shape_type_inference,
++                                                         ModelOptions(allow_released_opsets_only,
++                                                                      strict_shape_type_inference,
+                                                                       check_load_cancellation_fn_),
+                                                          *session_logger_, tmp_model));
+ 
+diff --git a/onnxruntime/python/backend/backend.py b/onnxruntime/python/backend/backend.py
+index 69be7a7..5edac6d 100644
+--- a/onnxruntime/python/backend/backend.py
++++ b/onnxruntime/python/backend/backend.py
+@@ -135,6 +135,9 @@ class OnnxRuntimeBackend(Backend):
+             return OnnxRuntimeBackendRep(model)
+         elif isinstance(model, (str, bytes)):
+             options = SessionOptions()
++            options.add_session_config_entry(
++                "session.allow_released_opsets_only", "1" if cls.allowReleasedOpsetsOnly else "0"
++            )
+             for k, v in kwargs.items():
+                 if k in _ALLOWED_SESSION_OPTIONS:
+                     setattr(options, k, v)
+diff --git a/onnxruntime/python/backend/backend_rep.py b/onnxruntime/python/backend/backend_rep.py
+index 950ce41..75b682f 100644
+--- a/onnxruntime/python/backend/backend_rep.py
++++ b/onnxruntime/python/backend/backend_rep.py
+@@ -6,6 +6,7 @@
+ Implements ONNX's backend API.
+ """
+ 
++import numpy as np
+ from onnx.backend.base import BackendRep
+ 
+ from onnxruntime import RunOptions
+@@ -23,6 +24,10 @@ _ALLOWED_RUN_OPTIONS = frozenset(
+ )
+ 
+ 
++def _normalize_numpy_scalar(value):
++    return np.asarray(value) if isinstance(value, np.generic) else value
++
++
+ class OnnxRuntimeBackendRep(BackendRep):
+     """
+     Wraps an :class:`onnxruntime.InferenceSession` to implement ONNX's
+@@ -61,7 +66,7 @@ class OnnxRuntimeBackendRep(BackendRep):
+         if isinstance(inputs, list):
+             inps = {}
+             for i, inp in enumerate(self._session.get_inputs()):
+-                inps[inp.name] = inputs[i]
++                inps[inp.name] = _normalize_numpy_scalar(inputs[i])
+             outs = self._session.run(None, inps, options)
+             if isinstance(outs, list):
+                 return outs
+@@ -72,5 +77,5 @@ class OnnxRuntimeBackendRep(BackendRep):
+             inp = self._session.get_inputs()
+             if len(inp) != 1:
+                 raise RuntimeError(f"Model expect {len(inp)} inputs")
+-            inps = {inp[0].name: inputs}
++            inps = {inp[0].name: _normalize_numpy_scalar(inputs)}
+             return self._session.run(None, inps, options)
+diff --git a/onnxruntime/test/framework/tensorutils_test.cc b/onnxruntime/test/framework/tensorutils_test.cc
+index d238627..5f5bcd5 100644
+--- a/onnxruntime/test/framework/tensorutils_test.cc
++++ b/onnxruntime/test/framework/tensorutils_test.cc
+@@ -61,6 +61,8 @@ constexpr bool TensorProtoElementSizesAreConstexpr() {
+       sizeof(uint8_t),   // FLOAT8E8M0
+       sizeof(uint8_t),   // UINT2
+       sizeof(uint8_t),   // INT2
++      sizeof(uint8_t),   // FLOAT6E2M3
++      sizeof(uint8_t),   // FLOAT6E3M2
+   };
+ 
+   for (size_t index = 0; index < expected_sizes.size(); ++index) {
+diff --git a/onnxruntime/test/framework/type_info_test.cc b/onnxruntime/test/framework/type_info_test.cc
+index c611977..afc28d8 100644
+--- a/onnxruntime/test/framework/type_info_test.cc
++++ b/onnxruntime/test/framework/type_info_test.cc
+@@ -10,6 +10,7 @@
+ #include "core/framework/onnxruntime_map_type_info.h"
+ #include "core/framework/onnxruntime_sequence_type_info.h"
+ #include "core/framework/tensor_type_and_shape.h"
++#include "core/framework/tensorprotoutils.h"
+ #include "core/framework/onnxruntime_typeinfo.h"
+ 
+ namespace onnxruntime {
+@@ -47,6 +48,8 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
+           ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0,
+           ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2,
+           ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2,
++          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3,
++          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2,
+       };
+ 
+   for (size_t index = 0; index < expected_types.size(); ++index) {
+@@ -65,6 +68,13 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
+ 
+ static_assert(TensorElementTypeConversionIsConstexpr());
+ 
++TEST(TypeInfoTests, CApiElementTypeFromProtoTypeFloat6) {
++  EXPECT_EQ(utils::CApiElementTypeFromProtoType(ONNX_NAMESPACE::TensorProto_DataType_FLOAT6E2M3),
++            ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3);
++  EXPECT_EQ(utils::CApiElementTypeFromProtoType(ONNX_NAMESPACE::TensorProto_DataType_FLOAT6E3M2),
++            ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2);
++}
++
+ TEST(TypeInfoTests, TensorProto) {
+   mb::Type tensor_type = {1, 2, 3, 4};
+ 
+diff --git a/onnxruntime/test/onnx/TestCase.cc b/onnxruntime/test/onnx/TestCase.cc
+index 86eb962..a2c54a6 100644
+--- a/onnxruntime/test/onnx/TestCase.cc
++++ b/onnxruntime/test/onnx/TestCase.cc
+@@ -958,6 +958,8 @@ std::unique_ptr<std::set<BrokenTest>> GetBrokenTests(const std::string& provider
+       {"cast_UINT4_to_FLOAT", "Skipped until onnxruntime/cmake/external/onnx points to onnx 1.19 which should include @onnx/onnx/pull/7074"},
+       {"cast_UINT4_to_FLOAT16", "Skipped until onnxruntime/cmake/external/onnx points to onnx 1.19 which should include @onnx/onnx/pull/7074"},
+       {"cast_UINT4_to_UINT8", "Skipped until onnxruntime/cmake/external/onnx points to onnx 1.19 which should include @onnx/onnx/pull/7074"},
++      {"reduce_max_empty_set_bool",
++       "ReduceMax does not support bool; mirrors onnx_backend_test_series_filters.jsonc global exclusion"},
+       // onnx#7959: the materialized node corpus now runs on the CPU EP via the
+       // onnx_test_node_materialized ctest (previously the C++ node runner was QNN-only). ORT has
+       // no per-channel-quantization ConvInteger support on any EP -- the CPU kernel throws and
+@@ -1091,8 +1093,6 @@ std::unique_ptr<std::set<BrokenTest>> GetBrokenTests(const std::string& provider
+       {"resize_upsample_sizes_nearest_ceil_half_pixel", "Bad onnx test output. Needs test fix."},
+       {"resize_upsample_sizes_nearest_floor_align_corners", "Bad onnx test output. Needs test fix."},
+       {"resize_upsample_sizes_nearest_round_prefer_ceil_asymmetric", "Bad onnx test output. Needs test fix."},
+-      {"bitshift_right_uint16", "BitShift(11) uint16 support not enabled currently"},
+-      {"bitshift_left_uint16", "BitShift(11) uint16 support not enabled currently"},
+       {"maxunpool_export_with_output_shape",
+        "Invalid output in ONNX test. See https://github.com/onnx/onnx/issues/2398"},
+       {"cntk_simple_seg", "Bad onnx test output caused by wrong SAME_UPPER/SAME_LOWER for ConvTranspose"},
+diff --git a/onnxruntime/test/onnx/main.cc b/onnxruntime/test/onnx/main.cc
+index 5740a40..1817a92 100644
+--- a/onnxruntime/test/onnx/main.cc
++++ b/onnxruntime/test/onnx/main.cc
+@@ -908,6 +908,9 @@ select from 'TF8', 'TF16', 'UINT8', 'FLOAT', 'ITENSOR'. \n)");
+         ORT_TSTR("rotary_embedding_3d_input_expanded"),
+         ORT_TSTR("rotary_embedding_expanded"),
+         ORT_TSTR("rotary_embedding_interleaved_expanded"),
++        // QNN CPU returns uniform Softmax probabilities for the expanded function's all-negative-infinity rows,
++        // so its zero-row guard is not preserved. Keep the native Attention case enabled.
++        ORT_TSTR("attention_4d_causal_nonpad_negative_offset_structural_empty_expanded"),
+         // QNN don't support fmod = 1
+         ORT_TSTR("mod_mixed_sign_float64"),
+         ORT_TSTR("mod_mixed_sign_float32"),
+diff --git a/onnxruntime/test/onnx/tensorprotoutils.cc b/onnxruntime/test/onnx/tensorprotoutils.cc
+index 5c8d8f9..c9cbc05 100644
+--- a/onnxruntime/test/onnx/tensorprotoutils.cc
++++ b/onnxruntime/test/onnx/tensorprotoutils.cc
+@@ -652,6 +652,8 @@ ONNXTensorElementDataType CApiElementTypeFromProtoType(int type) {
+     CASE_TYPE(INT4)
+     CASE_TYPE(UINT2)
+     CASE_TYPE(INT2)
++    CASE_TYPE(FLOAT6E2M3)
++    CASE_TYPE(FLOAT6E3M2)
+     default:
+       return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+   }
+diff --git a/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc b/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
+index c092c66..c9fa32d 100644
+--- a/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
++++ b/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
+@@ -27,9 +27,15 @@ TEST(LayoutTransformationPotentiallyAddedOpsTests, OpsHaveLatestVersions) {
+     if (prev_domain != it->domain || prev_op_type != it->op_type) {
+       const auto* schema = schema_registry->GetSchema(std::string{it->op_type}, INT_MAX, std::string{it->domain});
+       ASSERT_NE(schema, nullptr);
+-      EXPECT_EQ(schema->SinceVersion(), it->since_version)
+-          << "A new version for op " << it->op_type << " (" << schema->SinceVersion()
+-          << ") is available. Please update kLayoutTransformationPotentiallyAddedOps to include it.";
++      const bool is_staged_opset_28_qdq =
++          it->domain == kOnnxDomain && schema->SinceVersion() == 28 &&
++          (it->op_type == "DequantizeLinear" || it->op_type == "QuantizeLinear");
++      if (!is_staged_opset_28_qdq) {
++        EXPECT_EQ(schema->SinceVersion(), it->since_version)
++            << "A new version for op " << it->op_type << " (" << schema->SinceVersion()
++            << ") is available. Please update kLayoutTransformationPotentiallyAddedOps to include it.";
++      }
++      // TODO(#32372): Remove this exception when the opset-28 Q/DQ kernels land.
+       prev_domain = it->domain;
+       prev_op_type = it->op_type;
+     }
+diff --git a/onnxruntime/test/providers/cpu/controlflow/scan_test.cc b/onnxruntime/test/providers/cpu/controlflow/scan_test.cc
+index 4583b77..c35a45d 100644
+--- a/onnxruntime/test/providers/cpu/controlflow/scan_test.cc
++++ b/onnxruntime/test/providers/cpu/controlflow/scan_test.cc
+@@ -1061,7 +1061,8 @@ TEST(Scan8, NumScanInputsExceedsVariadicInputs) {
+   test.AddOutput<float>("scan_output_2", {1, 2, 1}, {0.f, 0.f});
+   test.AddOutput<float>("scan_output_3", {1, 2, 1}, {0.f, 0.f});
+ 
+-  test.Run(OpTester::ExpectResult::kExpectFailure, "Invalid 'num_scan_inputs' of 10. Value must be between 1 and 3",
++  test.Run(OpTester::ExpectResult::kExpectFailure,
++           "num_scan_inputs (10) plus the sequence_lens input cannot exceed the number of Scan inputs (4).",
+            options.excluded_provider_types);
+ }
+ 
+@@ -1165,7 +1166,7 @@ TEST(Scan9, NumScanInputsExceedsVariadicInputs) {
+   // inferencing error wrapping a shape-inference error, rather than the kernel-level message produced
+   // by the opset 8 test above.
+   test.Run(OpTester::ExpectResult::kExpectFailure,
+-           "[ShapeInferenceError] Mismatch between number of inferred and declared dimensions",
++           "num_scan_inputs (10) cannot exceed the number of Scan inputs (3).",
+            options.excluded_provider_types);
+ }
+ #endif  // !defined(ORT_NO_EXCEPTIONS)
+diff --git a/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc b/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc
+index 278372b..5d9d061 100644
+--- a/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc
++++ b/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc
+@@ -15,6 +15,7 @@
+ #include <algorithm>
+ #include <limits>
+ #include <math.h>
++#include <type_traits>
+ 
+ #if defined(USE_WEBGPU)
+ // Pull in the deviceless shared-trailing-dimension helper from the WebGPU EP so it can be
+@@ -4620,6 +4621,50 @@ TEST(ModOpTest, Fmod_float16_mixed_sign) {
+   test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kQnnExecutionProvider});
+ }
+ 
++template <typename T>
++void TestFloorModFloatingPointOpset28(const std::vector<T>& x,
++                                      const std::vector<T>& y,
++                                      const std::vector<T>& expected) {
++  OpTester test("Mod", 28);
++  test.AddAttribute<int64_t>("fmod", 0);
++  const std::vector<int64_t> shape{static_cast<int64_t>(x.size())};
++  test.AddInput<T>("X", shape, x);
++  test.AddInput<T>("Y", shape, y);
++  test.AddOutput<T>("Z", shape, expected);
++  test.Run(OpTester::ExpectResult::kExpectSuccess, "",
++           {kQnnExecutionProvider, kOpenVINOExecutionProvider});
++}
++
++TEST(ModOpTest, FloorMod_float_mixed_sign_opset28) {
++  TestFloorModFloatingPointOpset28<float>(
++      {-4.3f, 7.2f, 5.0f, 4.3f, -7.2f, 8.0f},
++      {2.1f, -3.4f, 8.0f, -2.1f, 3.4f, 5.0f},
++      {2.0f, -3.0f, 5.0f, -2.0f, 3.0f, 3.0f});
++}
++
++TEST(ModOpTest, FloorMod_double_mixed_sign_opset28) {
++  TestFloorModFloatingPointOpset28<double>(
++      {-4.3, 7.2, 5.0, 4.3, -7.2, 8.0},
++      {2.1, -3.4, 8.0, -2.1, 3.4, 5.0},
++      {2.0, -3.0, 5.0, -2.0, 3.0, 3.0});
++}
++
++TEST(ModOpTest, FloorMod_float16_mixed_sign_opset28) {
++  TestFloorModFloatingPointOpset28<MLFloat16>(
++      MakeMLFloat16({-4.3f, 7.2f, 5.0f, 4.3f, -7.2f, 8.0f}),
++      MakeMLFloat16({2.1f, -3.4f, 8.0f, -2.1f, 3.4f, 5.0f}),
++      MakeMLFloat16({2.0f, -3.0f, 5.0f, -2.0f, 3.0f, 3.0f}));
++}
++
++TEST(ModOpTest, FloorMod_float_special_values_opset28) {
++  constexpr auto infinity = std::numeric_limits<float>::infinity();
++  constexpr auto nan = std::numeric_limits<float>::quiet_NaN();
++  TestFloorModFloatingPointOpset28<float>(
++      {6.0f, -6.0f, 5.0f, -5.0f, infinity, 1.0f, nan, 1.0f},
++      {-3.0f, 3.0f, infinity, -infinity, 2.0f, 0.0f, 2.0f, nan},
++      {-0.0f, 0.0f, 5.0f, -5.0f, nan, nan, nan, nan});
++}
++
+ #if defined(USE_CUDA)
+ TEST(ModOpTest, Fmod_bfloat16_mixed_sign) {
+   OpTester test("Mod", 13);
+@@ -4921,6 +4966,93 @@ TEST(BitShiftOpTest, BroadcastXRight_Uint8) {
+   test.Run();
+ }
+ 
++template <typename T>
++void TestSignedBitShiftOpset28() {
++  constexpr T bit_width = static_cast<T>(std::numeric_limits<std::make_unsigned_t<T>>::digits);
++
++  {
++    OpTester test("BitShift", 28);
++    test.AddAttribute("direction", "LEFT");
++    test.AddInput<T>("X", {6}, {T{-8}, T{-3}, T{1}, std::numeric_limits<T>::max(), T{-2}, T{2}});
++    test.AddInput<T>("Y", {6}, {T{1}, T{2}, T{3}, T{1}, T{-1}, bit_width});
++    test.AddOutput<T>("Z", {6}, {T{-16}, T{-12}, T{8}, T{-2}, T{0}, T{0}});
++    test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kOpenVINOExecutionProvider});
++  }
++
++  {
++    OpTester test("BitShift", 28);
++    test.AddAttribute("direction", "RIGHT");
++    test.AddInput<T>("X", {6}, {T{-8}, T{-3}, T{1}, T{-2}, T{-2}, T{2}});
++    test.AddInput<T>("Y", {6}, {T{1}, T{2}, T{3}, T{-1}, bit_width, bit_width});
++    test.AddOutput<T>("Z", {6}, {T{-4}, T{-1}, T{0}, T{-1}, T{-1}, T{0}});
++    test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kOpenVINOExecutionProvider});
++  }
++
++  {
++    OpTester test("BitShift", 28);
++    test.AddAttribute("direction", "RIGHT");
++    test.AddInput<T>("X", {1}, {T{-8}});
++    test.AddInput<T>("Y", {4}, {T{1}, T{2}, bit_width, T{-1}});
++    test.AddOutput<T>("Z", {4}, {T{-4}, T{-2}, T{-1}, T{-1}});
++    test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kOpenVINOExecutionProvider});
++  }
++
++  {
++    OpTester test("BitShift", 28);
++    test.AddAttribute("direction", "LEFT");
++    test.AddInput<T>("X", {2}, {std::numeric_limits<T>::max(), T{-8}});
++    test.AddInput<T>("Y", {1}, {T{1}});
++    test.AddOutput<T>("Z", {2}, {T{-2}, T{-16}});
++    test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kOpenVINOExecutionProvider});
++  }
++}
++
++TEST(BitShiftOpTest, SignedInt8Opset28) {
++  TestSignedBitShiftOpset28<int8_t>();
++}
++
++TEST(BitShiftOpTest, SignedInt16Opset28) {
++  TestSignedBitShiftOpset28<int16_t>();
++}
++
++TEST(BitShiftOpTest, SignedInt32Opset28) {
++  TestSignedBitShiftOpset28<int32_t>();
++}
++
++TEST(BitShiftOpTest, SignedInt64Opset28) {
++  TestSignedBitShiftOpset28<int64_t>();
++}
++
++template <typename T>
++void TestUnsignedBitShiftRegistration(int opset) {
++  OpTester test("BitShift", opset);
++  test.AddAttribute("direction", "LEFT");
++  test.AddInput<T>("X", {2}, {T{1}, T{3}});
++  test.AddInput<T>("Y", {2}, {T{1}, T{2}});
++  test.AddOutput<T>("Z", {2}, {T{2}, T{12}});
++  test.Run();
++}
++
++TEST(BitShiftOpTest, Uint16Opset11) {
++  TestUnsignedBitShiftRegistration<uint16_t>(11);
++}
++
++TEST(BitShiftOpTest, UnsignedTypesOpset28) {
++  TestUnsignedBitShiftRegistration<uint8_t>(28);
++  TestUnsignedBitShiftRegistration<uint16_t>(28);
++  TestUnsignedBitShiftRegistration<uint32_t>(28);
++  TestUnsignedBitShiftRegistration<uint64_t>(28);
++}
++
++TEST(BitShiftOpTest, RightShiftByBitWidth_Uint64Opset28) {
++  OpTester test("BitShift", 28);
++  test.AddAttribute("direction", "RIGHT");
++  test.AddInput<uint64_t>("X", {4}, {1000, 255, 1, 42});
++  test.AddInput<uint64_t>("Y", {4}, {64, 64, 64, 64});
++  test.AddOutput<uint64_t>("Z", {4}, {0, 0, 0, 0});
++  test.Run();
++}
++
+ // Test that shift amounts >= bit width produce 0 (not undefined behavior).
+ // DirectML EP has the same hardware-level shift masking behavior, so skip these tests for DML.
+ TEST(BitShiftOpTest, RightShiftByBitWidth_Uint64) {
+diff --git a/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc b/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc
+index 495fea5..36c3f61 100644
+--- a/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc
++++ b/onnxruntime/test/providers/cpu/tensor/compress_op.test.cc
+@@ -1,6 +1,9 @@
+ // Copyright (c) Microsoft Corporation. All rights reserved.
+ // Licensed under the MIT License.
+ 
++#include <unordered_map>
++#include <vector>
++
+ #include "gtest/gtest.h"
+ #include "test/providers/provider_test_utils.h"
+ 
+@@ -166,8 +169,13 @@ TEST(CompressTest, Compress_3dims_neg_axis) {
+ // inputs to {0, 1}) and asserts the output is sized by truthiness.
+ TEST(CompressTest, Compress_cuda_non_canonical_bool_condition) {
+   // Build: output = Compress(input, condition, axis=0)
+-  auto model = std::make_unique<onnxruntime::Model>("compress_non_canonical_bool", false,
+-                                                    DefaultLoggingManager().DefaultLogger());
++  const std::unordered_map<std::string, int> domain_to_version{{kOnnxDomain, 27}};
++  auto model = std::make_unique<onnxruntime::Model>(
++      "compress_non_canonical_bool", false, ModelMetaData(), PathString(), IOnnxRuntimeOpSchemaRegistryList(),
++      domain_to_version, std::vector<ONNX_NAMESPACE::FunctionProto>{}, DefaultLoggingManager().DefaultLogger());
++  ASSERT_EQ(model->ToProto().opset_import_size(), 1);
++  EXPECT_EQ(model->ToProto().opset_import(0).domain(), kOnnxDomain);
++  EXPECT_EQ(model->ToProto().opset_import(0).version(), 27);
+   onnxruntime::Graph& graph = model->MainGraph();
+ 
+   ONNX_NAMESPACE::TypeProto tensor_float;
+diff --git a/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc b/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc
+index c9d0d19..6855b30 100644
+--- a/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc
++++ b/onnxruntime/test/providers/dml_onnx_tensor_wrapper_test.cc
+@@ -59,10 +59,9 @@ enum class ValueAttributePayload {
+ // IMLOperatorAttributes1::GetTensorAttribute, which wraps the raw AttributeProto tensor in an
+ // OnnxTensorWrapper.
+ //
+-// Attribute tensors are not graph initializers, so none of the framework-level guards apply to them:
+-// Graph::ConvertInitializersIntoOrtValues never sees them, and ONNX shape inference for
+-// ConstantOfShape only reads the attribute's data_type (to type the output), never its data. That
+-// leaves OnnxTensorWrapper as the only place the payload can be validated.
++// Attribute tensors are not graph initializers, so Graph::ConvertInitializersIntoOrtValues never
++// sees them. Older ONNX versions also did not validate byte-aligned raw_data sizes in check_tensor,
++// leaving OnnxTensorWrapper as the only place the payload could be validated.
+ std::string BuildConstantOfShapeModel(ValueAttributePayload payload) {
+   ONNX_NAMESPACE::ModelProto model;
+   model.set_ir_version(ONNX_NAMESPACE::Version::IR_VERSION);
+@@ -113,8 +112,8 @@ std::string BuildConstantOfShapeModel(ValueAttributePayload payload) {
+   return serialized;
+ }
+ 
+-// Loads |serializedModel| into a session that has only the DML EP registered, and returns the status
+-// of Initialize(). |skipped| is set when no DirectML device is available.
++// Loads |serializedModel| into a session that has only the DML EP registered, and returns the first
++// failure from Load() or Initialize(). |skipped| is set when no DirectML device is available.
+ //
+ // Constant folding is disabled so the ConstantOfShape node survives graph optimization and is handed
+ // to the DML EP. Without this, the CPU EP would evaluate the node during Level1 optimization and the
+@@ -166,15 +165,19 @@ TEST(DmlOnnxTensorWrapperTest, TruncatedRawDataAttributeTensorIsRejected) {
+     GTEST_SKIP() << "DirectML execution provider is not available on this machine.";
+   }
+ 
+-  ASSERT_FALSE(status.IsOK()) << "Session initialization should reject a tensor whose declared shape "
+-                                 "exceeds the data it carries.";
+-
+-  // The detailed message raised inside the constructor does not survive: OnnxTensorWrapper is
+-  // constructed behind the IMLOperatorAttributes1 COM boundary, whose ORT_CATCH_RETURN reduces the
+-  // exception to a bare HRESULT before it is rethrown. 0x80070057 is E_INVALIDARG, so this asserts the
+-  // model was rejected as malformed rather than failing for an unrelated reason.
+-  EXPECT_NE(status.ErrorMessage().find("80070057"), std::string::npos)
+-      << "Unexpected failure reason: " << status.ErrorMessage();
++  ASSERT_FALSE(status.IsOK()) << "Model loading or session initialization should reject a tensor whose declared "
++                                 "shape exceeds the data it carries.";
++
++  // ONNX 1.23 rejects the malformed attribute during Graph::Resolve. With older ONNX versions it
++  // reaches OnnxTensorWrapper, where the detailed constructor exception is reduced to E_INVALIDARG
++  // (0x80070057) at the IMLOperatorAttributes1 COM boundary.
++  const std::string& errorMessage = status.ErrorMessage();
++  EXPECT_TRUE(
++      errorMessage.find("80070057") != std::string::npos ||
++      errorMessage.find(
++          "raw_data size (1 bytes) is too small for the declared shape and type (8 bytes required)") !=
++          std::string::npos)
++      << "Unexpected failure reason: " << errorMessage;
+ }
+ 
+ // The constructor's typed-field branch has the same defect in principle: UnpackTensor sizes the buffer
+diff --git a/onnxruntime/test/python/onnx_backend_test_series.py b/onnxruntime/test/python/onnx_backend_test_series.py
+index 6215972..f12af65 100644
+--- a/onnxruntime/test/python/onnx_backend_test_series.py
++++ b/onnxruntime/test/python/onnx_backend_test_series.py
+@@ -17,6 +17,12 @@ import onnx.backend.test.runner
+ import onnx.defs
+ 
+ import onnxruntime.backend as backend  # pylint: disable=consider-using-from-import
++from onnxruntime.backend.backend import OnnxRuntimeBackend
++
++if os.getenv("ORT_BACKEND_TEST_ALLOW_UNRELEASED_OPSETS") == "1" and OnnxRuntimeBackend.allowReleasedOpsetsOnly:
++    raise RuntimeError(
++        "onnx_backend_test_series requires ALLOW_RELEASED_ONNX_OPSET_ONLY=0 before importing onnxruntime.backend."
++    )
+ 
+ pytest_plugins = ("onnx.backend.test.report",)
+ 
+diff --git a/onnxruntime/test/python/onnx_node_test_equivalence_test.py b/onnxruntime/test/python/onnx_node_test_equivalence_test.py
+index 1daa2f4..32d4aac 100644
+--- a/onnxruntime/test/python/onnx_node_test_equivalence_test.py
++++ b/onnxruntime/test/python/onnx_node_test_equivalence_test.py
+@@ -30,9 +30,8 @@ becomes the sole source of the node tree, and the permanent min-count tripwire
+ backstop.
+ 
+ Version parity: the materialized model.onnx opset/IR is stamped from the
+-compiled onnx schema registry, so this test asserts the installed onnx equals
+-the ``cmake/deps.txt`` pin (compared on the release base, so a pre-release rcN/.dev
+-wheel of the pinned tag is accepted). numpy parity is NOT asserted -- the core
++compiled onnx schema registry, so this test asserts the installed onnx exactly
++equals the ``cmake/deps.txt`` pin. numpy parity is NOT asserted -- the core
+ treats numpy as an informational soft-warning, and recomputed float outputs that
+ differ by within a small ULP band are accepted as Class A numpy-gen skew.
+ """
+@@ -62,14 +61,14 @@ def _repo_root() -> str:
+ 
+ 
+ def _expected_onnx_version() -> str | None:
+-    """Parse the onnx pin (archive tag) from cmake/deps.txt."""
++    """Parse the ONNX_VERSION metadata paired with the archive pin in cmake/deps.txt."""
+     deps = os.path.join(_repo_root(), "cmake", "deps.txt")
+     if not os.path.isfile(deps):
+         return None
+     with open(deps) as f:
+         for line in f:
+-            if line.startswith("onnx;"):
+-                m = re.search(r"/tags/v([0-9]+\.[0-9]+\.[0-9]+)\.zip", line)
++            if line.startswith("# ONNX_VERSION="):
++                m = re.search(r"ONNX_VERSION=([0-9]+\.[0-9]+\.[0-9]+)", line)
+                 if m:
+                     return m.group(1)
+     return None
+@@ -138,12 +137,11 @@ class NodeTestEquivalence(unittest.TestCase):
+         except ImportError as exc:  # pragma: no cover
+             self.skipTest(f"onnx not importable: {exc}")
+ 
+-        if expected_onnx and mat._release_base(onnx.__version__) != mat._release_base(expected_onnx):
++        if expected_onnx and onnx.__version__ != expected_onnx:
+             self.skipTest(
+                 f"installed onnx=={onnx.__version__} != cmake/deps.txt pin "
+                 f"{expected_onnx}; cannot certify equivalence under version skew. "
+-                f"Install the pinned onnx to run this check. (A pre-release rcN/.dev "
+-                f"of the same release base is accepted.)"
++                "Install the pinned onnx to run this check."
+             )
+ 
+         with tempfile.TemporaryDirectory(prefix="ort_node_mat_") as tmp:
+diff --git a/onnxruntime/test/python/onnxruntime_test_python_backend.py b/onnxruntime/test/python/onnxruntime_test_python_backend.py
+index bb83f6d..24b61ec 100644
+--- a/onnxruntime/test/python/onnxruntime_test_python_backend.py
++++ b/onnxruntime/test/python/onnxruntime_test_python_backend.py
+@@ -5,13 +5,17 @@
+ import os
+ import tempfile
+ import unittest
++from types import SimpleNamespace
+ 
+ import numpy as np
+ from helper import get_name
+ from numpy.testing import assert_allclose
++from onnx import TensorProto, helper
+ 
+ import onnxruntime as onnxrt
+ import onnxruntime.backend as backend
++from onnxruntime.backend.backend import OnnxRuntimeBackend
++from onnxruntime.backend.backend_rep import OnnxRuntimeBackendRep
+ 
+ 
+ class TestBackend(unittest.TestCase):
+@@ -23,6 +27,49 @@ class TestBackend(unittest.TestCase):
+         output_expected = np.array([[1.0, 4.0], [9.0, 16.0], [25.0, 36.0]], dtype=np.float32)
+         np.testing.assert_allclose(res[0], output_expected, rtol=1e-05, atol=1e-08)
+ 
++    def test_prepare_model_bytes_allows_unreleased_opset_when_policy_disabled(self):
++        model = self._make_unreleased_opset_model()
++
++        original_policy = OnnxRuntimeBackend.allowReleasedOpsetsOnly
++        try:
++            OnnxRuntimeBackend.allowReleasedOpsetsOnly = False
++            rep = backend.prepare(model.SerializeToString())
++        finally:
++            OnnxRuntimeBackend.allowReleasedOpsetsOnly = original_policy
++
++        result = rep.run(np.array([1.0], dtype=np.float32))
++        np.testing.assert_array_equal(result[0], np.array([1.0], dtype=np.float32))
++
++    def test_prepare_model_path_allows_unreleased_opset_when_policy_disabled(self):
++        model = self._make_unreleased_opset_model()
++        with tempfile.TemporaryDirectory() as tmpdir:
++            model_path = os.path.join(tmpdir, "unreleased_opset.onnx")
++            with open(model_path, "wb") as model_file:
++                model_file.write(model.SerializeToString())
++
++            original_policy = OnnxRuntimeBackend.allowReleasedOpsetsOnly
++            try:
++                OnnxRuntimeBackend.allowReleasedOpsetsOnly = False
++                rep = backend.prepare(model_path)
++            finally:
++                OnnxRuntimeBackend.allowReleasedOpsetsOnly = original_policy
++
++        result = rep.run(np.array([1.0], dtype=np.float32))
++        np.testing.assert_array_equal(result[0], np.array([1.0], dtype=np.float32))
++
++    @staticmethod
++    def _make_unreleased_opset_model():
++        model = helper.make_model(
++            helper.make_graph(
++                [helper.make_node("Identity", ["X"], ["Y"])],
++                "unreleased_opset",
++                [helper.make_tensor_value_info("X", TensorProto.FLOAT, [1])],
++                [helper.make_tensor_value_info("Y", TensorProto.FLOAT, [1])],
++            ),
++            opset_imports=[helper.make_opsetid("", 28)],
++        )
++        return model
++
+     def test_allocation_plan_works_with_only_execute_path_to_fetches_option(self):
+         """
+                (inp0)  (inp1)
+@@ -66,6 +113,54 @@ class TestBackend(unittest.TestCase):
+             assert_allclose(session_run_results[0], -(inp0 - inp1))
+ 
+ 
++class TestBackendRepInputNormalization(unittest.TestCase):
++    class _Session:
++        def __init__(self, input_names):
++            self._inputs = [SimpleNamespace(name=name) for name in input_names]
++            self.received_inputs = None
++
++        def get_inputs(self):
++            return self._inputs
++
++        def run(self, _, inputs, __):
++            self.received_inputs = inputs
++            return [inputs]
++
++    def test_run_normalizes_numpy_scalar_inputs_to_zero_dimensional_arrays(self):
++        session = self._Session(["first", "second"])
++        rep = OnnxRuntimeBackendRep(session)
++
++        rep.run([np.int32(3), np.float32(4.5)])
++
++        self.assertEqual(session.received_inputs["first"].shape, ())
++        self.assertEqual(session.received_inputs["second"].shape, ())
++        self.assertEqual(session.received_inputs["first"].dtype, np.dtype(np.int32))
++        self.assertEqual(session.received_inputs["second"].dtype, np.dtype(np.float32))
++
++    def test_run_normalizes_single_numpy_scalar_to_zero_dimensional_array(self):
++        session = self._Session(["input"])
++        rep = OnnxRuntimeBackendRep(session)
++
++        rep.run(np.int64(7))
++
++        self.assertEqual(session.received_inputs["input"].shape, ())
++        self.assertEqual(session.received_inputs["input"].dtype, np.dtype(np.int64))
++
++    def test_run_preserves_non_scalar_inputs(self):
++        values = (
++            (np.array([1], dtype=np.int32),),
++            {"key": np.array([2], dtype=np.int32)},
++        )
++        for value in values:
++            with self.subTest(value=value):
++                session = self._Session(["input"])
++                rep = OnnxRuntimeBackendRep(session)
++
++                rep.run(value)
++
++                self.assertIs(session.received_inputs["input"], value)
++
++
+ class TestBackendKwargsAllowlist(unittest.TestCase):
+     """Tests that the SessionOptions/RunOptions kwargs allowlist correctly blocks
+     dangerous attributes and allows safe ones, preventing arbitrary file writes
+diff --git a/onnxruntime/test/python/requirements.txt b/onnxruntime/test/python/requirements.txt
+index 296ac83..48dff42 100644
+--- a/onnxruntime/test/python/requirements.txt
++++ b/onnxruntime/test/python/requirements.txt
+@@ -1,3 +1,3 @@
+-onnx==1.22.0
++onnx==1.23.0
+ pytest
+ onnx-ir
+diff --git a/onnxruntime/test/python/transformers/test_cuda_plugin_ep.py b/onnxruntime/test/python/transformers/test_cuda_plugin_ep.py
+index 95df52c..670766f 100644
+--- a/onnxruntime/test/python/transformers/test_cuda_plugin_ep.py
++++ b/onnxruntime/test/python/transformers/test_cuda_plugin_ep.py
+@@ -30,8 +30,8 @@ TEST_FAIL = "FAIL"
+ EP_GRAPH_ASSIGNMENT_CONFIG_KEY = "session.record_ep_graph_assignment_info"
+ NO_CUDNN_PLUGIN_TEST = os.getenv("ORT_TEST_CUDA_PLUGIN_NO_CUDNN", "").upper() in {"1", "ON", "TRUE", "YES"}
+ requires_cudnn = unittest.skipIf(NO_CUDNN_PLUGIN_TEST, "test requires cuDNN-backed CUDA plugin kernels")
+-# Use the latest released ai.onnx opset so the model builders stay current as ONNX releases new opsets.
+-DEFAULT_ONNX_OPSET = max(v for (d, v) in helper.OP_SET_ID_VERSION_MAP if d == "ai.onnx")
++# CUDA plugin runtime currently supports released ai.onnx opsets through 27.
++DEFAULT_ONNX_OPSET = 27
+ 
+ 
+ def _make_released_opset_model(graph, producer_name="onnx-example"):
+diff --git a/onnxruntime/test/python/transformers/test_moe_cuda.py b/onnxruntime/test/python/transformers/test_moe_cuda.py
+index f3d037e..e617d65 100644
+--- a/onnxruntime/test/python/transformers/test_moe_cuda.py
++++ b/onnxruntime/test/python/transformers/test_moe_cuda.py
+@@ -1734,7 +1734,11 @@ def create_sparse_mixer_onnx_graph(
+         ],
+     )
+ 
+-    return helper.make_model(graph, producer_name="MoE_Model")
++    return helper.make_model(
++        graph,
++        producer_name="MoE_Model",
++        opset_imports=[helper.make_opsetid("", 27), helper.make_opsetid("com.microsoft", 1)],
++    )
+ 
+ 
+ class TestSparseMixer(unittest.TestCase):
+@@ -1774,6 +1778,8 @@ class TestSparseMixer(unittest.TestCase):
+             fc2_bias,
+             onnx_dtype,
+         )
++        opset_imports = {opset_import.domain: opset_import.version for opset_import in onnx_model.opset_import}
++        self.assertEqual(opset_imports, {"": 27, "com.microsoft": 1})
+ 
+         sess_options = onnxruntime.SessionOptions()
+         sess = onnxruntime.InferenceSession(onnx_model.SerializeToString(), sess_options, providers=get_ort_provider())
+diff --git a/onnxruntime/test/testdata/onnx_backend_test_series_filters.jsonc b/onnxruntime/test/testdata/onnx_backend_test_series_filters.jsonc
+index a10eb97..cf40b16 100644
+--- a/onnxruntime/test/testdata/onnx_backend_test_series_filters.jsonc
++++ b/onnxruntime/test/testdata/onnx_backend_test_series_filters.jsonc
+@@ -55,6 +55,18 @@
+         "^test_attention_(23|24)_.*qk_matmul_output_mode3", // #28994 CUDA NOT_IMPLEMENTED mode>kQK (attention.cc:1477); #27712 to support
+         // TODO: support qk_matmul_output modes beyond kQK in Attention-cuda (see issue #27712)
+         // Tests combining qk_matmul with softcap need unfused-path qk_matmul support (deferred).
++        "^test_attention_3d_local_window_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_bidirectional_window_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_local_window_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_local_window_ext_cache_float16_mask_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_local_window_ext_cache_rank2_mask_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_local_window_ext_cache_rank3_head_mask_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_local_window_ext_cache_rank4_batch_mask_cuda$", // exits with 0xDEAD in the CUDA backend test
++        "^test_attention_local_window_gqa_rank4_mask_cuda$", // exits with an access violation in the CUDA backend test
++        "^test_attention_local_window_gqa_rank4_mask_expanded_cuda$", // expanded Attention output mismatch
++        "^test_attention_local_window_rank1_boolean_mask_cuda$", // exits with an access violation in the CUDA backend test
++        "^test_attention_local_window_with_past_cuda$", // exits with an access violation in the CUDA backend test
++        "^test_attention_4d_causal_nonpad_negative_offset_structural_empty_expanded_cuda$", // expanded Attention output mismatch
+         "^test_attention_3d_with_past_and_present_qk_matmul_softcap_cuda", // qk_matmul modes beyond kQK not supported
+         "^test_attention_4d_with_qk_matmul_softcap_cuda", // qk_matmul modes beyond kQK not supported
+         "^test_attention_3d_with_past_and_present_qk_matmul_bias_cuda",  // QK matmul + bias not supported in Attention-cuda
+@@ -84,6 +96,209 @@
+         "^test_castlike_UINT2_to*",  // ORT does not support uint2
+         "^test_cast_INT2_to*",  // ORT does not support int2
+         "^test_cast_UINT2_to*",  // ORT does not support uint2
++        // TODO(#32378): Remove the exact BF16 Attention failures when the function dependencies support BF16.
++        "^test_attention_3d_causal_bf16_cpu$",
++        "^test_attention_3d_causal_bf16_expanded_cpu$",
++        "^test_attention_4d_attn_mask_causal_bf16_cpu$",
++        "^test_attention_4d_attn_mask_causal_bf16_expanded_cpu$",
++        "^test_attention_4d_causal_bf16_cpu$",
++        "^test_attention_4d_causal_bf16_expanded_cpu$",
++        "^test_attention_4d_causal_padded_kv_bf16_cpu$",
++        "^test_attention_4d_causal_padded_kv_bf16_expanded_cpu$",
++        "^test_attention_4d_padded_kv_bf16_cpu$",
++        "^test_attention_4d_padded_kv_bf16_expanded_cpu$",
++        "^test_attention_3d_causal_bf16_cuda$",
++        "^test_attention_3d_causal_bf16_expanded_cuda$",
++        "^test_attention_4d_attn_mask_causal_bf16_cuda$",
++        "^test_attention_4d_attn_mask_causal_bf16_expanded_cuda$",
++        "^test_attention_4d_causal_bf16_cuda$",
++        "^test_attention_4d_causal_bf16_expanded_cuda$",
++        "^test_attention_4d_causal_padded_kv_bf16_cuda$",
++        "^test_attention_4d_causal_padded_kv_bf16_expanded_cuda$",
++        "^test_attention_4d_padded_kv_bf16_cuda$",
++        "^test_attention_4d_padded_kv_bf16_expanded_cuda$",
++        "^test_attention_local_window_ext_cache_float16_mask_cpu$",
++        // TODO: Remove the exact Cast(28) failures when CPU Cast(28) is available in all builds.
++        "^test_cast_DOUBLE_to_FLOAT_cpu$",
++        "^test_celu_bfloat16_cpu$",
++        "^test_celu_bfloat16_expanded_cpu$",
++        "^test_celu_cpu$",
++        "^test_celu_expanded_cpu$",
++        "^test_celu_float16_cpu$",
++        "^test_celu_float16_expanded_cpu$",
++        // TODO(#32381): Remove the exact log-reduction failures when their Cast(28) dependency is available.
++        "^test_reduce_log_sum_exp_default_axes_keepdims_example_cpu$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_example_expanded_cpu$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_random_cpu$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_random_expanded_cpu$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_example_cpu$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_example_expanded_cpu$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_random_cpu$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_random_expanded_cpu$",
++        "^test_reduce_log_sum_exp_empty_set_cpu$",
++        "^test_reduce_log_sum_exp_empty_set_expanded_cpu$",
++        "^test_reduce_log_sum_exp_keepdims_example_cpu$",
++        "^test_reduce_log_sum_exp_keepdims_example_expanded_cpu$",
++        "^test_reduce_log_sum_exp_keepdims_random_cpu$",
++        "^test_reduce_log_sum_exp_keepdims_random_expanded_cpu$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_example_cpu$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_example_expanded_cpu$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_random_cpu$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_random_expanded_cpu$",
++        // TODO: Remove the exact Compress(28) failures when the existing kernel supports opset 28.
++        "^test_compress_0_cpu$",
++        "^test_compress_1_cpu$",
++        "^test_compress_bfloat16_cpu$",
++        "^test_compress_default_axis_cpu$",
++        "^test_compress_negative_axis_cpu$",
++        // TODO: Remove the exact Einsum(28) failures when the existing kernel supports opset 28.
++        "^test_einsum_batch_diagonal_cpu$",
++        "^test_einsum_batch_matmul_bfloat16_cpu$",
++        "^test_einsum_batch_matmul_cpu$",
++        "^test_einsum_inner_prod_cpu$",
++        "^test_einsum_scalar_cpu$",
++        "^test_einsum_sum_bfloat16_cpu$",
++        "^test_einsum_sum_cpu$",
++        "^test_einsum_transpose_bfloat16_cpu$",
++        "^test_einsum_transpose_cpu$",
++        // TODO: Remove the exact OneHot(28) failures when the existing kernel supports opset 28.
++        "^test_onehot_negative_indices_cpu$",
++        "^test_onehot_out_of_range_indices_cpu$",
++        "^test_onehot_with_axis_cpu$",
++        "^test_onehot_with_bfloat16_values_cpu$",
++        "^test_onehot_with_negative_axis_cpu$",
++        "^test_onehot_without_axis_cpu$",
++        // TODO: Remove this test when ReduceMax(28) supports an empty bool input.
++        "^test_reduce_max_empty_set_bool_cpu$",
++        "^test_reduce_max_empty_set_bool_cuda$",
++        // TODO(#32381): Remove the exact Swish(24) function-dependency failures when SwiGLU is supported.
++        "^test_swiglu_alpha_cpu$",
++        "^test_swiglu_alpha_expanded_cpu$",
++        "^test_swiglu_cpu$",
++        "^test_swiglu_expanded_cpu$",
++        "^test_swiglu_float16_cpu$",
++        "^test_swiglu_float16_expanded_cpu$",
++        // TODO: Remove the exact Unique(28) failures when the existing kernel supports opset 28.
++        "^test_unique_bfloat16_sorted_without_axis_cpu$",
++        "^test_unique_length_1_cpu$",
++        "^test_unique_not_sorted_without_axis_cpu$",
++        "^test_unique_sorted_with_axis_3d_cpu$",
++        "^test_unique_sorted_with_axis_cpu$",
++        "^test_unique_sorted_with_negative_axis_cpu$",
++        "^test_unique_sorted_without_axis_cpu$",
++        // TODO: Remove these exact CUDA skips when fallback nodes have providers and Swish(24) has a CPU kernel.
++        "^test_cast_DOUBLE_to_FLOAT_cuda$",
++        "^test_celu_bfloat16_cuda$",
++        "^test_celu_bfloat16_expanded_cuda$",
++        "^test_celu_cuda$",
++        "^test_celu_expanded_cuda$",
++        "^test_celu_float16_cuda$",
++        "^test_celu_float16_expanded_cuda$",
++        "^test_compress_0_cuda$",
++        "^test_compress_1_cuda$",
++        "^test_compress_bfloat16_cuda$",
++        "^test_compress_default_axis_cuda$",
++        "^test_compress_negative_axis_cuda$",
++        "^test_einsum_batch_diagonal_cuda$",
++        "^test_einsum_batch_matmul_bfloat16_cuda$",
++        "^test_einsum_batch_matmul_cuda$",
++        "^test_einsum_inner_prod_cuda$",
++        "^test_einsum_scalar_cuda$",
++        "^test_einsum_sum_bfloat16_cuda$",
++        "^test_einsum_sum_cuda$",
++        "^test_einsum_transpose_bfloat16_cuda$",
++        "^test_einsum_transpose_cuda$",
++        "^test_onehot_negative_indices_cuda$",
++        "^test_onehot_out_of_range_indices_cuda$",
++        "^test_onehot_with_axis_cuda$",
++        "^test_onehot_with_bfloat16_values_cuda$",
++        "^test_onehot_with_negative_axis_cuda$",
++        "^test_onehot_without_axis_cuda$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_example_cuda$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_example_expanded_cuda$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_random_cuda$",
++        "^test_reduce_log_sum_exp_default_axes_keepdims_random_expanded_cuda$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_example_cuda$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_example_expanded_cuda$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_random_cuda$",
++        "^test_reduce_log_sum_exp_do_not_keepdims_random_expanded_cuda$",
++        "^test_reduce_log_sum_exp_keepdims_example_cuda$",
++        "^test_reduce_log_sum_exp_keepdims_example_expanded_cuda$",
++        "^test_reduce_log_sum_exp_keepdims_random_cuda$",
++        "^test_reduce_log_sum_exp_keepdims_random_expanded_cuda$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_example_cuda$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_example_expanded_cuda$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_random_cuda$",
++        "^test_reduce_log_sum_exp_negative_axes_keepdims_random_expanded_cuda$",
++        "^test_swiglu_alpha_cuda$",
++        "^test_swiglu_alpha_expanded_cuda$",
++        "^test_swiglu_cuda$",
++        "^test_swiglu_expanded_cuda$",
++        "^test_swiglu_float16_cuda$",
++        "^test_swiglu_float16_expanded_cuda$",
++        "^test_unique_bfloat16_sorted_without_axis_cuda$",
++        "^test_unique_length_1_cuda$",
++        "^test_unique_not_sorted_without_axis_cuda$",
++        "^test_unique_sorted_with_axis_3d_cuda$",
++        "^test_unique_sorted_with_axis_cuda$",
++        "^test_unique_sorted_with_negative_axis_cuda$",
++        "^test_unique_sorted_without_axis_cuda$",
++        // TODO(#32361): Remove these exact skips when the opset-28 BitShift kernels land.
++        ["opset28", "^test_bitshift_left_int16(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int32(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int32_negative_shift(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int32_overflow(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int32_shift_ge_width(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int64(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int8(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int8_negative_shift(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int8_overflow(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_int8_shift_ge_width(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_uint32(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_uint64(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_left_uint8(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int16(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int32(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int32_negative_input(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int32_negative_shift(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int32_shift_ge_width(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int64(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int8(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int8_negative_input(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int8_negative_shift(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_int8_shift_ge_width(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_uint32(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_uint64(_(cpu|cuda))?$"],
++        ["opset28", "^test_bitshift_right_uint8(_(cpu|cuda))?$"],
++        "^test_mod_mixed_sign_int16_cuda$",
++        "^test_mod_mixed_sign_int8_cuda$",
++        "^test_mod_uint16_cuda$",
++        "^test_mod_uint8_cuda$",
++        // TODO(#32372): Remove these exact skips when the opset-28 Q/DQ kernels land.
++        "^test_dequantizelinear(_(cpu|cuda))?$",
++        "^test_dequantizelinear_axis(_(cpu|cuda))?$",
++        "^test_dequantizelinear_e4m3fn(_(cpu|cuda))?$",
++        "^test_dequantizelinear_e4m3fn_float16(_(cpu|cuda))?$",
++        "^test_dequantizelinear_e4m3fn_zero_point(_(cpu|cuda))?$",
++        "^test_dequantizelinear_e5m2(_(cpu|cuda))?$",
++        "^test_dequantizelinear_float4e2m1(_(cpu|cuda))?$",
++        "^test_dequantizelinear_int16(_(cpu|cuda))?$",
++        "^test_dequantizelinear_int2(_(cpu|cuda))?$",
++        "^test_dequantizelinear_uint16(_(cpu|cuda))?$",
++        "^test_dequantizelinear_uint2(_(cpu|cuda))?$",
++        "^test_quantizelinear(_(cpu|cuda))?$",
++        "^test_quantizelinear_axis(_(cpu|cuda))?$",
++        "^test_quantizelinear_e4m3fn(_(cpu|cuda))?$",
++        "^test_quantizelinear_e5m2(_(cpu|cuda))?$",
++        "^test_quantizelinear_float4e2m1(_(cpu|cuda))?$",
++        "^test_quantizelinear_int16(_(cpu|cuda))?$",
++        "^test_quantizelinear_int2(_(cpu|cuda))?$",
++        "^test_quantizelinear_uint16(_(cpu|cuda))?$",
++        "^test_quantizelinear_uint2(_(cpu|cuda))?$",
++        // TODO(#32378): Remove these exact skips when opset-28 ReverseSequence support lands.
++        ["opset28", "^test_reversesequence_batch(_(cpu|cuda))?$"],
++        ["opset28", "^test_reversesequence_bfloat16(_(cpu|cuda))?$"],
++        ["opset28", "^test_reversesequence_time(_(cpu|cuda))?$"],
+         "^test_convinteger_with_padding*",  // ORT does not support per-channel quantization for ConvInteger
+         "^test_cast_e8m0_*",  // ORT does not support float8e8m0
+         "^test_batchnorm_epsilon_training_mode",
+diff --git a/onnxruntime/test/testdata/onnx_backend_test_series_overrides.jsonc b/onnxruntime/test/testdata/onnx_backend_test_series_overrides.jsonc
+index f4da6b0..b56b0e5 100644
+--- a/onnxruntime/test/testdata/onnx_backend_test_series_overrides.jsonc
++++ b/onnxruntime/test/testdata/onnx_backend_test_series_overrides.jsonc
+@@ -21,5 +21,8 @@
+     },
+     // Key: str, the name of the test as defined by ONNX without any device suffix.
+     // Val: float, max relative difference between expected and actual.
+-    "rtol_overrides": {}
++    "rtol_overrides": {
++        "test_attention_4d_causal_fp16": 0.002,
++        "test_attention_4d_causal_fp16_expanded": 0.002
++    }
+ }
+diff --git a/onnxruntime/test/unittest_util/graph_transform_test_builder.cc b/onnxruntime/test/unittest_util/graph_transform_test_builder.cc
+index 325f820..4e67113 100644
+--- a/onnxruntime/test/unittest_util/graph_transform_test_builder.cc
++++ b/onnxruntime/test/unittest_util/graph_transform_test_builder.cc
+@@ -169,9 +169,7 @@ void TransformerTester(const std::function<void(ModelTestBuilder& helper)>& buil
+     SessionOptions session_options;
+     session_options.graph_optimization_level = transformer ? baseline_level : level;
+     // Mirror the model build's shape/type-inference strictness onto the session so that
+-    // loading the serialized model applies the same options. (allow_released_opsets_only is
+-    // passed explicitly to Load below, since the byte/proto Load overloads don't read it
+-    // from the config options.)
++    // loading the serialized model applies the same options.
+     ASSERT_STATUS_OK(session_options.config_options.AddConfigEntry(
+         kOrtSessionOptionsConfigStrictShapeTypeInference,
+         model_options.strict_shape_type_inference ? "1" : "0"));
+@@ -187,8 +185,7 @@ void TransformerTester(const std::function<void(ModelTestBuilder& helper)>& buil
+       ASSERT_STATUS_OK(session.RegisterExecutionProvider(ep_shared));
+     }
+ 
+-    // Load via an istream so the under-development opset flag can be honored: the istream Load
+-    // overload takes allow_released_opsets_only explicitly (the byte/proto overloads hardcode it).
++    // Load via an istream so the under-development opset flag can be passed explicitly.
+     // This lets models built at an unreleased ONNX opset (e.g. opset 27 in ONNX 1.22) load on
+     // strict (ALLOW_RELEASED_ONNX_OPSET_ONLY default) CI legs.
+     std::istringstream model_istream(model_data);
+diff --git a/onnxruntime/test/unittest_util/op_tester.cc b/onnxruntime/test/unittest_util/op_tester.cc
+index b633989..2b1f4d8 100644
+--- a/onnxruntime/test/unittest_util/op_tester.cc
++++ b/onnxruntime/test/unittest_util/op_tester.cc
+@@ -40,6 +40,12 @@ onnxruntime::Model& OpTester::BuildModel(const std::unordered_map<std::string, i
+   // Create a simple model
+   std::unordered_map<std::string, int> domain_to_version(extra_domain_to_version);
+   const auto& domain = Domain();
++  if (domain != kOnnxDomain && domain_to_version.count(kOnnxDomain) == 0) {
++    const auto& last_released_versions =
++        ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().LastReleaseVersionMap();
++    domain_to_version.insert({kOnnxDomain, last_released_versions.at(kOnnxDomain)});
++  }
++
+   if (domain_to_version.count(domain) == 0) {
+     domain_to_version.insert({domain, Opset()});
+   } else {
