@@ -19,13 +19,17 @@ translation units on Windows still fail with
 https://github.com/conda-forge/onnxruntime-feedstock/actions/runs/37306309009/job/111750712123
 
 Spell the base type out instead.  That requires renaming the class
-template's Hash/Eq parameters: raw_hash_map and raw_hash_set declare
-private typedefs of those names, which hide the template parameters
-inside the derived class body, so the spelled-out base would pick up
-the private typedefs and fail with the same C2248.  The parameters are
-not referenced anywhere else inside these class bodies.
+template's Hash/Eq parameters, and node_hash_map/node_hash_set's Alloc
+parameter: raw_hash_map and raw_hash_set declare private typedefs named
+Hash, Eq and Alloc.  MSVC looks unqualified names up in dependent base
+classes, so inside the derived class body those private typedefs hide
+template parameters of the same name, and the spelled-out base would
+pick them up and fail with the same C2248.  The parameters are not
+referenced anywhere else inside these class bodies.
 
-Not yet in abseil-cpp-feedstock; generated against libabseil 20260526.0.
+Proposed for libabseil itself in
+https://github.com/conda-forge/abseil-cpp-feedstock/pull/118
+This copy is generated against libabseil 20260526.0.
 ---
 --- a/absl/container/flat_hash_map.h
 +++ b/absl/container/flat_hash_map.h
@@ -90,7 +94,8 @@ Not yet in abseil-cpp-feedstock; generated against libabseil 20260526.0.
 -    class Eq =
 +    class AbslEqT =
          typename container_internal::NodeHashMapPolicy<Key, Value>::DefaultEq,
-     class Alloc = typename container_internal::NodeHashMapPolicy<
+-    class Alloc = typename container_internal::NodeHashMapPolicy<
++    class AbslAllocT = typename container_internal::NodeHashMapPolicy<
          Key, Value>::DefaultAlloc>
  class ABSL_ATTRIBUTE_OWNER node_hash_map
      : public absl::container_internal::InstantiateRawHashMap<
@@ -98,10 +103,10 @@ Not yet in abseil-cpp-feedstock; generated against libabseil 20260526.0.
 -          Alloc>::type {
 -  using Base = typename node_hash_map::raw_hash_map;
 +          absl::container_internal::NodeHashMapPolicy<Key, Value>, AbslHashT,
-+          AbslEqT, Alloc>::type {
++          AbslEqT, AbslAllocT>::type {
 +  using Base = typename absl::container_internal::InstantiateRawHashMap<
 +      absl::container_internal::NodeHashMapPolicy<Key, Value>, AbslHashT,
-+      AbslEqT, Alloc>::type;
++      AbslEqT, AbslAllocT>::type;
  
   public:
    // Constructors and Assignment Operators
@@ -113,20 +118,22 @@ Not yet in abseil-cpp-feedstock; generated against libabseil 20260526.0.
      class T,
 -    class Hash = typename container_internal::NodeHashSetPolicy<T>::DefaultHash,
 -    class Eq = typename container_internal::NodeHashSetPolicy<T>::DefaultEq,
+-    class Alloc =
 +    class AbslHashT =
 +        typename container_internal::NodeHashSetPolicy<T>::DefaultHash,
 +    class AbslEqT = typename container_internal::NodeHashSetPolicy<T>::DefaultEq,
-     class Alloc =
++    class AbslAllocT =
          typename container_internal::NodeHashSetPolicy<T>::DefaultAlloc>
  class ABSL_ATTRIBUTE_OWNER node_hash_set
      : public absl::container_internal::InstantiateRawHashSet<
 -          absl::container_internal::NodeHashSetPolicy<T>, Hash, Eq,
-+          absl::container_internal::NodeHashSetPolicy<T>, AbslHashT, AbslEqT,
-           Alloc>::type {
+-          Alloc>::type {
 -  using Base = typename node_hash_set::raw_hash_set;
++          absl::container_internal::NodeHashSetPolicy<T>, AbslHashT, AbslEqT,
++          AbslAllocT>::type {
 +  using Base = typename absl::container_internal::InstantiateRawHashSet<
 +      absl::container_internal::NodeHashSetPolicy<T>, AbslHashT, AbslEqT,
-+      Alloc>::type;
++      AbslAllocT>::type;
  
   public:
    // Constructors and Assignment Operators
