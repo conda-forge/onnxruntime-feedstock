@@ -1,8 +1,8 @@
 {% set cuda_enabled = cuda_compiler_version != "None" %}
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
-{% set version = "1.30.0" %}
+{% set version = "1.31.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 2 %}
+{% set build = 0 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -20,7 +20,7 @@ package:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: f6681ecbddf53898adf0cc9e8e9e84657485b84d2eca3c8aa353de6d7dd417ef
+  sha256: a7e84230b5d509e48fbd6b73c2453a56345ccb22da34a46dac1f0cb4a2d6507b
   patches:
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
     - patches/0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch     # [win]
