@@ -8,6 +8,10 @@ if "%PKG_NAME%"=="onnxruntime-novec" (
     set "DONT_VECTORIZE=OFF"
 )
 
+:: --nvcc_threads=1: the fpA_intB_gemm/gemv and moe_gemm cutlass kernels need several GB
+:: of RAM per architecture in nvcc. With --parallel=8 --nvcc_threads=2 the Windows runners
+:: run out of memory near the end of the build (MemoryError / killed job at ninja step
+:: ~2270/2328). See the same note in build.sh.
 :: Enable CUDA support and set CUDA architectures based on CUDA version
 if "%cuda_compiler_version%"=="None" (
     set "BUILD_ARGS="
@@ -18,13 +22,13 @@ if "%cuda_compiler_version%"=="None" (
     if "%cuda_compiler_version%"=="12.9" (
         REM SM 100+ (Blackwell) triggers a broken asm in CUDA 12.9 clusterlaunchcontrol.h on Windows, fixed in 13.0
         set "CUDA_ARCH_LIST=70-real;75-real;80-real;86-real;89-real;90-real"
-        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=2 --parallel=8"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1 --parallel=8"
     ) else if "%cuda_compiler_version%"=="13.0" (
         set "CUDA_ARCH_LIST=75-real;80-real;86-real;89-real;90-real;100-real;120"
-        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=2 --parallel=8"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1 --parallel=8"
     ) else if "%cuda_compiler_version%"=="13.4" (
         set "CUDA_ARCH_LIST=75-real;80-real;86-real;89-real;90-real;100-real;120"
-        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=2 --parallel=8"
+        set "BUILD_ARGS=--use_cuda  --cuda_home %LIBRARY_PREFIX% --cudnn_home %LIBRARY_PREFIX% --nvcc_threads=1 --parallel=8"
     ) else (
         echo No CUDA architecture list exists for CUDA v%cuda_compiler_version%. See bld.bat for information on adding one.
         exit 1
