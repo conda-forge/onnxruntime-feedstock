@@ -39,6 +39,8 @@ source:
     # build.py's "onnx is not installed" gate
     - patches/0007-Guard-onnx-import-in-autoep-test.patch
     - patches/0008-Copy-python-test-files-in-batches.patch
+    # new onnxruntime_public_exports_test in 1.31.0 needs bare cc/ar/nm
+    - patches/0009-Use-CC-AR-NM-from-environment-in-test_gen_def.patch
 
 build:
   number: {{ build }}

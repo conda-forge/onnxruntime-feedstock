@@ -24,17 +24,6 @@ else
     export GTEST_FILTER='-QDQTransformerTests.DefaultPath_TagsGeneratedWeightWithStableContentIdentity'
 fi
 
-if [[ "${BUILD_UNIT_TESTS}" == "ON" && "${target_platform}" == linux-* ]]; then
-    # onnxruntime_public_exports_test (tools/ci_build/test_gen_def.py, new in 1.31.0)
-    # runs bare `cc`, `ar` and `nm`, but conda-forge compilers only provide the
-    # prefixed names (e.g. x86_64-conda-linux-gnu-cc).
-    mkdir -p "${SRC_DIR}/toolchain-shims"
-    ln -sf "$(command -v "${CC}")" "${SRC_DIR}/toolchain-shims/cc"
-    ln -sf "$(command -v "${AR}")" "${SRC_DIR}/toolchain-shims/ar"
-    ln -sf "$(command -v "${NM}")" "${SRC_DIR}/toolchain-shims/nm"
-    export PATH="${SRC_DIR}/toolchain-shims:${PATH}"
-fi
-
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
     BUILD_ARGS="${BUILD_ARGS} --osx_arch arm64"
     # Enable the CoreML execution provider on Apple Silicon. This sets
