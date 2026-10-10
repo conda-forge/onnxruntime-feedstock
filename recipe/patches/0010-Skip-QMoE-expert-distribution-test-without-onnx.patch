@@ -1,0 +1,32 @@
+From: conda-forge onnxruntime-feedstock
+Subject: [PATCH] Skip the QMoE expert distribution test when onnx is absent
+
+test_qmoe_expert_distribution.py (new in 1.31.0) and the
+tools/python/qmoe_expert_distribution.py module it covers both do a
+module-level "import onnx", but tools/ci_build/build.py runs the test
+unconditionally, before its explicit "onnx is not installed" gate that
+protects the other onnx-dependent tests. onnx is not available when building
+onnxruntime on conda-forge, so the run dies with ModuleNotFoundError. Skip the
+test with a warning when onnx cannot be imported, mirroring that gate.
+---
+--- a/tools/ci_build/build.py
++++ b/tools/ci_build/build.py
+@@ -5,6 +5,7 @@
+ from __future__ import annotations
+ 
+ import contextlib
++import importlib.util
+ import json
+ import os
+ import platform
+@@ -1933,7 +1934,9 @@
+                 [sys.executable, "onnxruntime_test_python.py"], cwd=cwd, dll_path=dll_path, python_path=python_path
+             )
+ 
+-            if not args.disable_contrib_ops:
++            if not args.disable_contrib_ops and importlib.util.find_spec("onnx") is None:
++                log.warning("onnx is not installed. The QMoE expert distribution test will be skipped.")
++            elif not args.disable_contrib_ops:
+                 log.info("Testing QMoE expert distribution analysis")
+                 run_subprocess(
+                     [
