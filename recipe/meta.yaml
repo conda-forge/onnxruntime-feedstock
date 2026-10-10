@@ -41,6 +41,8 @@ source:
     - patches/0008-Copy-python-test-files-in-batches.patch
     # new onnxruntime_public_exports_test in 1.31.0 needs bare cc/ar/nm
     - patches/0009-Use-CC-AR-NM-from-environment-in-test_gen_def.patch
+    # new QMoE test in 1.31.0 imports onnx but runs before build.py's onnx gate
+    - patches/0010-Skip-QMoE-expert-distribution-test-without-onnx.patch
 
 build:
   number: {{ build }}
