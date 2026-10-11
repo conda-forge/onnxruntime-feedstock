@@ -3,66 +3,12 @@ From: Justin Chu <justinchuby@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 15:34:09 +0000
 Subject: [PATCH] Support ONNX 1.23.0: new float6 types and opset 28
 
-Backport of the source changes from
-https://github.com/microsoft/onnxruntime/pull/32359 ("Integrate ONNX
-1.23.0 base plumbing"), as merged in
-https://github.com/microsoft/onnxruntime/commit/9b87005d050668a5998fdc7a711cab40707aa6d1
+Backport of https://github.com/microsoft/onnxruntime/pull/32359 as merged
+(9b87005d050668a5998fdc7a711cab40707aa6d1), limited to the include/ and
+onnxruntime/ changes and rebased onto 1.31.0.
 
-Upstream reverted that commit three days later in
-https://github.com/microsoft/onnxruntime/pull/33073, not because of a
-defect in these hunks but to wait for an ONNX release that fixes
-onnx/onnx#8471 (external tensor re-save, fixed in ONNX 1.23.1) and
-onnx/onnx#8529 (the C++ LastReleaseVersionMap still reports ai.onnx
-opset 27, open).  The conda-forge build links the packaged libonnx
-1.23.0 and cannot go back to ONNX 1.22, so it keeps the integration.
-
-onnxruntime 1.30.0 was released against ONNX 1.22.  ONNX 1.23.0 adds two
-TensorProto data types, FLOAT6E2M3 (27) and FLOAT6E3M2 (28), and bumps
-the ai.onnx opset to 28.  Building 1.30.0 against the conda-forge
-libonnx 1.23.0 therefore fails at compile time:
-
-    onnxruntime/core/framework/tensorprotoutils.h:76:58: error:
-      static assertion failed: TensorProto data type element-size map
-      must cover every numeric data type.
-
-because kTensorProtoDataTypeElementSizes is sized by
-TensorProto_DataType_DataType_ARRAYSIZE and the two new slots default to
-zero.  onnxruntime_map_type_info.h has an equivalent consteval
-bijectivity check against the ORT element-type enum.
-
-This backport takes every upstream hunk under include/ and onnxruntime/
-that applies to 1.30.0:
-
-  * add ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3/FLOAT6E3M2 to the C API
-    enum and map them in both directions;
-  * extend the element-size table with the two packed 6-bit types;
-  * raise the maximum supported opset from 27 to 28 in the transpose
-    optimizer and the CoreML/NNAPI/VSINPU/WebNN op builders, keeping
-    Q/DQ builders at 27 where upstream did;
-  * accept the opset-28 Cast in the attention, FastGelu, IsInf/ReduceSum,
-    LayerNorm and Pad fusions, and the opset-28 Cast, Squeeze and Range
-    in the EmbedLayerNorm fusion;
-  * register opset-28 Mod (floating-point floor mod) on the CPU and CUDA
-    EPs and opset-28 signed BitShift on the CPU EP, capping the previous
-    registrations at 27 (and the DML BitShift kernel at 27);
-  * honour session.allow_released_opsets_only on every model load path,
-    and pass it through the Python onnx backend;
-  * the matching C++ and Python test updates.
-
-Upstream hunks deliberately omitted:
-
-  * onnxruntime/core/providers/webgpu/compute_context.h -- an unrelated
-    Logger refactor for the EP adapter API that does not apply to 1.30.0
-    and touches a provider this feedstock does not build;
-  * onnxruntime/test/optimizer/qdq_transformer_test.cc -- pins a test
-    that does not exist in 1.30.0;
-  * the cmake/, vcpkg, tools/, docs/, js/, csharp/ and requirements
-    changes, which pin and test onnxruntime's own vendored ONNX; the
-    conda-forge build links the packaged libonnx instead.
-
-One hunk is adapted: the <type_traits> include in
-onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc is rebased
-onto 1.30.0's include block.
+Upstream reverted it in https://github.com/microsoft/onnxruntime/pull/33073;
+conda-forge builds against libonnx 1.23, so it is carried here.
 ---
 diff --git a/include/onnxruntime/core/graph/schema_registry.h b/include/onnxruntime/core/graph/schema_registry.h
 index ca51e36..f60589a 100644
@@ -78,10 +24,10 @@ index ca51e36..f60589a 100644
      const ONNX_NAMESPACE::OpSchema* latest_schema = nullptr;
      int earliest_opset_where_unchanged = std::numeric_limits<int>::max();
 diff --git a/include/onnxruntime/core/session/onnxruntime_c_api.h b/include/onnxruntime/core/session/onnxruntime_c_api.h
-index a254e99..917807e 100644
+index ee101c2..5439ef7 100644
 --- a/include/onnxruntime/core/session/onnxruntime_c_api.h
 +++ b/include/onnxruntime/core/session/onnxruntime_c_api.h
-@@ -223,6 +223,11 @@ typedef enum ONNXTensorElementDataType {
+@@ -224,6 +224,11 @@ typedef enum ONNXTensorElementDataType {
    ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2,   // maps to 4 packed int2 values (size == 1 byte)
    // Float8E8M0 type introduced in ONNX 1.21. 8-bit float with 8 exponent bits, 0 mantissa bits, no sign bit.
    ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0,  // Non-IEEE floating-point format, all values are powers of two
@@ -93,20 +39,24 @@ index a254e99..917807e 100644
  } ONNXTensorElementDataType;
  
  // Synced with onnx TypeProto oneof
+diff --git a/include/onnxruntime/core/session/onnxruntime_type_conversion.h b/include/onnxruntime/core/session/onnxruntime_type_conversion.h
+index 0941b83..d5c818a 100644
+--- a/include/onnxruntime/core/session/onnxruntime_type_conversion.h
++++ b/include/onnxruntime/core/session/onnxruntime_type_conversion.h
+@@ -33,7 +33,7 @@ constexpr ONNXTensorElementDataType ToOrtTensorElementDataType(int tensor_proto_
+       return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2;
+     default:
+       if (tensor_proto_element_type < 0 ||
+-          tensor_proto_element_type > static_cast<int>(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0)) {
++          tensor_proto_element_type > static_cast<int>(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2)) {
+         return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+       }
+       return static_cast<ONNXTensorElementDataType>(tensor_proto_element_type);
 diff --git a/onnxruntime/core/framework/onnxruntime_map_type_info.h b/onnxruntime/core/framework/onnxruntime_map_type_info.h
-index 71c680a..4e51aa0 100644
+index 09674df..21e8f3e 100644
 --- a/onnxruntime/core/framework/onnxruntime_map_type_info.h
 +++ b/onnxruntime/core/framework/onnxruntime_map_type_info.h
-@@ -26,7 +26,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
-     return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
-   }
- 
--  // The enums have the same values through FLOAT4E2M1. Their final three entries
-+  // The enums have the same values through FLOAT4E2M1. The following three entries
-   // differ because ONNX inserted FLOAT8E8M0 before UINT2 and INT2.
-   switch (data_type) {
-     case ONNX_NAMESPACE::TensorProto_DataType_FLOAT8E8M0:
-@@ -42,7 +42,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
+@@ -32,7 +32,7 @@ constexpr ONNXTensorElementDataType ToONNXTensorElementDataType(
  
  consteval bool IsTensorProtoToOrtElementTypeMapBijective() {
    constexpr size_t ort_element_type_count =
@@ -133,10 +83,10 @@ index e91d039..8f9ec22 100644
        type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
        break;
 diff --git a/onnxruntime/core/framework/tensorprotoutils.cc b/onnxruntime/core/framework/tensorprotoutils.cc
-index d58de35..ce1b8ba 100644
+index 52a4cfe..99bf26c 100644
 --- a/onnxruntime/core/framework/tensorprotoutils.cc
 +++ b/onnxruntime/core/framework/tensorprotoutils.cc
-@@ -2053,6 +2053,8 @@ ONNXTensorElementDataType CApiElementTypeFromProtoType(int type) {
+@@ -2190,6 +2190,8 @@ ONNXTensorElementDataType CApiElementTypeFromProtoType(int type) {
  #if !defined(DISABLE_FLOAT4_TYPES)
      CASE_TYPE(FLOAT4E2M1)
  #endif
@@ -146,7 +96,7 @@ index d58de35..ce1b8ba 100644
      default:
        return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
 diff --git a/onnxruntime/core/framework/tensorprotoutils.h b/onnxruntime/core/framework/tensorprotoutils.h
-index 6e72d0b..4389be4 100644
+index 19aff13..90bbdcf 100644
 --- a/onnxruntime/core/framework/tensorprotoutils.h
 +++ b/onnxruntime/core/framework/tensorprotoutils.h
 @@ -58,6 +58,8 @@ inline constexpr std::array<uint8_t, ONNX_NAMESPACE::TensorProto_DataType_DataTy
@@ -159,7 +109,7 @@ index 6e72d0b..4389be4 100644
  
  consteval bool IsTensorProtoDataTypeElementSizeMapComplete() {
 diff --git a/onnxruntime/core/optimizer/attention_fusion_helper.h b/onnxruntime/core/optimizer/attention_fusion_helper.h
-index b7bd36c..64fd195 100644
+index 814c2c2..4e1850b 100644
 --- a/onnxruntime/core/optimizer/attention_fusion_helper.h
 +++ b/onnxruntime/core/optimizer/attention_fusion_helper.h
 @@ -400,7 +400,7 @@ bool MatchUnidirMaskSubgraph(const Graph& graph, const Node& add_node, MatchUnid
@@ -172,10 +122,10 @@ index b7bd36c..64fd195 100644
        {0, 0, "Slice", {10, 11, 13}, kOnnxDomain},  // Mask Slice
        {0, 1, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
 diff --git a/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc b/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
-index 421cc1b..8caae01 100644
+index 0101a4f..045ac89 100644
 --- a/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
 +++ b/onnxruntime/core/optimizer/embed_layer_norm_fusion.cc
-@@ -247,8 +247,8 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+@@ -248,8 +248,8 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
    std::vector<graph_utils::EdgeEndToMatch> parent_path_1{
        {0, 1, "Expand", {8, 13}, kOnnxDomain},
        {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
@@ -186,7 +136,7 @@ index 421cc1b..8caae01 100644
        {0, 0, "Transpose", {1, 13, 21, 23, 24, 25}, kOnnxDomain},
        {0, 0, "NonZero", {9, 13}, kOnnxDomain},
        {0, 0, "ConstantOfShape", {9, 20, 21, 23, 24, 25}, kOnnxDomain},
-@@ -259,7 +259,7 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+@@ -260,7 +260,7 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
    std::vector<graph_utils::EdgeEndToMatch> parent_path_2{
        {0, 1, "Expand", {8, 13}, kOnnxDomain},
        {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
@@ -195,7 +145,7 @@ index 421cc1b..8caae01 100644
        {0, 0, "Transpose", {1, 13, 21, 23, 24, 25}, kOnnxDomain},
        {0, 0, "NonZero", {9, 13}, kOnnxDomain},
        {0, 0, "ConstantOfShape", {9, 20, 21, 23, 24, 25}, kOnnxDomain},
-@@ -271,15 +271,15 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
+@@ -272,15 +272,15 @@ static bool MatchPositionEmbeddingSubgraphsFromGather(
    std::vector<graph_utils::EdgeEndToMatch> parent_path_3{
        {0, 1, "Expand", {8, 13}, kOnnxDomain},
        {0, 0, "Unsqueeze", {1, 11, 13, 21, 23, 24, 25}, kOnnxDomain},
@@ -215,10 +165,10 @@ index 421cc1b..8caae01 100644
        {0, 0, "Shape", {1, 13, 15, 19, 21, 23, 24, 25}, kOnnxDomain}};
    // Match one of the three path patterns.
 diff --git a/onnxruntime/core/optimizer/fast_gelu_fusion.cc b/onnxruntime/core/optimizer/fast_gelu_fusion.cc
-index 13efcaa..4909ae9 100644
+index cda93c9..8b911a6 100644
 --- a/onnxruntime/core/optimizer/fast_gelu_fusion.cc
 +++ b/onnxruntime/core/optimizer/fast_gelu_fusion.cc
-@@ -175,7 +175,7 @@ MatchResult FastGeluFusion::CheckSecondFormula(Graph& graph, Node& pow1_node,
+@@ -177,7 +177,7 @@ MatchResult FastGeluFusion::CheckSecondFormula(Graph& graph, Node& pow1_node,
    if (p_cast1_node != nullptr) {
      Node& cast1_node = *graph.GetNode(p_cast1_node->Index());
      // this is fused Cast node, so expect 2 output edges
@@ -227,7 +177,7 @@ index 13efcaa..4909ae9 100644
            cast1_node.InputDefs().size() == 1 &&
            CheckNode(graph, cast1_node, pow1_node.GetExecutionProviderType(), false)) ||
          cast1_node.GetOutputEdgesCount() != 2) {
-@@ -291,7 +291,7 @@ Status FastGeluFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
+@@ -293,7 +293,7 @@ Status FastGeluFusion::ApplyImpl(Graph& graph, bool& modified, int graph_level,
          if (p_cast3_node == nullptr) continue;
  
          Node& cast3_node = *graph.GetNode(p_cast3_node->Index());
@@ -259,7 +209,7 @@ index 3f963e8..2185261 100644
          graph.NodeProducesGraphOutput(cast2_node)) {
        continue;
 diff --git a/onnxruntime/core/optimizer/layer_norm_fusion.cc b/onnxruntime/core/optimizer/layer_norm_fusion.cc
-index e4716b5..9978175 100644
+index 753b237..93d4ed8 100644
 --- a/onnxruntime/core/optimizer/layer_norm_fusion.cc
 +++ b/onnxruntime/core/optimizer/layer_norm_fusion.cc
 @@ -145,7 +145,7 @@ static bool IsPowExponentTwo(const Graph& graph, const Node& pow_node) {
@@ -307,7 +257,7 @@ index e4716b5..9978175 100644
          optimizer_utils::CheckOutputEdges(graph, *next_node, 1)) {
        nodes_to_remove.push_back(*next_node);
        next_node = graph.GetNode(next_node->OutputNodesBegin()->Index());
-@@ -735,7 +735,7 @@ Status SimplifiedLayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int gr
+@@ -745,7 +745,7 @@ Status SimplifiedLayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int gr
      if (is_gpu_ep && p_pow_input_node) {
        Node& pow_input_node = *graph.GetNode(p_pow_input_node->Index());
        // If input to Pow is a Cast, and the Cast has 2 consumers only (Pow, Div)
@@ -316,7 +266,7 @@ index e4716b5..9978175 100644
            pow_input_node.GetExecutionProviderType() == pow_node.GetExecutionProviderType() &&
            optimizer_utils::CheckOutputEdges(graph, pow_input_node, 2)) {
          nodes_to_remove.insert(nodes_to_remove.begin(), pow_input_node);
-@@ -745,7 +745,7 @@ Status SimplifiedLayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int gr
+@@ -755,7 +755,7 @@ Status SimplifiedLayerNormFusion::ApplyImpl(Graph& graph, bool& modified, int gr
  
      // div --> mul or div --> cast --> mul
      Node* next_node = graph.GetNode(div_node.OutputNodesBegin()->Index());
@@ -365,10 +315,10 @@ index 609a965..0e49f48 100644
    bool HasSupportedOpSet(const Node& node, const logging::Logger& logger) const;
    bool HasSupportedInputs(const Node& node, const OpBuilderInputParams& input_params,
 diff --git a/onnxruntime/core/providers/cpu/cpu_execution_provider.cc b/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
-index b91565d..7d13ce4 100644
+index c3e0626..210f73c 100644
 --- a/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
 +++ b/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
-@@ -596,9 +596,10 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
+@@ -599,9 +599,10 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, MLFloat16, Gemm);
  #endif
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, GatherElements);
@@ -382,7 +332,7 @@ index b91565d..7d13ce4 100644
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Pad);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11, GatherND);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 26, Range);
-@@ -834,7 +835,8 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
+@@ -837,7 +838,8 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int16_t, Neg);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int32_t, Neg);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int64_t, Neg);
@@ -392,7 +342,7 @@ index b91565d..7d13ce4 100644
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, float, Abs);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, double, Abs);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int8_t, Abs);
-@@ -1550,6 +1552,16 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
+@@ -1555,6 +1557,16 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
  // Opset 27
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 27, Range);
  
@@ -409,7 +359,7 @@ index b91565d..7d13ce4 100644
  // !!PLEASE READ BELOW!! Following that, add new entries above this comment
  
  /*  *** IMPORTANT! ***
-@@ -2312,12 +2324,14 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2321,12 +2333,14 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                              double, Gemm)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12,
                                                                        GatherElements)>,
@@ -430,7 +380,7 @@ index b91565d..7d13ce4 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Pad)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11,
                                                                        GatherND)>,
-@@ -2761,7 +2775,8 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2770,7 +2784,8 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int16_t, Neg)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int32_t, Neg)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int64_t, Neg)>,
@@ -440,7 +390,7 @@ index b91565d..7d13ce4 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, float, Abs)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, double, Abs)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, int8_t, Abs)>,
-@@ -3745,6 +3760,24 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -3758,6 +3773,24 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
  
        // opset 27
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 27, Range)>,
@@ -463,8 +413,8 @@ index b91565d..7d13ce4 100644
 +      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 28, uint64_t,
 +                                                                  BitShift)>,
    };
-   for (auto& function_table_entry : function_table) {
-     KernelCreateInfo info = function_table_entry();
+   static_assert(registration_internal::IsKernelRegistrationTableValid(
+       function_table, BuildKernelCreateInfo<void>));
 diff --git a/onnxruntime/core/providers/cpu/math/element_wise_ops.cc b/onnxruntime/core/providers/cpu/math/element_wise_ops.cc
 index 4a9c464..f4d8b9b 100644
 --- a/onnxruntime/core/providers/cpu/math/element_wise_ops.cc
@@ -723,10 +673,10 @@ index f53da98..a46385c 100644
  __device__ __inline__ T _Fmod(T a, T b) {
    return a % b;
 diff --git a/onnxruntime/core/providers/cuda/cuda_execution_provider.cc b/onnxruntime/core/providers/cuda/cuda_execution_provider.cc
-index 6ee39bf..ac04da4 100755
+index 5fa508e..7f049f6 100755
 --- a/onnxruntime/core/providers/cuda/cuda_execution_provider.cc
 +++ b/onnxruntime/core/providers/cuda/cuda_execution_provider.cc
-@@ -1351,7 +1351,8 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain,
+@@ -1354,7 +1354,8 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain,
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Tanh);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Gemm);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, ReduceSum);
@@ -736,7 +686,7 @@ index 6ee39bf..ac04da4 100755
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, int8_t, QuantizeLinear);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, uint8_t, QuantizeLinear);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, 18, int8_t, DequantizeLinear);
-@@ -2644,7 +2645,8 @@ static Status RegisterCudaKernels(KernelRegistry& kernel_registry) {
+@@ -2647,7 +2648,8 @@ static Status RegisterCudaKernels(KernelRegistry& kernel_registry) {
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Tanh)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, Gemm)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCudaExecutionProvider, kOnnxDomain, 13, BFloat16, ReduceSum)>,
@@ -901,21 +851,21 @@ index e4e3a09..5b6ab64 100644
  
  Status QDQOpBuilder::AddToModelBuilderImpl(ModelBuilder& model_builder,
 diff --git a/onnxruntime/core/session/inference_session.cc b/onnxruntime/core/session/inference_session.cc
-index be0536d..610bc79 100644
+index 9227930..e9015b3 100644
 --- a/onnxruntime/core/session/inference_session.cc
 +++ b/onnxruntime/core/session/inference_session.cc
-@@ -1212,7 +1212,9 @@ common::Status InferenceSession::LoadOnnxModel(const PathString& model_uri) {
+@@ -1249,7 +1249,9 @@ common::Status InferenceSession::LoadOnnxModel(const PathString& model_uri) {
  
      const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
                                                   kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
--    ModelOptions model_opts(true, strict_shape_type_inference, check_load_cancellation_fn_);
+-    ModelOptions model_opts{true, strict_shape_type_inference, check_load_cancellation_fn_};
 +    const bool allow_released_opsets_only = session_options_.config_options.GetConfigOrDefault(
 +                                                kOrtSessionOptionsConfigStrictAllowReleasedOpsetsOnly, "1") == "1";
-+    ModelOptions model_opts(allow_released_opsets_only, strict_shape_type_inference, check_load_cancellation_fn_);
++    ModelOptions model_opts{allow_released_opsets_only, strict_shape_type_inference, check_load_cancellation_fn_};
  
      // When set, the external initializers folder overrides the model's own directory as the
      // base for resolving external data. The model bytes are still read from model_uri.
-@@ -1308,6 +1310,8 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
+@@ -1345,6 +1347,8 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
  
      const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
                                                   kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
@@ -924,16 +874,17 @@ index be0536d..610bc79 100644
  
      PathString external_data_model_path = GetExternalInitializersFolderModelPath(session_options_.config_options);
      if (!external_data_model_path.empty()) {
-@@ -1316,7 +1320,7 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
+@@ -1353,7 +1357,8 @@ common::Status InferenceSession::Load(const void* model_data, int model_data_len
  
      return onnxruntime::Model::Load(std::move(model_proto), model_location_, model,
                                      HasLocalSchema() ? &custom_schema_registries_ : nullptr, *session_logger_,
--                                    ModelOptions(true, strict_shape_type_inference,
-+                                    ModelOptions(allow_released_opsets_only, strict_shape_type_inference,
-                                                  check_load_cancellation_fn_));
+-                                    ModelOptions{true, strict_shape_type_inference, check_load_cancellation_fn_});
++                                    ModelOptions{allow_released_opsets_only, strict_shape_type_inference,
++                                                 check_load_cancellation_fn_});
    };
  
-@@ -1372,6 +1376,8 @@ common::Status InferenceSession::LoadOnnxModel(ModelProto model_proto) {
+   return LoadWithLoader(loader, "model_loading_array");
+@@ -1409,6 +1414,8 @@ common::Status InferenceSession::LoadOnnxModel(ModelProto model_proto) {
  #endif
      const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
                                                   kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
@@ -942,16 +893,17 @@ index be0536d..610bc79 100644
  
      PathString external_data_model_path = GetExternalInitializersFolderModelPath(session_options_.config_options);
      if (!external_data_model_path.empty()) {
-@@ -1381,7 +1387,7 @@ common::Status InferenceSession::LoadOnnxModel(ModelProto model_proto) {
+@@ -1418,7 +1425,8 @@ common::Status InferenceSession::LoadOnnxModel(ModelProto model_proto) {
      // This call will move model_proto to the constructed model instance
      return onnxruntime::Model::Load(std::move(model_proto), model_location_, model,
                                      HasLocalSchema() ? &custom_schema_registries_ : nullptr, *session_logger_,
--                                    ModelOptions(true, strict_shape_type_inference,
-+                                    ModelOptions(allow_released_opsets_only, strict_shape_type_inference,
-                                                  check_load_cancellation_fn_));
+-                                    ModelOptions{true, strict_shape_type_inference, check_load_cancellation_fn_});
++                                    ModelOptions{allow_released_opsets_only, strict_shape_type_inference,
++                                                 check_load_cancellation_fn_});
    };
  
-@@ -1483,12 +1489,15 @@ common::Status InferenceSession::Load(const OrtModel& model_editor_api_model) {
+   return LoadWithLoader(loader, "model_loading_proto");
+@@ -1516,12 +1524,15 @@ common::Status InferenceSession::Load(const OrtModel& model_editor_api_model) {
  
    const bool strict_shape_type_inference = session_options_.config_options.GetConfigOrDefault(
                                                 kOrtSessionOptionsConfigStrictShapeTypeInference, "0") == "1";
@@ -962,10 +914,10 @@ index be0536d..610bc79 100644
    std::unique_ptr<Model> tmp_model;
    ORT_RETURN_IF_ERROR(Model::LoadFromModelEditorApiModel(model_editor_api_model,
                                                           HasLocalSchema() ? &custom_schema_registries_ : nullptr,
--                                                         ModelOptions(true, strict_shape_type_inference,
-+                                                         ModelOptions(allow_released_opsets_only,
+-                                                         ModelOptions{true, strict_shape_type_inference,
++                                                         ModelOptions{allow_released_opsets_only,
 +                                                                      strict_shape_type_inference,
-                                                                       check_load_cancellation_fn_),
+                                                                       check_load_cancellation_fn_},
                                                           *session_logger_, tmp_model));
  
 diff --git a/onnxruntime/python/backend/backend.py b/onnxruntime/python/backend/backend.py
@@ -1022,7 +974,7 @@ index 950ce41..75b682f 100644
 +            inps = {inp[0].name: _normalize_numpy_scalar(inputs)}
              return self._session.run(None, inps, options)
 diff --git a/onnxruntime/test/framework/tensorutils_test.cc b/onnxruntime/test/framework/tensorutils_test.cc
-index d238627..5f5bcd5 100644
+index 6f941cd..779c6cf 100644
 --- a/onnxruntime/test/framework/tensorutils_test.cc
 +++ b/onnxruntime/test/framework/tensorutils_test.cc
 @@ -61,6 +61,8 @@ constexpr bool TensorProtoElementSizesAreConstexpr() {
@@ -1035,18 +987,18 @@ index d238627..5f5bcd5 100644
  
    for (size_t index = 0; index < expected_sizes.size(); ++index) {
 diff --git a/onnxruntime/test/framework/type_info_test.cc b/onnxruntime/test/framework/type_info_test.cc
-index c611977..afc28d8 100644
+index 9368f5d..7631b5e 100644
 --- a/onnxruntime/test/framework/type_info_test.cc
 +++ b/onnxruntime/test/framework/type_info_test.cc
-@@ -10,6 +10,7 @@
+@@ -11,6 +11,7 @@
  #include "core/framework/onnxruntime_map_type_info.h"
  #include "core/framework/onnxruntime_sequence_type_info.h"
  #include "core/framework/tensor_type_and_shape.h"
 +#include "core/framework/tensorprotoutils.h"
  #include "core/framework/onnxruntime_typeinfo.h"
+ #include "core/session/onnxruntime_type_conversion.h"
  
- namespace onnxruntime {
-@@ -47,6 +48,8 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
+@@ -49,6 +50,8 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
            ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0,
            ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2,
            ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2,
@@ -1055,7 +1007,7 @@ index c611977..afc28d8 100644
        };
  
    for (size_t index = 0; index < expected_types.size(); ++index) {
-@@ -65,6 +68,13 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
+@@ -72,6 +75,13 @@ constexpr bool TensorElementTypeConversionIsConstexpr() {
  
  static_assert(TensorElementTypeConversionIsConstexpr());
  
@@ -1066,9 +1018,18 @@ index c611977..afc28d8 100644
 +            ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2);
 +}
 +
- TEST(TypeInfoTests, TensorProto) {
-   mb::Type tensor_type = {1, 2, 3, 4};
- 
+ TEST(TypeInfoTests, TensorElementTypeConversions) {
+   struct TypePair {
+     ONNXTensorElementDataType api_type;
+@@ -105,6 +115,8 @@ TEST(TypeInfoTests, TensorElementTypeConversions) {
+       {ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E8M0, ONNX_NAMESPACE::TensorProto_DataType_FLOAT8E8M0},
+       {ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2, ONNX_NAMESPACE::TensorProto_DataType_UINT2},
+       {ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2, ONNX_NAMESPACE::TensorProto_DataType_INT2},
++      {ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E2M3, ONNX_NAMESPACE::TensorProto_DataType_FLOAT6E2M3},
++      {ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT6E3M2, ONNX_NAMESPACE::TensorProto_DataType_FLOAT6E3M2},
+   };
+   static_assert(std::size(types) == ONNX_NAMESPACE::TensorProto_DataType_DataType_ARRAYSIZE);
+   for (const auto& [api_type, proto_type] : types) {
 diff --git a/onnxruntime/test/onnx/TestCase.cc b/onnxruntime/test/onnx/TestCase.cc
 index 86eb962..a2c54a6 100644
 --- a/onnxruntime/test/onnx/TestCase.cc
@@ -1106,10 +1067,10 @@ index 5740a40..1817a92 100644
          ORT_TSTR("mod_mixed_sign_float64"),
          ORT_TSTR("mod_mixed_sign_float32"),
 diff --git a/onnxruntime/test/onnx/tensorprotoutils.cc b/onnxruntime/test/onnx/tensorprotoutils.cc
-index 5c8d8f9..c9cbc05 100644
+index 2af930f..304dbe2 100644
 --- a/onnxruntime/test/onnx/tensorprotoutils.cc
 +++ b/onnxruntime/test/onnx/tensorprotoutils.cc
-@@ -652,6 +652,8 @@ ONNXTensorElementDataType CApiElementTypeFromProtoType(int type) {
+@@ -653,6 +653,8 @@ ONNXTensorElementDataType CApiElementTypeFromProtoType(int type) {
      CASE_TYPE(INT4)
      CASE_TYPE(UINT2)
      CASE_TYPE(INT2)
@@ -1165,7 +1126,7 @@ index 4583b77..c35a45d 100644
  }
  #endif  // !defined(ORT_NO_EXCEPTIONS)
 diff --git a/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc b/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc
-index 278372b..5d9d061 100644
+index f3cc722..4348942 100644
 --- a/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc
 +++ b/onnxruntime/test/providers/cpu/math/element_wise_ops_test.cc
 @@ -15,6 +15,7 @@
@@ -1174,9 +1135,9 @@ index 278372b..5d9d061 100644
  #include <math.h>
 +#include <type_traits>
  
- #if defined(USE_WEBGPU)
- // Pull in the deviceless shared-trailing-dimension helper from the WebGPU EP so it can be
-@@ -4620,6 +4621,50 @@ TEST(ModOpTest, Fmod_float16_mixed_sign) {
+ namespace onnxruntime {
+ namespace test {
+@@ -4351,6 +4352,50 @@ TEST(ModOpTest, Fmod_float16_mixed_sign) {
    test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kQnnExecutionProvider});
  }
  
@@ -1227,7 +1188,7 @@ index 278372b..5d9d061 100644
  #if defined(USE_CUDA)
  TEST(ModOpTest, Fmod_bfloat16_mixed_sign) {
    OpTester test("Mod", 13);
-@@ -4921,6 +4966,93 @@ TEST(BitShiftOpTest, BroadcastXRight_Uint8) {
+@@ -4652,6 +4697,93 @@ TEST(BitShiftOpTest, BroadcastXRight_Uint8) {
    test.Run();
  }
  
@@ -1627,7 +1588,7 @@ index 95df52c..670766f 100644
  
  def _make_released_opset_model(graph, producer_name="onnx-example"):
 diff --git a/onnxruntime/test/python/transformers/test_moe_cuda.py b/onnxruntime/test/python/transformers/test_moe_cuda.py
-index f3d037e..e617d65 100644
+index 5c92b5e..11731f2 100644
 --- a/onnxruntime/test/python/transformers/test_moe_cuda.py
 +++ b/onnxruntime/test/python/transformers/test_moe_cuda.py
 @@ -1734,7 +1734,11 @@ def create_sparse_mixer_onnx_graph(
@@ -1643,7 +1604,7 @@ index f3d037e..e617d65 100644
  
  
  class TestSparseMixer(unittest.TestCase):
-@@ -1774,6 +1778,8 @@ class TestSparseMixer(unittest.TestCase):
+@@ -1777,6 +1781,8 @@ class TestSparseMixer(unittest.TestCase):
              fc2_bias,
              onnx_dtype,
          )
