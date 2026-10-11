@@ -50,11 +50,8 @@ source:
     # Backport compatibility to onnx 1.23.2
     # https://github.com/microsoft/onnxruntime/pull/33134
     - patches/0014-Reintegrate-ONNX-1.23.2-base-plumbing.patch
-    # conda-forge's libonnx reports opset 28 as released; let the existing CPU
-    # kernels serve the operators whose opset-28 schema only adds types
-    - patches/0015-Serve-opset-28-type-only-schema-updates-with-the-exi.patch
     # 1.31.0's shared-lib test builds ModelProtos; needs the shared libprotobuf
-    - patches/0016-Link-protobuf-into-onnxruntime_shared_lib_test.patch
+    - patches/0015-Link-protobuf-into-onnxruntime_shared_lib_test.patch
 
 build:
   number: {{ build }}
