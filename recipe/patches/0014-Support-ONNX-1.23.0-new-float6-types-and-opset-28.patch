@@ -1902,3 +1902,19 @@ index b633989..2b1f4d8 100644
    if (domain_to_version.count(domain) == 0) {
      domain_to_version.insert({domain, Opset()});
    } else {
+diff --git a/onnxruntime/test/optimizer/qdq_transformer_test.cc b/onnxruntime/test/optimizer/qdq_transformer_test.cc
+index de9090d..04e7ed5 100644
+--- a/onnxruntime/test/optimizer/qdq_transformer_test.cc
++++ b/onnxruntime/test/optimizer/qdq_transformer_test.cc
+@@ -5690,7 +5690,10 @@ TEST(QDQTransformerTests, QDQPropagation_GH11605_Opset13) {
+ // test removal of Q->DQ pairs by QDQFinalCleanupTransformer
+ TEST(QDQTransformerTests, QDQFinalCleanupTransformerReportsIntentionalRemoval) {
+   auto& logger = DefaultLoggingManager().DefaultLogger();
+-  Model model("QDQFinalCleanupRemovalTester", false, logger);
++  std::unordered_map<std::string, int> domain_to_version;
++  domain_to_version[kOnnxDomain] = 25;
++  Model model("QDQFinalCleanupRemovalTester", false, ModelMetaData(), PathString(),
++              IOnnxRuntimeOpSchemaRegistryList(), domain_to_version, {}, logger);
+   Graph& graph = model.MainGraph();
+   ModelTestBuilder builder(graph);
+ 
