@@ -1737,10 +1737,23 @@ index 2af930f..4ec48f5 100644
  
  ONNXTensorElementDataType GetTensorElementType(const onnx::TensorProto& tensor_proto) {
 diff --git a/onnxruntime/test/optimizer/graph_transform_test.cc b/onnxruntime/test/optimizer/graph_transform_test.cc
-index e5845e0..a8308b4 100644
+index e5845e0..6922096 100644
 --- a/onnxruntime/test/optimizer/graph_transform_test.cc
 +++ b/onnxruntime/test/optimizer/graph_transform_test.cc
-@@ -7665,14 +7665,17 @@ TEST_F(GraphTransformationTests, SliceConcatToSpaceToDepthFusionTest) {
+@@ -7653,6 +7653,12 @@ TEST_F(GraphTransformationTests, SliceConcatToSpaceToDepthFusionTest) {
+   auto check_transformed_graph = [get_op_count](InferenceSessionWrapper& session) {
+     const Graph& graph = session.GetGraph();
+     const auto op_to_count = CountOpsInGraph(graph);
++    if (graph.DomainToVersionMap().at(kOnnxDomain) >= 28) {
++      ASSERT_EQ(get_op_count(op_to_count, "Slice"), 4);
++      ASSERT_EQ(get_op_count(op_to_count, "Concat"), 1);
++      ASSERT_EQ(get_op_count(op_to_count, "SpaceToDepth"), 0);
++      return;
++    }
+     ASSERT_TRUE(op_to_count.count("Slice") == 0 || op_to_count.at("Slice") == 0);
+     ASSERT_TRUE(op_to_count.count("Concat") == 0 || op_to_count.at("Concat") == 0);
+     ASSERT_EQ(get_op_count(op_to_count, "SpaceToDepth"), 1);
+@@ -7665,14 +7671,17 @@ TEST_F(GraphTransformationTests, SliceConcatToSpaceToDepthFusionTest) {
      }
    };
  
@@ -1766,19 +1779,6 @@ index e5845e0..a8308b4 100644
  }
  
  TEST_F(GraphTransformationTests, SliceConcatToSpaceToDepthFusionWithConstantNodesTest) {
-@@ -7780,6 +7783,12 @@ TEST_F(GraphTransformationTests, SliceConcatToSpaceToDepthFusionWithPermutedBloc
-   auto check_transformed_graph = [get_op_count](InferenceSessionWrapper& session) {
-     const Graph& graph = session.GetGraph();
-     const auto op_to_count = CountOpsInGraph(graph);
-+    if (graph.DomainToVersionMap().at(kOnnxDomain) >= 28) {
-+      ASSERT_EQ(get_op_count(op_to_count, "Slice"), 4);
-+      ASSERT_EQ(get_op_count(op_to_count, "Concat"), 1);
-+      ASSERT_EQ(get_op_count(op_to_count, "SpaceToDepth"), 0);
-+      return;
-+    }
-     ASSERT_TRUE(op_to_count.count("Slice") == 0 || op_to_count.at("Slice") == 0);
-     ASSERT_TRUE(op_to_count.count("Concat") == 0 || op_to_count.at("Concat") == 0);
-     ASSERT_EQ(get_op_count(op_to_count, "SpaceToDepth"), 1);
 diff --git a/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc b/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
 index c092c66..c9fa32d 100644
 --- a/onnxruntime/test/optimizer/layout_transformation_potentially_added_ops_test.cc
