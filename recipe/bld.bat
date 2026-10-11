@@ -88,6 +88,11 @@ python tools/ci_build/build.py ^
     %BUILD_ARGS%
 if errorlevel 1 exit 1
 
+:: libonnx 1.23.2 indexes out of bounds in LayerNormalization shape inference
+:: when axis >= rank (fixed by https://github.com/onnx/onnx/pull/8466, not
+:: released); onnxruntime patches its vendored onnx for this test.
+set "GTEST_FILTER=-LayerNormTest.LayerNorm_AxisExceedsRank"
+
 :: Run only the C++ unit tests, as on unix: build.py's python test phase is brittle
 :: against the unvendored onnx. The host Library\bin (onnx, protobuf, abseil DLLs)
 :: is already on PATH.

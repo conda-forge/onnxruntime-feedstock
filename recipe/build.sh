@@ -41,6 +41,10 @@ else
     # assertion. It reads uninitialized memory upstream and fails
     # intermittently on linux-64.
     export GTEST_FILTER='-QDQTransformerTests.DefaultPath_TagsGeneratedWeightWithStableContentIdentity'
+    # libonnx 1.23.2 indexes out of bounds in LayerNormalization shape inference
+    # when axis >= rank (fixed by https://github.com/onnx/onnx/pull/8466, not
+    # released); onnxruntime patches its vendored onnx for this test.
+    export GTEST_FILTER="${GTEST_FILTER}:LayerNormTest.LayerNorm_AxisExceedsRank"
     if [[ "${target_platform}" == osx-* ]]; then
         # Known limitation of the unvendored libonnx: onnxruntime's vendored onnx
         # un-deprecates opset-18 GroupNormalization, conda-forge's libonnx follows
