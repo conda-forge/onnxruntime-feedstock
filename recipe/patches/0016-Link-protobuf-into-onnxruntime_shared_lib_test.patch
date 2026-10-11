@@ -1,0 +1,19 @@
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Subject: [PATCH] Link protobuf into onnxruntime_shared_lib_test
+
+test_inference.cc builds ONNX_NAMESPACE::ModelProto objects since 1.31.0.
+With the shared conda-forge libonnx and libprotobuf, onnx_proto no longer
+brings protobuf onto the link line.
+---
+diff --git a/cmake/onnxruntime_unittests.cmake b/cmake/onnxruntime_unittests.cmake
+index 3dc631a..f40a09e 100644
+--- a/cmake/onnxruntime_unittests.cmake
++++ b/cmake/onnxruntime_unittests.cmake
+@@ -2367,6 +2367,7 @@ endif()
+         onnxruntime_test_utils
+         onnxruntime_common
+         onnx_proto
++        ${PROTOBUF_LIB}
+         onnxruntime_runtime_path_test_shared_library)
+ 
+     if(NOT WIN32)
