@@ -1,56 +1,20 @@
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Subject: [PATCH] Serve opset-28 type-only schema updates with the existing CPU kernels
 
-conda-forge only.  ONNX 1.23 gives 19 ai.onnx operators a new schema
-version at opset 28.  onnxruntime 1.30.0 plus the backport of
-https://github.com/microsoft/onnxruntime/pull/32359 (patch 0014) has
-opset-28 kernels for two of them, Mod and BitShift.  For the rest, the
-newest CPU kernel is registered open-ended ("since version N"), and
-KernelRegistry::VerifyVersion only lets an open-ended kernel serve a node
-whose schema version equals N.  Any opset-28 model using one of them
-therefore fails to load:
+conda-forge only. The newest CPU kernel of these operators is registered
+open-ended, which only matches a node at exactly that schema version, so
+an opset-28 model fails with "Failed to find kernel for <Op>(28)". Their
+opset-28 schema only changes the type constraints, so give the existing
+registrations an explicit end version of 28:
 
-    Failed to find kernel for Cast(28) ... Version mismatch.
-    node_version: 28 kernel start version: 25
-    kernel_end_version: 2147483647
+    Celu, Compress, DepthToSpace, DequantizeLinear, QuantizeLinear,
+    Einsum, OneHot, Optional, OptionalHasElement, OptionalGetElement,
+    ReduceLogSum, ReduceLogSumExp, ReverseSequence, Unique
 
-Upstream did not see this because ONNX 1.23.0 and 1.23.1 still report
-opset 27 as the last released one (https://github.com/onnx/onnx/issues/8529),
-so models built at the default opset stayed on 27.  The conda-forge
-libonnx 1.23.1 carries the fix for that, which moves the default to 28
-and makes 24 onnxruntime unit tests (MoETest, CausalConvWithStateTest,
-and on macOS a CoreML test) fail on the missing Cast(28) kernel.
-
-For the operators whose opset-28 schema differs from the previous one
-only in its type constraints, the existing kernel implements the opset-28
-operator for every type it already supports.  Give those registrations
-an explicit end version of 28 so they serve both schema versions:
-
-    Cast (25), Celu (12), Compress (11), DepthToSpace (13),
-    DequantizeLinear (25), QuantizeLinear (25), Einsum (12), OneHot (11),
-    Optional (15), OptionalHasElement (18), OptionalGetElement (18),
-    ReduceLogSum (18), ReduceLogSumExp (18), ReverseSequence (10),
-    Unique (11)
-
-The types opset 28 adds (bfloat16, float6e2m3, float6e3m2, and the wider
-Optional/Celu lists) are NOT implemented by this patch; such models are
-rejected for a missing kernel as before.  ReduceLogSum/ReduceLogSumExp
-lose their integer types in opset 28; the integer kernels are extended
-with the others and are simply never selected for an opset-28 node.
-
-Deliberately left alone:
-
-  * SpaceToDepth -- opset 28 adds a `mode` attribute the kernel does not
-    implement; registering it would silently compute the wrong result
-    for mode=CRD.  https://github.com/microsoft/onnxruntime/pull/32362
-  * SwiGLU -- new operator.
-    https://github.com/microsoft/onnxruntime/pull/32381
-  * the CUDA and other execution providers -- an opset-28 node of these
-    operators is assigned to the CPU kernel instead.
-
-Upstream's own per-operator opset-28 work is in the open pull requests
-32362, 32372, 32378, 32381 and 32393; drop this patch when onnxruntime
-ships them.
+The types opset 28 adds are not implemented. SpaceToDepth (new `mode`
+attribute) and SwiGLU (new operator) are left alone, as are the other
+execution providers. Upstream's per-operator work is in
+microsoft/onnxruntime pull requests 32362, 32372, 32378, 32381 and 32393.
 ---
 diff --git a/onnxruntime/core/providers/cpu/activation/activations.cc b/onnxruntime/core/providers/cpu/activation/activations.cc
 index 71cba37..90a85e0 100644
@@ -66,10 +30,10 @@ index 71cba37..90a85e0 100644
  REGISTER_UNARY_ELEMENTWISE_TYPED_KERNEL(Tanh, 13, double);
  REGISTER_VERSIONED_UNARY_ELEMENTWISE_KERNEL(ThresholdedRelu, 10, 21);
 diff --git a/onnxruntime/core/providers/cpu/cpu_execution_provider.cc b/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
-index 7d13ce4..917800f 100644
+index 701424a..cff1b47 100644
 --- a/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
 +++ b/onnxruntime/core/providers/cpu/cpu_execution_provider.cc
-@@ -466,7 +466,7 @@ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDoma
+@@ -469,7 +469,7 @@ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDoma
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 10, 19, IsInf);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 10, 15, float, RoiAlign);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 10, 15, double, RoiAlign);
@@ -78,7 +42,7 @@ index 7d13ce4..917800f 100644
  
  // opset 11
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11, Clip);
-@@ -560,7 +560,7 @@ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDoma
+@@ -563,7 +563,7 @@ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDoma
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, DepthToSpace);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 15, Scan);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Flatten);
@@ -87,7 +51,7 @@ index 7d13ce4..917800f 100644
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Concat);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Gather);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Slice);
-@@ -603,7 +603,7 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
+@@ -606,7 +606,7 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, Pad);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11, GatherND);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 26, Range);
@@ -96,7 +60,7 @@ index 7d13ce4..917800f 100644
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23, float, TopK);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23, double, TopK);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23, int64_t, TopK);
-@@ -611,19 +611,19 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
+@@ -614,19 +614,19 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23, int8_t, TopK);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23, int16_t, TopK);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23, uint8_t, TopK);
@@ -127,7 +91,7 @@ index 7d13ce4..917800f 100644
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, float, Resize);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, int32_t, Resize);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12, int8_t, Resize);
-@@ -653,7 +653,7 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
+@@ -656,7 +656,7 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 12, int8_t, ReduceMin);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 12, uint8_t, ReduceMin);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 12, GatherND);
@@ -136,7 +100,7 @@ index 7d13ce4..917800f 100644
  
  // REVIEW(codemzs): ConstEigenVectorArrayMap.cast<MLFLoat16) does not seem to be supported.
  // However these types work on GPU implementation.
-@@ -667,7 +667,7 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
+@@ -670,7 +670,7 @@ class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOn
                                                        Dropout);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 12, double_double,
                                                        Dropout);
@@ -145,16 +109,16 @@ index 7d13ce4..917800f 100644
  
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 15, float,
                                                        GreaterOrEqual);
-@@ -869,7 +869,7 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
+@@ -872,7 +872,7 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, float, Log);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, double, Log);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 14, Pow);
 -class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, DepthToSpace);
 +class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 28, DepthToSpace);
- class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, SpaceToDepth);
+ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 27, SpaceToDepth);
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, Slice);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 17, Split);
-@@ -1043,7 +1043,7 @@ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDoma
+@@ -1046,7 +1046,7 @@ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDoma
  #if !defined(DISABLE_OPTIONAL_TYPE)
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 15, 17, OptionalHasElement);
  class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 15, 17, OptionalGetElement);
@@ -163,7 +127,7 @@ index 7d13ce4..917800f 100644
  #endif
  
  // Opset 16
-@@ -1114,14 +1114,14 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
+@@ -1119,14 +1119,14 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, double, ReduceL2);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, int32_t, ReduceL2);
  class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, int64_t, ReduceL2);
@@ -186,7 +150,7 @@ index 7d13ce4..917800f 100644
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, 19, float, ReduceMax);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, 19, double, ReduceMax);
  class ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, 19, int32_t, ReduceMax);
-@@ -1185,8 +1185,8 @@ class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, Sc
+@@ -1190,8 +1190,8 @@ class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, Sc
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, ScatterElements);
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, Split);
  #if !defined(DISABLE_OPTIONAL_TYPE)
@@ -197,12 +161,9 @@ index 7d13ce4..917800f 100644
  
  #endif
  
-@@ -1496,36 +1496,36 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
- class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 24, uint8_t, TopK);
- 
+@@ -1503,34 +1503,34 @@ class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain,
  // Opset 25
--class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, Cast);
-+class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, 28, Cast);
+ class ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, 27, Cast);
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, ConstantOfShape);
 -class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, int32_t, DequantizeLinear);
 -class ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, uint8_t, DequantizeLinear);
@@ -260,7 +221,7 @@ index 7d13ce4..917800f 100644
  #endif
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, Flatten);
  class ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, Identity);
-@@ -2204,7 +2204,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2214,7 +2214,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                              float, RoiAlign)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 10, 15,
                                                                              double, RoiAlign)>,
@@ -269,7 +230,7 @@ index 7d13ce4..917800f 100644
        // opset 11
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 11, Clip)>,
  
-@@ -2284,7 +2284,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2294,7 +2294,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 15, Scan)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12,
                                                                        Flatten)>,
@@ -278,7 +239,7 @@ index 7d13ce4..917800f 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12,
                                                                        Concat)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12,
-@@ -2337,7 +2337,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2347,7 +2347,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                        GatherND)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 26,
                                                                        Range)>,
@@ -287,7 +248,7 @@ index 7d13ce4..917800f 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23,
                                                                              float, TopK)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23,
-@@ -2352,29 +2352,29 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2362,29 +2362,29 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                              int16_t, TopK)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 23,
                                                                              uint8_t, TopK)>,
@@ -328,7 +289,7 @@ index 7d13ce4..917800f 100644
                                                                    int64_t_float_int32_t, OneHot)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 11, 12,
                                                                              float, Resize)>,
-@@ -2503,7 +2503,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2513,7 +2513,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                              uint8_t, ReduceMin)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 12,
                                                                        GatherND)>,
@@ -337,7 +298,7 @@ index 7d13ce4..917800f 100644
  
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, float, Expand)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, double,
-@@ -2547,7 +2547,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2557,7 +2557,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                              double_float, Dropout)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 12,
                                                                              double_double, Dropout)>,
@@ -346,16 +307,16 @@ index 7d13ce4..917800f 100644
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 15,
                                                                              float, GreaterOrEqual)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 12, 15,
-@@ -2819,7 +2819,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -2829,7 +2829,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, Tile)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, Gather)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, GatherElements)>,
 -      BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, DepthToSpace)>,
 +      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 28, DepthToSpace)>,
-       BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, SpaceToDepth)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 27, SpaceToDepth)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 13, 15,
                                                                        ScatterElements)>,
-@@ -3030,7 +3030,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -3040,7 +3040,7 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                        OptionalHasElement)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 15, 17,
                                                                        OptionalGetElement)>,
@@ -364,7 +325,7 @@ index 7d13ce4..917800f 100644
  #endif
  
        // Opset 16
-@@ -3144,21 +3144,21 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -3158,21 +3158,21 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
                                                                    ReduceL2)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, int64_t,
                                                                    ReduceL2)>,
@@ -394,7 +355,7 @@ index 7d13ce4..917800f 100644
                                                                    ReduceLogSumExp)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, 19, float,
                                                                              ReduceMax)>,
-@@ -3279,8 +3279,8 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
+@@ -3293,8 +3293,8 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, ScatterElements)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 18, Split)>,
  #if !defined(DISABLE_OPTIONAL_TYPE)
@@ -405,12 +366,9 @@ index 7d13ce4..917800f 100644
  #endif
  
        // Opset 19
-@@ -3680,60 +3680,60 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
-       BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 24, SplitToSequence)>,
- 
+@@ -3696,58 +3696,58 @@ Status RegisterOnnxOperatorKernels(KernelRegistry& kernel_registry) {
        // opset 25
--      BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, Cast)>,
-+      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, 28, Cast)>,
+       BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, 27, Cast)>,
        BuildKernelCreateInfo<ONNX_OPERATOR_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, ConstantOfShape)>,
 -      BuildKernelCreateInfo<ONNX_OPERATOR_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, uint8_t,
 +      BuildKernelCreateInfo<ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_CLASS_NAME(kCpuExecutionProvider, kOnnxDomain, 25, 28, uint8_t,
@@ -544,7 +502,7 @@ index 8bdc783..d5a923d 100644
                               .TypeConstraint("O", DataTypeImpl::AllTensorAndSequenceTensorAndOptionalTypes())
                               .TypeConstraint("V", DataTypeImpl::AllTensorAndSequenceTensorTypes())
 diff --git a/onnxruntime/core/providers/cpu/quantization/quantize_linear.cc b/onnxruntime/core/providers/cpu/quantization/quantize_linear.cc
-index bbc2567..51ce00c 100644
+index a31d34b..1bef2e3 100644
 --- a/onnxruntime/core/providers/cpu/quantization/quantize_linear.cc
 +++ b/onnxruntime/core/providers/cpu/quantization/quantize_linear.cc
 @@ -119,9 +119,10 @@ static void PrepareForQDQ(const TensorShape& input_shape,
@@ -559,7 +517,7 @@ index bbc2567..51ce00c 100644
        T,                                                                     \
        KernelDefBuilder()                                                     \
            .TypeConstraint("T1", DataTypeImpl::GetTensorType<T>())            \
-@@ -614,9 +615,10 @@ Status DequantizeLinear<T>::Compute(OpKernelContext* ctx) const {
+@@ -631,9 +632,10 @@ Status DequantizeLinear<T>::Compute(OpKernelContext* ctx) const {
  }
  
  #define REGISTER_QUANTIZELINEAR(T)                                          \
@@ -601,22 +559,6 @@ index f59ad5b..d5c4d3c 100644
  
  REGISTER_UNARY_ELEMENTWISE_VERSIONED_KERNEL(ReduceMax, 1, 10);
  REGISTER_UNARY_ELEMENTWISE_VERSIONED_KERNEL_INT64_ONLY(ReduceMax, 1, 10);
-diff --git a/onnxruntime/core/providers/cpu/tensor/cast_op.cc b/onnxruntime/core/providers/cpu/tensor/cast_op.cc
-index 1d5a7c6..9087471 100644
---- a/onnxruntime/core/providers/cpu/tensor/cast_op.cc
-+++ b/onnxruntime/core/providers/cpu/tensor/cast_op.cc
-@@ -1212,9 +1212,10 @@ ONNX_CPU_OPERATOR_VERSIONED_KERNEL(
-         .MayInplace(0, 0),  // allocation planner will check input and output sizes match before inplacing
-     Cast);
- 
--ONNX_CPU_OPERATOR_KERNEL(
-+ONNX_CPU_OPERATOR_VERSIONED_KERNEL(
-     Cast,
-     25,
-+    28,
-     KernelDefBuilder()
-         .TypeConstraint("T1", BuildKernelDefConstraintsFromTypeList<EnabledSrcTypes>())
-         .TypeConstraint("T2", BuildKernelDefConstraintsFromTypeList<EnabledDstTypes>())
 diff --git a/onnxruntime/core/providers/cpu/tensor/compress.cc b/onnxruntime/core/providers/cpu/tensor/compress.cc
 index be79324..227ca9c 100644
 --- a/onnxruntime/core/providers/cpu/tensor/compress.cc
@@ -666,10 +608,10 @@ index f49b03f..c130e80 100644
                          KernelDefBuilder()
                              .TypeConstraint("T",
 diff --git a/onnxruntime/core/providers/cpu/tensor/space_depth_ops.cc b/onnxruntime/core/providers/cpu/tensor/space_depth_ops.cc
-index f8b78e8..8ff0c02 100644
+index f59cd88..d7ca094 100644
 --- a/onnxruntime/core/providers/cpu/tensor/space_depth_ops.cc
 +++ b/onnxruntime/core/providers/cpu/tensor/space_depth_ops.cc
-@@ -47,9 +47,10 @@ ONNX_CPU_OPERATOR_VERSIONED_KERNEL(
+@@ -48,9 +48,10 @@ ONNX_CPU_OPERATOR_VERSIONED_KERNEL(
                                DataTypeImpl::GetTensorType<int8_t>()}),
      DepthToSpace);
  

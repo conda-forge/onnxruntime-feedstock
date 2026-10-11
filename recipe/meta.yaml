@@ -47,12 +47,9 @@ source:
     - patches/0012-Use-the-conda-forge-libabseil-package.patch
     # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
     - patches/0013-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
-    # onnx 1.23 adds the FLOAT6E2M3/FLOAT6E3M2 data types and opset 28;
-    # https://github.com/microsoft/onnxruntime/pull/32359 as merged (9b87005).
-    # Upstream reverted it in https://github.com/microsoft/onnxruntime/pull/33073
-    # to wait for an ONNX release fixing onnx/onnx#8529; we link libonnx 1.23.0
-    # and cannot go back to ONNX 1.22, so the backport stays.
-    - patches/0014-Support-ONNX-1.23.0-new-float6-types-and-opset-28.patch
+    # Backport compatibility to onnx 1.23.2
+    # https://github.com/microsoft/onnxruntime/pull/33134
+    - patches/0014-Reintegrate-ONNX-1.23.2-base-plumbing.patch
     # conda-forge's libonnx reports opset 28 as released; let the existing CPU
     # kernels serve the operators whose opset-28 schema only adds types
     - patches/0015-Serve-opset-28-type-only-schema-updates-with-the-exi.patch
