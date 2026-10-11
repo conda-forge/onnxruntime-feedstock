@@ -52,6 +52,8 @@ source:
     - patches/0014-Fix-builds-with-newer-installed-ONNX-versions.patch
     # 1.31.0's shared-lib test builds ModelProtos; needs the shared libprotobuf
     - patches/0015-Link-protobuf-into-onnxruntime_shared_lib_test.patch
+    # libonnx 1.23.2 defaults tests to opset 28; onnxruntime 1.31.0 supports up to 27
+    - patches/0016-Keep-unit-tests-on-opsets-onnxruntime-1.31.0-supports.patch
 
 build:
   number: {{ build }}
