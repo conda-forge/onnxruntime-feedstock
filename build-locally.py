@@ -98,10 +98,7 @@ def main(args=None):
     p.add_argument(
         "--debug",
         action="store_true",
-        help=(
-            "Setup debug environment using `conda debug` "
-            "(or `rattler-build debug` for rattler-build recipes)"
-        ),
+        help="Setup debug environment using `conda debug`",
     )
     p.add_argument("--output-id", help="If running debug, specify the output to setup.")
 

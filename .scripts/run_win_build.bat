@@ -40,12 +40,12 @@ powershell -NoProfile -ExecutionPolicy unrestricted -Command "(Get-Content pixi.
 :: Git on Windows needs to run post link scripts to properly set up SSL certificates
 pixi config set --global run-post-link-scripts insecure
 if !errorlevel! neq 0 exit /b !errorlevel!
-pixi install --environment build
+pixi install
 if !errorlevel! neq 0 exit /b !errorlevel!
-pixi list --environment build
+pixi list
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
-pixi shell-hook --environment build > "%ACTIVATE_PIXI%"
+pixi shell-hook > "%ACTIVATE_PIXI%"
 if !errorlevel! neq 0 exit /b !errorlevel!
 call "%ACTIVATE_PIXI%"
 if !errorlevel! neq 0 exit /b !errorlevel!
@@ -89,12 +89,8 @@ call :end_group
 
 :: Build the recipe
 echo Building recipe
-set "_OLD_CONDA_SUBDIR=%CONDA_SUBDIR%"
-set "CONDA_SUBDIR=%BUILD_PLATFORM%"
 conda-build.exe "recipe" -m .ci_support\%CONFIG%.yaml --suppress-variables %EXTRA_CB_OPTIONS%
 if !errorlevel! neq 0 exit /b !errorlevel!
-set "_OLD_CONDA_SUBDIR="
-set "CONDA_SUBDIR=%_OLD_CONDA_SUBDIR%"
 
 call :start_group "Inspecting artifacts"
 :: inspect_artifacts was only added in conda-forge-ci-setup 4.9.4
@@ -104,7 +100,7 @@ call :end_group
 :: Prepare some environment variables for the upload step
 if /i "%CI%" == "github_actions" (
     set "FEEDSTOCK_NAME=%GITHUB_REPOSITORY:*/=%"
-    set "GIT_BRANCH=%GITHUB_REF_NAME%"
+    set "GIT_BRANCH=%GITHUB_REF:refs/heads/=%"
     if /i "%GITHUB_EVENT_NAME%" == "pull_request" (
         set "IS_PR_BUILD=True"
     ) else (
