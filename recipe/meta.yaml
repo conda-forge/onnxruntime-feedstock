@@ -111,6 +111,7 @@ requirements:
     - packaging
     - python-flatbuffers
     - optional-lite
+    - safeint
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
@@ -209,7 +210,6 @@ about:
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/safeint-src/LICENSE
     # Vendored at build time by onnxruntime for the CoreML execution provider.
     - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
     - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
