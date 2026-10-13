@@ -9,7 +9,7 @@ About onnxruntime
 
 Home: https://github.com/microsoft/onnxruntime/
 
-Package license: MIT AND BSL-1.0 AND BSD-3-Clause
+Package license: MIT AND BSL-1.0
 
 Summary: cross-platform, high performance ML inferencing and training accelerator
 

@@ -49,6 +49,8 @@ source:
     - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
     # avoid loading both libprotobuf and libprotobuf-lite into one process
     - patches/0013-Link-the-full-libprotobuf-runtime-when-protobuf-is-p.patch
+    # link conda-forge's libcoremltools instead of compiling the coremltools sources
+    - patches/0014-Use-a-preinstalled-libcoremltools-for-the-CoreML-EP.patch  # [osx and arm64]
 
 build:
   number: {{ build }}
@@ -86,6 +88,7 @@ requirements:
     - ninja
   host:
     - libabseil
+    - libcoremltools  # [osx and arm64]
     - libprotobuf
     - re2
     - python
@@ -160,6 +163,7 @@ outputs:
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
       host:
         - libabseil
+        - libcoremltools  # [osx and arm64]
         - libprotobuf
         - re2
       run:
@@ -196,8 +200,7 @@ outputs:
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0  # [not (osx and arm64)]
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]
+  license: MIT AND BSL-1.0
   license_file:
     - LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
@@ -208,7 +211,6 @@ about:
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
     - build-ci/Release/_deps/safeint-src/LICENSE
     # Vendored at build time by onnxruntime for the CoreML execution provider.
-    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
     - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
     - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
 
