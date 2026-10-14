@@ -63,6 +63,9 @@ build:
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
+    # only the onnxruntime-ep-tensorrt output links TensorRT
+    - libnvinfer-devel        # [linux and cuda_compiler_version == "13.4"]
+    - libnvonnxparser-devel   # [linux and cuda_compiler_version == "13.4"]
   # This needs to be coherent with the entry_points list defined around
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
@@ -105,6 +108,9 @@ requirements:
     - cuda-cudart-dev
     - cuda-nvrtc-dev
     {% endif %}
+    # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
+    - libnvinfer-devel        # [linux and cuda_compiler_version == "13.4"]
+    - libnvonnxparser-devel   # [linux and cuda_compiler_version == "13.4"]
     - flake8
     - gmock
     - libdate
@@ -197,6 +203,36 @@ outputs:
         - ./a.out  # [unix]
         - call .\run_cpp_test.bat  # [win]
         - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+
+  # Separate from onnxruntime so that only users who want TensorRT pull in its runtime.
+  - name: onnxruntime-ep-tensorrt
+    build:
+      skip: true  # [not (linux and cuda_compiler_version == "13.4")]
+      string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+      # shipped by onnxruntime next to this library
+      missing_dso_whitelist:
+        - '*/libonnxruntime_providers_shared.so'
+    script: install-ep-tensorrt.sh
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+      host:
+        - python
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev
+        - libnvinfer-devel
+        - libnvonnxparser-devel
+        - libprotobuf
+      run:
+        - python
+        - {{ pin_subpackage('onnxruntime', exact=True) }}
+    test:
+      commands:
+        # onnxruntime loads libonnxruntime_providers_shared globally before any provider.
+        - python -c "import ctypes, os, onnxruntime; capi = os.path.join(os.path.dirname(onnxruntime.__file__), 'capi'); [ctypes.CDLL(os.path.join(capi, f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
 
 about:
   home: https://github.com/microsoft/onnxruntime/

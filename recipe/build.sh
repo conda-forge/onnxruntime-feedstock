@@ -104,7 +104,14 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
     cmake_extra_defines+=( "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc" \
 			   "CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH_LIST}"
 			 )
-
+    # meta.yaml decides which variants get TensorRT. The builtin parser links
+    # conda-forge's libnvonnxparser instead of vendoring onnx-tensorrt.
+    if [[ -f "${PREFIX}/include/NvInfer.h" ]]; then
+        cmake_extra_defines+=( "onnxruntime_USE_TENSORRT=ON" \
+                               "onnxruntime_USE_TENSORRT_BUILTIN_PARSER=ON" \
+                               "onnxruntime_TENSORRT_HOME=${PREFIX}"
+                             )
+    fi
 fi
 
 # Since 1.29.0 telemetry is opt-out rather than opt-in. On non-Windows it pulls the
@@ -139,6 +146,8 @@ if [[ -n "${OSX_ARCH:+yes}" ]]; then
     rm "${SP_DIR}"/onnxruntime/capi/libonnxruntime.*dylib
 else
     rm "${SP_DIR}"/onnxruntime/capi/libonnxruntime.so*
+    # onnxruntime-ep-tensorrt ships it.
+    rm -f "${SP_DIR}"/onnxruntime/capi/libonnxruntime_providers_tensorrt.so
 fi
 
 # With --use_cuda, upstream names the wheel onnxruntime-gpu, the name of the separate
