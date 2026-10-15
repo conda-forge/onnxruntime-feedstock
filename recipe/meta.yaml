@@ -2,7 +2,7 @@
 {% set build_ext = ("cuda" ~ cuda_compiler_version).replace(".", "") if cuda_enabled else "cpu" %}
 {% set version = "1.31.0" %}
 {% set suffix = "" %}  # [suffix == None]
-{% set build = 0 %}
+{% set build = 1 %}
 
 {% if cuda_enabled %}
 {% set build = build + 200 %}
@@ -43,6 +43,14 @@ source:
     - patches/0009-Use-CC-AR-NM-from-environment-in-test_gen_def.patch
     # new QMoE test in 1.31.0 imports onnx but runs before build.py's onnx gate
     - patches/0010-Skip-QMoE-expert-distribution-test-without-onnx.patch
+    # abseil's CMake config only matches its exact version
+    - patches/0011-Accept-any-installed-abseil-version.patch
+    # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
+    - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
+    # avoid loading both libprotobuf and libprotobuf-lite into one process
+    - patches/0013-Link-the-full-libprotobuf-runtime-when-protobuf-is-p.patch
+    # link conda-forge's libcoremltools instead of compiling the coremltools sources
+    - patches/0014-Use-a-preinstalled-libcoremltools-for-the-CoreML-EP.patch  # [osx and arm64]
 
 build:
   number: {{ build }}
@@ -54,6 +62,9 @@ build:
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
+    # only the onnxruntime-ep-tensorrt output links TensorRT
+    - libnvinfer-devel        # [linux and cuda_compiler_version == "13.4"]
+    - libnvonnxparser-devel   # [linux and cuda_compiler_version == "13.4"]
   # This needs to be coherent with the entry_points list defined around
   # https://github.com/microsoft/onnxruntime/blob/main/setup.py#L735
   entry_points:
@@ -73,9 +84,15 @@ requirements:
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     {% endif %}
+    # protoc must run on the build platform
+    - libprotobuf
     - cmake <4
     - ninja
   host:
+    - libabseil
+    - libcoremltools  # [osx and arm64]
+    - libprotobuf
+    - re2
     - python
     - pip
     - setuptools
@@ -90,12 +107,16 @@ requirements:
     - cuda-cudart-dev
     - cuda-nvrtc-dev
     {% endif %}
+    # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
+    - libnvinfer-devel        # [linux and cuda_compiler_version == "13.4"]
+    - libnvonnxparser-devel   # [linux and cuda_compiler_version == "13.4"]
     - flake8
     - gmock
     - libdate
     - packaging
     - python-flatbuffers
     - optional-lite
+    - safeint
     # Used by the CoreML execution provider to build mlpackage models;
     # onnxruntime finds it via find_package, so prefer the conda-forge build.
     - nlohmann_json  # [osx and arm64]
@@ -146,6 +167,11 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        - libabseil
+        - libcoremltools  # [osx and arm64]
+        - libprotobuf
+        - re2
       run:
         - __cuda    # [cuda_compiler_version != "None"]
       run_constrained:
@@ -177,25 +203,49 @@ outputs:
         - call .\run_cpp_test.bat  # [win]
         - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
 
+  # Separate from onnxruntime so that only users who want TensorRT pull in its runtime.
+  - name: onnxruntime-ep-tensorrt
+    build:
+      skip: true  # [not (linux and cuda_compiler_version == "13.4")]
+      string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
+      # shipped by onnxruntime next to this library
+      missing_dso_whitelist:
+        - '*/libonnxruntime_providers_shared.so'
+    script: install-ep-tensorrt.sh
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+      host:
+        - python
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev
+        - libnvinfer-devel
+        - libnvonnxparser-devel
+        - libprotobuf
+      run:
+        - python
+        - {{ pin_subpackage('onnxruntime' + suffix, exact=True) }}
+    test:
+      commands:
+        # onnxruntime loads libonnxruntime_providers_shared globally before any provider.
+        - python -c "import ctypes, os, onnxruntime; capi = os.path.join(os.path.dirname(onnxruntime.__file__), 'capi'); [ctypes.CDLL(os.path.join(capi, f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
+
 about:
   home: https://github.com/microsoft/onnxruntime/
   summary: cross-platform, high performance ML inferencing and training accelerator
-  license: MIT AND BSL-1.0  # [not (osx and arm64)]
-  license: MIT AND BSL-1.0 AND BSD-3-Clause  # [osx and arm64]
+  license: MIT AND BSL-1.0
   license_file:
     - LICENSE
-    - build-ci/Release/_deps/abseil_cpp-src/LICENSE
     - build-ci/Release/_deps/eigen3-src/COPYING.MPL2
     - build-ci/Release/_deps/flatbuffers-src/LICENSE
     - build-ci/Release/_deps/gsl-src/LICENSE
     - build-ci/Release/_deps/nlohmann_json-src/LICENSE.MIT  # [not unix]
     - build-ci/Release/_deps/onnx-src/LICENSE
-    - build-ci/Release/_deps/protobuf-src/LICENSE
     - build-ci/Release/_deps/pytorch_cpuinfo-src/LICENSE
-    - build-ci/Release/_deps/re2-src/LICENSE
-    - build-ci/Release/_deps/safeint-src/LICENSE
     # Vendored at build time by onnxruntime for the CoreML execution provider.
-    - build-ci/Release/_deps/coremltools-src/LICENSE.txt  # [osx and arm64]
     - build-ci/Release/_deps/fp16-src/LICENSE             # [osx and arm64]
     - build-ci/Release/_deps/psimd-src/LICENSE            # [osx and arm64]
 

@@ -22,6 +22,9 @@ else
     # assertion. It reads uninitialized memory upstream and fails
     # intermittently on linux-64.
     export GTEST_FILTER='-QDQTransformerTests.DefaultPath_TagsGeneratedWeightWithStableContentIdentity'
+    # Expects a degree of parallelism equal to the thread count, which the thread
+    # pool multiplies on hybrid CPUs (e.g. Apple Silicon with efficiency cores).
+    GTEST_FILTER+=':GroupQueryAttentionTest.FlashDecoding_LocalWindow_Reference_CPU'
 fi
 
 if [[ "${target_platform:-other}" == 'osx-arm64' ]]; then
@@ -39,6 +42,9 @@ if [[ "${target_platform}" == "linux-64" || "${target_platform}" == "linux-aarch
     LDFLAGS+=" -Wl,-z,noexecstack"
 fi
 
+# protobuf, abseil and re2 come from conda-forge, but onnx stays vendored. Its
+# protobuf-lite generated code registers nothing in protobuf's global
+# descriptor pool, so it cannot clash with a separately imported onnx package.
 cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "FLATBUFFERS_BUILD_FLATC=OFF" \
                       "onnxruntime_DONT_VECTORIZE=$DONT_VECTORIZE" \
@@ -46,7 +52,8 @@ cmake_extra_defines=( "EIGEN_MPL2_ONLY=ON" \
                       "onnxruntime_BUILD_UNIT_TESTS=$BUILD_UNIT_TESTS" \
                       "CMAKE_PREFIX_PATH=$PREFIX" \
                       "CMAKE_CXX_STANDARD=20" \
-		      "CMAKE_INSTALL_LIBDIR=lib"
+		      "CMAKE_INSTALL_LIBDIR=lib" \
+                      "CMAKE_DISABLE_FIND_PACKAGE_onnx=ON"
 )
 
 # Copy the defines from the "activate" script (e.g. activate-gcc_linux-aarch64.sh)
@@ -97,7 +104,14 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
     cmake_extra_defines+=( "CMAKE_CUDA_COMPILER=${BUILD_PREFIX}/bin/nvcc" \
 			   "CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH_LIST}"
 			 )
-
+    # meta.yaml decides which variants get TensorRT. The builtin parser links
+    # conda-forge's libnvonnxparser instead of vendoring onnx-tensorrt.
+    if [[ -f "${PREFIX}/include/NvInfer.h" ]]; then
+        cmake_extra_defines+=( "onnxruntime_USE_TENSORRT=ON" \
+                               "onnxruntime_USE_TENSORRT_BUILTIN_PARSER=ON" \
+                               "onnxruntime_TENSORRT_HOME=${PREFIX}"
+                             )
+    fi
 fi
 
 # Since 1.29.0 telemetry is opt-out rather than opt-in. On non-Windows it pulls the
@@ -116,6 +130,7 @@ python tools/ci_build/build.py \
     --update \
     --build ${RUN_TESTS_BUILD_PY_OPTIONS} \
     --skip_submodule_sync \
+    --path_to_protoc_exe "$BUILD_PREFIX/bin/protoc" \
     ${BUILD_ARGS}
 
 # Install the project into cwd.
@@ -125,6 +140,15 @@ cmake --install build-ci/Release --prefix "install-ci"
 for whl_file in build-ci/Release/dist/onnxruntime*.whl; do
     python -m pip install "$whl_file"
 done
+# The wheel bundles libonnxruntime, which the statically linked Python bindings
+# don't use; onnxruntime-cpp ships it.
+if [[ -n "${OSX_ARCH:+yes}" ]]; then
+    rm "${SP_DIR}"/onnxruntime/capi/libonnxruntime.*dylib
+else
+    rm "${SP_DIR}"/onnxruntime/capi/libonnxruntime.so*
+    # onnxruntime-ep-tensorrt ships it.
+    rm -f "${SP_DIR}"/onnxruntime/capi/libonnxruntime_providers_tensorrt.so
+fi
 
 # With --use_cuda, upstream names the wheel onnxruntime-gpu, the name of the separate
 # CUDA project on PyPI. On conda-forge both variants are the onnxruntime package, so
