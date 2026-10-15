@@ -59,7 +59,6 @@ build:
   # Since 1.11, power9 seems to be required.
   skip: true  # [ppc64le]
   skip: true  # [osx and x86_64]
-  skip: true  # [py != 313]
   string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ build_ext }}
   ignore_run_exports_from:
     - zlib
@@ -228,7 +227,7 @@ outputs:
         - libprotobuf
       run:
         - python
-        - {{ pin_subpackage('onnxruntime', exact=True) }}
+        - {{ pin_subpackage('onnxruntime' + suffix, exact=True) }}
     test:
       commands:
         # onnxruntime loads libonnxruntime_providers_shared globally before any provider.
