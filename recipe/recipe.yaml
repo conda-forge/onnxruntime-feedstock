@@ -61,10 +61,6 @@ build:
     - osx and x86_64
     # don't build cuda versions with novec
     - cuda_enabled and novec
-    # Temporary: reduced build matrix while debugging CI.
-    - osx
-    - not cuda_enabled
-    - cuda_compiler_version == "13.4"
 
 outputs:
   # Builds libonnxruntime and everything the Python bindings need. The outputs
