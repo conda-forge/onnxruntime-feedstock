@@ -151,7 +151,6 @@ outputs:
         - if: openvino_enabled
           then:
             - libopenvino-dev
-            - libopenvino-onnx-frontend
       ignore_run_exports:
         from_package:
           - zlib
@@ -168,7 +167,6 @@ outputs:
           - if: openvino_enabled
             then:
               - libopenvino-dev
-              - libopenvino-onnx-frontend
 
   - package:
       name: onnxruntime${{ suffix }}-cpp
@@ -317,7 +315,6 @@ outputs:
         - if: openvino_enabled
           then:
             - libopenvino-dev
-            - libopenvino-onnx-frontend
       ignore_run_exports:
         from_package:
           - zlib
@@ -328,7 +325,6 @@ outputs:
           - if: openvino_enabled
             then:
               - libopenvino-dev
-              - libopenvino-onnx-frontend
       run:
         - python
         - packaging
