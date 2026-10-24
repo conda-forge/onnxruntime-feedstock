@@ -181,6 +181,20 @@ if $build_unit_tests == "ON" {
     ctest --test-dir build-ci/Release --build-config Release --output-on-failure --parallel $build_jobs
 }
 
+# Configured separately so that build-ci, which the other outputs reuse, stays
+# identical to a build without it: onnxruntime-ep-openvino ships only the plugin
+# library, built against conda-forge's OpenVINO.
+if ($env.openvino_enabled? | default "false") == "true" {
+    let ov_build_py_args = ($build_py_args
+        | where {|a| $a not-in ["--build_wheel" "--enable_lto"]}
+        | each {|a| if $a == "build-ci" { "build-ov" } else { $a }})
+    let ov_cmake_defines = ($cmake_defines
+        | where {|d| not ($d | str starts-with "onnxruntime_BUILD_UNIT_TESTS=")}
+        | append "onnxruntime_BUILD_UNIT_TESTS=OFF")
+    python tools/ci_build/build.py ...$ov_build_py_args --use_openvino CPU --cmake_extra_defines ...$ov_cmake_defines
+    cmake --build build-ov/Release --config Release --target onnxruntime_providers_openvino --parallel $build_jobs
+}
+
 # Install the C++ library for onnxruntime-cpp. 'cmake --install' only provides
 # the exported CMake targets; the headers keep the source tree's layout.
 cmake --install build-ci/Release --prefix install-ci
