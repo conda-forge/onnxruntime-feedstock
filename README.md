@@ -49,6 +49,15 @@ Package license: MIT AND BSL-1.0
 
 Summary: cross-platform, high performance ML inferencing and training accelerator
 
+About onnxruntime-ep-openvino
+-----------------------------
+
+Home: https://github.com/microsoft/onnxruntime/
+
+Package license: MIT AND BSL-1.0
+
+Summary: cross-platform, high performance ML inferencing and training accelerator
+
 About onnxruntime-ep-tensorrt
 -----------------------------
 
@@ -111,6 +120,7 @@ Current release info
 | --- | --- | --- | --- |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime-green.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime.svg)](https://anaconda.org/conda-forge/onnxruntime) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-cpp) |
+| [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--ep--openvino-green.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-openvino) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-ep-openvino.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-openvino) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-ep-openvino.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-openvino) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-ep-openvino.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-openvino) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--ep--tensorrt-green.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-tensorrt) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-ep-tensorrt.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-tensorrt) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-ep-tensorrt.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-tensorrt) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-ep-tensorrt.svg)](https://anaconda.org/conda-forge/onnxruntime-ep-tensorrt) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec.svg)](https://anaconda.org/conda-forge/onnxruntime-novec) |
 | [![Conda Recipe](https://img.shields.io/badge/recipe-onnxruntime--novec--cpp-green.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/onnxruntime-novec-cpp.svg)](https://anaconda.org/conda-forge/onnxruntime-novec-cpp) |
@@ -132,7 +142,7 @@ How to use
 <summary>With conda</summary>
 
 ```
-conda install onnxruntime onnxruntime-cpp onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
+conda install onnxruntime onnxruntime-cpp onnxruntime-ep-openvino onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
 ```
 
 </details>
@@ -141,7 +151,7 @@ conda install onnxruntime onnxruntime-cpp onnxruntime-ep-tensorrt onnxruntime-no
 <summary>With mamba</summary>
 
 ```
-mamba install onnxruntime onnxruntime-cpp onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
+mamba install onnxruntime onnxruntime-cpp onnxruntime-ep-openvino onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
 ```
 
 </details>
@@ -151,9 +161,9 @@ mamba install onnxruntime onnxruntime-cpp onnxruntime-ep-tensorrt onnxruntime-no
 
 ```
 # for adding to your local project
-pixi add onnxruntime onnxruntime-cpp onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
+pixi add onnxruntime onnxruntime-cpp onnxruntime-ep-openvino onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
 # for installing globally
-pixi global install onnxruntime onnxruntime-cpp onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
+pixi global install onnxruntime onnxruntime-cpp onnxruntime-ep-openvino onnxruntime-ep-tensorrt onnxruntime-novec onnxruntime-novec-cpp
 ```
 
 </details>
