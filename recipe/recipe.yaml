@@ -8,7 +8,9 @@ context:
   cuda_enabled: ${{ cuda_compiler_version != "None" }}
   # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
   tensorrt_enabled: ${{ linux and cuda_compiler_version == "13.4" }}
-  build_number_base: 2
+  # The OpenVINO execution provider only offers Intel devices, and does not use CUDA.
+  openvino_enabled: ${{ (target_platform == "linux-64" or target_platform == "win-64") and not novec and not cuda_enabled }}
+  build_number_base: 3
   build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
   build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
 
@@ -75,6 +77,7 @@ outputs:
         env:
           cuda_compiler_version: ${{ cuda_compiler_version }}
           suffix: ${{ suffix }}
+          openvino_enabled: ${{ openvino_enabled }}
           # RegexFullMatch.NonUtf8Pattern prints invalid UTF-8, which breaks
           # rattler-build's log output.
           # The QDQ MatMulNBits sharing-identity determinism assertion reads
@@ -145,6 +148,10 @@ outputs:
           then:
             - libnvinfer-devel
             - libnvonnxparser-devel
+        - if: openvino_enabled
+          then:
+            - libopenvino-dev
+            - libopenvino-onnx-frontend
       ignore_run_exports:
         from_package:
           - zlib
@@ -157,6 +164,11 @@ outputs:
             then:
               - libnvinfer-devel
               - libnvonnxparser-devel
+          # only onnxruntime-ep-openvino links OpenVINO
+          - if: openvino_enabled
+            then:
+              - libopenvino-dev
+              - libopenvino-onnx-frontend
 
   - package:
       name: onnxruntime${{ suffix }}-cpp
@@ -302,6 +314,10 @@ outputs:
           then:
             - libnvinfer-devel
             - libnvonnxparser-devel
+        - if: openvino_enabled
+          then:
+            - libopenvino-dev
+            - libopenvino-onnx-frontend
       ignore_run_exports:
         from_package:
           - zlib
@@ -309,6 +325,10 @@ outputs:
             then:
               - libnvinfer-devel
               - libnvonnxparser-devel
+          - if: openvino_enabled
+            then:
+              - libopenvino-dev
+              - libopenvino-onnx-frontend
       run:
         - python
         - packaging
@@ -389,6 +409,76 @@ outputs:
       - script:
           # onnxruntime loads libonnxruntime_providers_shared globally before any provider.
           - python -c "import ctypes, os, onnxruntime; capi = os.path.join(os.path.dirname(onnxruntime.__file__), 'capi'); [ctypes.CDLL(os.path.join(capi, f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
+
+  # Plugin execution provider, so that only users who want OpenVINO pull it in.
+  # One build serves both onnxruntime and onnxruntime-novec.
+  - package:
+      name: onnxruntime-ep-openvino
+    inherit: onnxruntime${{ suffix }}-build
+    build:
+      skip:
+        - not openvino_enabled
+      string: py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}_${{ build_ext }}
+      script:
+        # onnxruntime looks for provider libraries next to the module that contains it,
+        # which for the statically linked Python bindings is onnxruntime/capi.
+        - if: win
+          then:
+            - copy /Y build-ov\Release\onnxruntime_providers_openvino.dll "%SP_DIR%\onnxruntime\capi\"
+          else:
+            - install -D -m 755 build-ov/Release/libonnxruntime_providers_openvino.so "${SP_DIR}/onnxruntime/capi/libonnxruntime_providers_openvino.so"
+      files:
+        - "**/site-packages/onnxruntime/capi/*onnxruntime_providers_openvino.*"
+      dynamic_linking:
+        # shipped by onnxruntime next to this library
+        missing_dso_allowlist:
+          - "*/libonnxruntime_providers_shared.so"
+          - "**/onnxruntime_providers_shared.dll"
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      host:
+        - python
+        - libopenvino
+        - libopenvino-dev
+        - libopenvino-onnx-frontend
+        - libabseil
+        - libprotobuf
+      ignore_run_exports:
+        # libopenvino-dev exports every OpenVINO frontend; only the ONNX one is used
+        from_package:
+          - libopenvino-dev
+      run:
+        - python
+        - libopenvino-intel-cpu-plugin
+        - libopenvino-intel-gpu-plugin
+        - if: linux
+          then:
+            - libopenvino-intel-npu-plugin
+        - libopenvino-auto-plugin
+        - libopenvino-hetero-plugin
+        - libopenvino-auto-batch-plugin
+      run_constraints:
+        - onnxruntime ${{ version }}.*
+        - onnxruntime-novec ${{ version }}.*
+    tests:
+      - script:
+          - if: linux
+            then:
+              - test -f $SP_DIR/onnxruntime/capi/libonnxruntime_providers_openvino.so
+              - test -z "$(ldd -r $SP_DIR/onnxruntime/capi/libonnxruntime_providers_openvino.so 2>&1 | grep -E 'undefined symbol|not found' | grep -v Provider_GetHost)"
+            else:
+              - if not exist %SP_DIR%\onnxruntime\capi\onnxruntime_providers_openvino.dll exit 1
+          - python test_ep_openvino.py CPU
+        requirements:
+          run:
+            - ${{ pin_subpackage('onnxruntime' ~ suffix, exact=True) }}
+            - onnx
+        files:
+          recipe:
+            - test_ep_openvino.py
 
 about:
   homepage: https://github.com/microsoft/onnxruntime/
