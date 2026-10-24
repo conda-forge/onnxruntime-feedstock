@@ -425,11 +425,6 @@ outputs:
             - install -D -m 755 build-ov/Release/libonnxruntime_providers_openvino.so "${SP_DIR}/onnxruntime/capi/libonnxruntime_providers_openvino.so"
       files:
         - "**/site-packages/onnxruntime/capi/*onnxruntime_providers_openvino.*"
-      dynamic_linking:
-        # shipped by onnxruntime next to this library
-        missing_dso_allowlist:
-          - "*/libonnxruntime_providers_shared.so"
-          - "**/onnxruntime_providers_shared.dll"
     requirements:
       build:
         - ${{ compiler('c') }}
