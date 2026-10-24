@@ -18,8 +18,6 @@ github_actions_labels:
 - namespace-profile-16cpu-on-win-64
 libabseil:
 - '20260526'
-libopenvino:
-- 2026.4.1
 libopenvino_dev:
 - 2026.4.1
 libprotobuf:
