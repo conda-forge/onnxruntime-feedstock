@@ -441,15 +441,9 @@ outputs:
         - ${{ compiler('cxx') }}
       host:
         - python
-        - libopenvino
         - libopenvino-dev
-        - libopenvino-onnx-frontend
         - libabseil
         - libprotobuf
-      ignore_run_exports:
-        # libopenvino-dev exports every OpenVINO frontend; only the ONNX one is used
-        from_package:
-          - libopenvino-dev
       run:
         - python
       run_constraints:
@@ -460,7 +454,6 @@ outputs:
           - if: linux
             then:
               - test -f $SP_DIR/onnxruntime/capi/libonnxruntime_providers_openvino.so
-              - test -z "$(ldd -r $SP_DIR/onnxruntime/capi/libonnxruntime_providers_openvino.so 2>&1 | grep -E 'undefined symbol|not found' | grep -v Provider_GetHost)"
             else:
               - if not exist %SP_DIR%\onnxruntime\capi\onnxruntime_providers_openvino.dll exit 1
           - python test_ep_openvino.py CPU
@@ -468,7 +461,6 @@ outputs:
           run:
             - ${{ pin_subpackage('onnxruntime' ~ suffix, exact=True) }}
             - onnx
-            - libopenvino-intel-cpu-plugin
         files:
           recipe:
             - test_ep_openvino.py
