@@ -110,12 +110,19 @@ rm -rf dist
 python $"($env.SRC_DIR)/setup.py" bdist_wheel ...$wheel_args ...$plat_args
 python -m pip install --no-deps --no-build-isolation ...(glob "dist/onnxruntime*.whl")
 
-# The wheel bundles libonnxruntime, which the statically linked Python bindings
-# don't use; onnxruntime-cpp ships it. onnxruntime-ep-tensorrt ships the
-# TensorRT provider.
+# The wheel bundles libonnxruntime and the provider libraries, which
+# onnxruntime-cpp ships. On Linux the Python bindings link libonnxruntime, which
+# loads the providers from its own directory. Elsewhere the bindings are linked
+# statically and load the providers from capi, except TensorRT, which
+# onnxruntime-ep-tensorrt ships.
 # 'glob' would parse the backslashes of Windows paths as part of the pattern.
+let bundled = if ($env.target_platform | str starts-with "linux") {
+    '^libonnxruntime(_providers_\w+)?\.'
+} else {
+    '^libonnxruntime(_providers_tensorrt)?\.'
+}
 let capi = $"($env.SP_DIR)/onnxruntime/capi"
-for f in (ls $capi | get name | where {|f| ($f | path basename) =~ '^libonnxruntime(_providers_tensorrt)?\.'}) {
+for f in (ls $capi | get name | where {|f| ($f | path basename) =~ $bundled}) {
     rm $f
 }
 

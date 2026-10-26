@@ -8,7 +8,7 @@ context:
   cuda_enabled: ${{ cuda_compiler_version != "None" }}
   # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
   tensorrt_enabled: ${{ linux and cuda_compiler_version == "13.4" }}
-  build_number_base: 2
+  build_number_base: 3
   build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
   build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
 
@@ -52,6 +52,7 @@ source:
     # the onnxruntime output reconfigures the staging build tree, which must not
     # rebuild the CUDA provider on Windows
     - patches/0015-Keep-the-timestamp-of-the-unchanged-CUDA-12.9-header.patch
+    - patches/0016-Link-the-Python-bindings-to-the-shared-library.patch
 
 build:
   number: ${{ build_number }}
@@ -314,6 +315,9 @@ outputs:
         - packaging
         - protobuf
         - python-flatbuffers
+        - if: linux
+          then:
+            - ${{ pin_subpackage('onnxruntime' ~ suffix ~ '-cpp', exact=True) }}
         # avoid that people without GPUs needlessly download ~0.5-1GB
         - if: cuda_enabled
           then:
@@ -360,13 +364,12 @@ outputs:
         - not tensorrt_enabled
       string: py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}_${{ build_ext }}
       script:
-        # onnxruntime looks for provider libraries next to the module that contains it,
-        # which for the statically linked Python bindings is onnxruntime/capi.
-        - install -D -m 755 build-ci/Release/libonnxruntime_providers_tensorrt.so "${SP_DIR}/onnxruntime/capi/libonnxruntime_providers_tensorrt.so"
+        # onnxruntime looks for provider libraries next to libonnxruntime.
+        - install -D -m 755 build-ci/Release/libonnxruntime_providers_tensorrt.so "${PREFIX}/lib/libonnxruntime_providers_tensorrt.so"
       files:
-        - lib/python*/site-packages/onnxruntime/capi/libonnxruntime_providers_tensorrt.so
+        - lib/libonnxruntime_providers_tensorrt.so
       dynamic_linking:
-        # shipped by onnxruntime next to this library
+        # shipped by onnxruntime-cpp next to this library
         missing_dso_allowlist:
           - "*/libonnxruntime_providers_shared.so"
     requirements:
@@ -388,7 +391,7 @@ outputs:
     tests:
       - script:
           # onnxruntime loads libonnxruntime_providers_shared globally before any provider.
-          - python -c "import ctypes, os, onnxruntime; capi = os.path.join(os.path.dirname(onnxruntime.__file__), 'capi'); [ctypes.CDLL(os.path.join(capi, f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
+          - python -c "import ctypes, os, sys; [ctypes.CDLL(os.path.join(sys.prefix, 'lib', f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
 
 about:
   homepage: https://github.com/microsoft/onnxruntime/

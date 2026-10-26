@@ -49,6 +49,8 @@ if $is_linux {
     # -Wl,--dependency-file.  Later builds lose these flags
     # (invalidating the cache) somehow if the below is enabled.
     $cmake_defines ++= ["CMAKE_LINK_DEPENDS_USE_LINKER=OFF"]
+
+    $cmake_defines ++= ["onnxruntime_PYBIND_LINK_SHARED_LIB=ON"]
 }
 
 # build.py ignores CMAKE_ARGS, so pass conda-forge's defines (toolchain, find
