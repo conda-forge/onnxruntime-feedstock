@@ -1,5 +1,5 @@
 context:
-  version: "1.31.0"
+  version: "1.31.1"
   # The staging output builds the Python bindings for this version only; the
   # onnxruntime output rebuilds them for each Python version.
   staging_python: "3.13"
@@ -9,7 +9,7 @@ context:
   # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
   tensorrt_enabled: ${{ linux and cuda_compiler_version == "13.4" }}
   build_number_base: 2
-  build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
+  build_number: 0
   build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
 
 recipe:
@@ -18,7 +18,7 @@ recipe:
 
 source:
   url: https://github.com/microsoft/onnxruntime/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: a7e84230b5d509e48fbd6b73c2453a56345ccb22da34a46dac1f0cb4a2d6507b
+  sha256: 92ffbf8b97872fd1e73c9eebdf3319d9a3b24919ae438d27db903b72ee08939e
   patches:
     # Workaround for https://github.com/conda-forge/onnxruntime-feedstock/pull/56#issuecomment-1586080419
     - if: win
