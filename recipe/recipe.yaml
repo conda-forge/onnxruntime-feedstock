@@ -52,7 +52,7 @@ source:
     # the onnxruntime output reconfigures the staging build tree, which must not
     # rebuild the CUDA provider on Windows
     - patches/0015-Keep-the-timestamp-of-the-unchanged-CUDA-12.9-header.patch
-    - patches/0016-Link-the-Python-bindings-to-the-shared-library.patch
+    - patches/0016-Split-libonnxruntime-into-an-internal-and-a-public-library.patch
 
 build:
   number: ${{ build_number }}

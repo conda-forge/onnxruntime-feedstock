@@ -50,7 +50,7 @@ if $is_linux {
     # (invalidating the cache) somehow if the below is enabled.
     $cmake_defines ++= ["CMAKE_LINK_DEPENDS_USE_LINKER=OFF"]
 
-    $cmake_defines ++= ["onnxruntime_PYBIND_LINK_SHARED_LIB=ON"]
+    $cmake_defines ++= ["onnxruntime_BUILD_INTERNAL_SHARED_LIB=ON"]
 }
 
 # build.py ignores CMAKE_ARGS, so pass conda-forge's defines (toolchain, find
@@ -190,10 +190,13 @@ mkdir $"($prefix)/include" $"($prefix)/lib/cmake"
 cp -r include/onnxruntime $"($prefix)/include/"
 cp -r install-ci/lib/cmake/onnxruntime $"($prefix)/lib/cmake/"
 
-let libs = if $cuda_enabled {
+mut libs = if $cuda_enabled {
     ["onnxruntime" "onnxruntime_providers_shared" "onnxruntime_providers_cuda"]
 } else {
     ["onnxruntime"]
+}
+if $is_linux {
+    $libs ++= ["onnxruntime_internal"]
 }
 if $is_win {
     mkdir $"($prefix)/bin"
