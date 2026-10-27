@@ -32,6 +32,9 @@ mut cmake_defines = [
     # Vendored dependencies such as psimd require CMake versions that CMake 4 rejects.
     "CMAKE_POLICY_VERSION_MINIMUM=3.5"
 ]
+if $is_win {
+    $cmake_defines ++= ["CMAKE_MODULE_LINKER_FLAGS=/VERBOSE"]
+}
 
 if $is_linux {
     # https://github.com/conda-forge/ctng-compiler-activation-feedstock/issues/143
