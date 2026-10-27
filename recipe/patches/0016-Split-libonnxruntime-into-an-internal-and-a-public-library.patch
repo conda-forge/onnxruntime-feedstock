@@ -226,10 +226,10 @@ index a977141..540cd3a 100644
  
  if (winml_is_inbox)
 diff --git a/cmake/onnxruntime_python.cmake b/cmake/onnxruntime_python.cmake
-index 5dfd004..51043a3 100644
+index 5dfd004..5f96c8e 100644
 --- a/cmake/onnxruntime_python.cmake
 +++ b/cmake/onnxruntime_python.cmake
-@@ -216,10 +216,50 @@ endif()
+@@ -216,16 +216,69 @@ endif()
  if(onnxruntime_WEBGPU_LINKED_INTO_HOST)
    list(APPEND onnxruntime_pybind11_state_static_providers PRIVATE onnxruntime_providers_webgpu)
  endif()
@@ -243,9 +243,12 @@ index 5dfd004..51043a3 100644
 +if(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
 +  target_link_libraries(onnxruntime_pybind11_state PRIVATE onnxruntime_internal)
 +endif()
++set(onnxruntime_pybind11_state_providers_target ${onnxruntime_providers_target})
 +if(WIN32 AND onnxruntime_BUILD_INTERNAL_SHARED_LIB)
-+  # onnxruntime_internal.dll exports what the objects of the Python bindings take from its static libraries. The
-+  # protobuf classes of onnx stay in the Python bindings, as they would need their data imported.
++  # The CPU provider is an object library with MSVC; its objects are in onnxruntime_internal.dll.
++  set(onnxruntime_pybind11_state_providers_target)
++  # onnxruntime_internal.dll exports what the objects of the Python bindings take from its libraries. The protobuf
++  # classes of onnx stay in the Python bindings, as they would need their data imported.
 +  target_compile_definitions(onnxruntime_pybind11_state PRIVATE ORT_IMPORT_INTERNAL_DATA)
 +  get_filename_component(_onnxruntime_linker_dir "${CMAKE_LINKER}" DIRECTORY)
 +  find_program(onnxruntime_DUMPBIN dumpbin HINTS "${_onnxruntime_linker_dir}" REQUIRED)
@@ -261,16 +264,26 @@ index 5dfd004..51043a3 100644
 +        else()
 +          list(APPEND _onnxruntime_internal_def_libraries $<TARGET_FILE:${_lib}>)
 +        endif()
++      elseif(_type STREQUAL "OBJECT_LIBRARY")
++        list(APPEND _onnxruntime_internal_def_libraries $<TARGET_OBJECTS:${_lib}>)
 +      endif()
 +    endif()
 +  endforeach()
 +  list(REMOVE_DUPLICATES _onnxruntime_internal_def_libraries)
++  # The object files exceed the length of a command line.
++  set(_onnxruntime_internal_def_inputs ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_internal_def_inputs)
++  file(GENERATE OUTPUT ${_onnxruntime_internal_def_inputs}/objects.txt
++       CONTENT "$<JOIN:$<TARGET_OBJECTS:onnxruntime_pybind11_state>,\n>\n")
++  file(GENERATE OUTPUT ${_onnxruntime_internal_def_inputs}/libraries.txt
++       CONTENT "$<JOIN:${_onnxruntime_internal_def_libraries},\n>\n")
++  file(GENERATE OUTPUT ${_onnxruntime_internal_def_inputs}/excluded_libraries.txt
++       CONTENT "$<JOIN:${_onnxruntime_internal_def_excluded_libraries},\n>\n")
 +  add_custom_command(OUTPUT ${INTERNAL_DEF_FILE}
 +    COMMAND ${Python_EXECUTABLE} "${REPO_ROOT}/tools/ci_build/gen_internal_def.py"
 +      --dumpbin "${onnxruntime_DUMPBIN}" --public_def "${SYMBOL_FILE}" --output "${INTERNAL_DEF_FILE}"
-+      --objects "$<TARGET_OBJECTS:onnxruntime_pybind11_state>"
-+      --libraries ${_onnxruntime_internal_def_libraries}
-+      --excluded_libraries ${_onnxruntime_internal_def_excluded_libraries}
++      --objects "@${_onnxruntime_internal_def_inputs}/objects.txt"
++      --libraries "@${_onnxruntime_internal_def_inputs}/libraries.txt"
++      --excluded_libraries "@${_onnxruntime_internal_def_inputs}/excluded_libraries.txt"
 +    DEPENDS "$<TARGET_OBJECTS:onnxruntime_pybind11_state>" ${_onnxruntime_internal_def_libraries}
 +      ${_onnxruntime_internal_def_excluded_libraries} "${SYMBOL_FILE}" "${REPO_ROOT}/tools/ci_build/gen_internal_def.py"
 +    COMMENT "Generating the exports of onnxruntime_internal for onnxruntime_pybind11_state"
@@ -281,7 +294,14 @@ index 5dfd004..51043a3 100644
  target_link_libraries(onnxruntime_pybind11_state PRIVATE
      onnxruntime_session
      ${onnxruntime_libs}
-@@ -854,10 +894,14 @@ add_custom_command(
+     ${onnxruntime_pybind11_state_static_providers}
+     onnxruntime_optimizer
+-    ${onnxruntime_providers_target}
++    ${onnxruntime_pybind11_state_providers_target}
+     onnxruntime_util
+     onnxruntime_lora
+     onnxruntime_framework
+@@ -854,10 +907,14 @@ add_custom_command(
  )
  
  if (onnxruntime_BUILD_SHARED_LIB)
@@ -395,10 +415,10 @@ index 15965a1..5209d65 100755
      for c in args.config:
 diff --git a/tools/ci_build/gen_internal_def.py b/tools/ci_build/gen_internal_def.py
 new file mode 100644
-index 0000000..b0f2377
+index 0000000..9253dea
 --- /dev/null
 +++ b/tools/ci_build/gen_internal_def.py
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,102 @@
 +#!/usr/bin/env python3
 +# Copyright (c) Microsoft Corporation. All rights reserved.
 +# Licensed under the MIT License.
@@ -420,7 +440,8 @@ index 0000000..b0f2377
 +
 +
 +def parse_arguments():
-+    parser = argparse.ArgumentParser()
++    parser = argparse.ArgumentParser(fromfile_prefix_chars="@")
++    parser.convert_arg_line_to_args = lambda line: [line.strip()] if line.strip() else []
 +    parser.add_argument("--dumpbin", required=True)
 +    parser.add_argument("--public_def", required=True, help="module-definition file of the public API")
 +    parser.add_argument("--output", required=True)
@@ -430,14 +451,21 @@ index 0000000..b0f2377
 +    return parser.parse_args()
 +
 +
-+def external_symbols(dumpbin, path):
-+    """Yields (name, defined, is_function) for the external symbols of an object file or static library."""
-+    out = subprocess.run([dumpbin, "/nologo", "/SYMBOLS", path], capture_output=True, text=True, errors="replace", check=True)
-+    for line in out.stdout.splitlines():
-+        m = SYMBOL_RE.match(line)
-+        if m:
-+            section, function, name = m.groups()
-+            yield name, section != "UNDEF", function is not None
++def external_symbols(dumpbin, paths):
++    """Yields (name, defined, is_function) for the external symbols of object files or static libraries."""
++    for i in range(0, len(paths), 64):
++        out = subprocess.run(
++            [dumpbin, "/nologo", "/SYMBOLS", *paths[i : i + 64]],
++            capture_output=True,
++            text=True,
++            errors="replace",
++            check=True,
++        )
++        for line in out.stdout.splitlines():
++            m = SYMBOL_RE.match(line)
++            if m:
++                section, function, name = m.groups()
++                yield name, section != "UNDEF", function is not None
 +
 +
 +args = parse_arguments()
@@ -450,26 +478,23 @@ index 0000000..b0f2377
 +            public.append(fields[0])
 +
 +defined = {}
-+for library in args.libraries:
-+    for name, is_defined, is_function in external_symbols(args.dumpbin, library):
-+        if is_defined:
-+            defined.setdefault(name, is_function)
-+for library in args.excluded_libraries:
-+    for name, is_defined, _ in external_symbols(args.dumpbin, library):
-+        if is_defined:
-+            defined.pop(name, None)
++for name, is_defined, is_function in external_symbols(args.dumpbin, args.libraries):
++    if is_defined:
++        defined.setdefault(name, is_function)
++for name, is_defined, _ in external_symbols(args.dumpbin, args.excluded_libraries):
++    if is_defined:
++        defined.pop(name, None)
 +
 +referenced = set()
 +imported = set()
 +defined_in_objects = set()
-+for obj in args.objects:
-+    for name, is_defined, _ in external_symbols(args.dumpbin, obj):
-+        if is_defined:
-+            defined_in_objects.add(name)
-+        elif name.startswith("__imp_"):
-+            imported.add(name[len("__imp_") :])
-+        else:
-+            referenced.add(name)
++for name, is_defined, _ in external_symbols(args.dumpbin, args.objects):
++    if is_defined:
++        defined_in_objects.add(name)
++    elif name.startswith("__imp_"):
++        imported.add(name[len("__imp_") :])
++    else:
++        referenced.add(name)
 +
 +functions = []
 +data = []
