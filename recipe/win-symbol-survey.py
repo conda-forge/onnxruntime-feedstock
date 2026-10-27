@@ -36,13 +36,21 @@ def symbols(path):
 commands = subprocess.run(["ninja", "-C", build_dir, "-t", "commands", "onnxruntime_pybind11_state"], capture_output=True, text=True).stdout.splitlines()
 link = [c for c in commands if "onnxruntime_pybind11_state.pyd" in c and ("link" in c.lower())][-1]
 tokens = re.split(r"\s+", link)
-for tok in list(tokens):
-    tok = tok.strip('"')
-    if tok.startswith("@"):
-        rsp = tok[1:] if os.path.isabs(tok[1:]) else os.path.join(build_dir, tok[1:])
-        if os.path.exists(rsp):
-            tokens += re.split(r"\s+", open(rsp, errors="replace").read())
-print("SURVEY link:", link[:2000])
+edge = []
+with open(os.path.join(build_dir, "build.ninja"), errors="replace") as f:
+    inside = False
+    for line in f:
+        if line.startswith("build ") and "onnxruntime_pybind11_state.pyd" in line.split(":")[0]:
+            inside = True
+            continue
+        if inside:
+            if not line.startswith("  "):
+                break
+            edge.append(line.strip())
+for line in edge:
+    if line.startswith("LINK_LIBRARIES") or line.startswith("LINK_PATH"):
+        print("SURVEY", line[:3000])
+        tokens += re.split(r"\s+", line.split("=", 1)[1])
 libs = []
 for tok in tokens:
     tok = tok.strip('"')
@@ -50,6 +58,9 @@ for tok in tokens:
         p = tok if os.path.isabs(tok) else os.path.join(build_dir, tok)
         if os.path.exists(p) and os.path.abspath(p).startswith(os.path.abspath(build_dir)) and p not in libs:
             libs.append(p)
+if not libs:
+    libs = [p for p in glob.glob(os.path.join(build_dir, "**", "*.lib"), recursive=True)
+            if not re.search(r"test|gtest|gmock|benchmark|custom_op|onnxruntime_conda|providers_shared|pybind11_state", os.path.basename(p))]
 print("SURVEY libs:", [os.path.relpath(p, build_dir) for p in libs])
 
 defined = {}
