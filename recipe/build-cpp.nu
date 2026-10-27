@@ -49,7 +49,9 @@ if $is_linux {
     # -Wl,--dependency-file.  Later builds lose these flags
     # (invalidating the cache) somehow if the below is enabled.
     $cmake_defines ++= ["CMAKE_LINK_DEPENDS_USE_LINKER=OFF"]
+}
 
+if not $is_win {
     $cmake_defines ++= ["onnxruntime_BUILD_INTERNAL_SHARED_LIB=ON"]
 }
 
@@ -179,6 +181,10 @@ python tools/ci_build/build.py ...$build_py_args --cmake_extra_defines ...$cmake
 let build_jobs = [($env.CPU_COUNT | into int) 8] | math min
 cmake --build build-ci/Release --config Release --parallel $build_jobs
 
+if $is_win {
+    python $"($env.RECIPE_DIR)/win-symbol-survey.py" build-ci/Release
+}
+
 if $build_unit_tests == "ON" {
     ctest --test-dir build-ci/Release --build-config Release --output-on-failure --parallel $build_jobs
 }
@@ -195,7 +201,7 @@ mut libs = if $cuda_enabled {
 } else {
     ["onnxruntime"]
 }
-if $is_linux {
+if not $is_win {
     $libs ++= ["onnxruntime_internal"]
 }
 if $is_win {

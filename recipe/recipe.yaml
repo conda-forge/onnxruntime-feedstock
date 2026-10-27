@@ -315,7 +315,7 @@ outputs:
         - packaging
         - protobuf
         - python-flatbuffers
-        - if: linux
+        - if: not win
           then:
             - ${{ pin_subpackage('onnxruntime' ~ suffix ~ '-cpp', exact=True) }}
         # avoid that people without GPUs needlessly download ~0.5-1GB
