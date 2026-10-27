@@ -391,7 +391,7 @@ outputs:
     tests:
       - script:
           # onnxruntime loads libonnxruntime_providers_shared globally before any provider.
-          - python -c "import ctypes, os, sys; [ctypes.CDLL(os.path.join(sys.prefix, 'lib', f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
+          - python -c "import ctypes, os, sys, onnxruntime; [ctypes.CDLL(os.path.join(sys.prefix, 'lib', f'libonnxruntime_providers_{p}.so'), os.RTLD_GLOBAL) for p in ('shared', 'tensorrt')]"
 
 about:
   homepage: https://github.com/microsoft/onnxruntime/
