@@ -49,9 +49,9 @@ if $is_linux {
     # -Wl,--dependency-file.  Later builds lose these flags
     # (invalidating the cache) somehow if the below is enabled.
     $cmake_defines ++= ["CMAKE_LINK_DEPENDS_USE_LINKER=OFF"]
-
-    $cmake_defines ++= ["onnxruntime_BUILD_INTERNAL_SHARED_LIB=ON"]
 }
+
+$cmake_defines ++= ["onnxruntime_BUILD_INTERNAL_SHARED_LIB=ON"]
 
 # build.py ignores CMAKE_ARGS, so pass conda-forge's defines (toolchain, find
 # root, archiver for LTO, ...) through --cmake_extra_defines.
@@ -195,9 +195,7 @@ mut libs = if $cuda_enabled {
 } else {
     ["onnxruntime"]
 }
-if $is_linux {
-    $libs ++= ["onnxruntime_internal"]
-}
+$libs ++= ["onnxruntime_internal"]
 if $is_win {
     mkdir $"($prefix)/bin"
     # The library is renamed by 0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch.
