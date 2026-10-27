@@ -95,6 +95,7 @@ outputs:
         - nushell
         # protoc must run on the build platform
         - libprotobuf
+        - libabseil
         - if: build_platform != target_platform
           then:
             - python ${{ staging_python }}.*
@@ -254,6 +255,7 @@ outputs:
         - ninja
         - nushell
         - libprotobuf
+        - libabseil
         - if: build_platform != target_platform
           then:
             - python
