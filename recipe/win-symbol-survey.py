@@ -35,12 +35,20 @@ def symbols(path):
 
 commands = subprocess.run(["ninja", "-C", build_dir, "-t", "commands", "onnxruntime_pybind11_state"], capture_output=True, text=True).stdout.splitlines()
 link = [c for c in commands if "onnxruntime_pybind11_state.pyd" in c and ("link" in c.lower())][-1]
+tokens = re.split(r"\s+", link)
+for tok in list(tokens):
+    tok = tok.strip('"')
+    if tok.startswith("@"):
+        rsp = tok[1:] if os.path.isabs(tok[1:]) else os.path.join(build_dir, tok[1:])
+        if os.path.exists(rsp):
+            tokens += re.split(r"\s+", open(rsp, errors="replace").read())
+print("SURVEY link:", link[:2000])
 libs = []
-for tok in re.split(r"\s+", link):
+for tok in tokens:
     tok = tok.strip('"')
     if tok.lower().endswith(".lib"):
         p = tok if os.path.isabs(tok) else os.path.join(build_dir, tok)
-        if os.path.exists(p) and os.path.abspath(p).startswith(os.path.abspath(build_dir)):
+        if os.path.exists(p) and os.path.abspath(p).startswith(os.path.abspath(build_dir)) and p not in libs:
             libs.append(p)
 print("SURVEY libs:", [os.path.relpath(p, build_dir) for p in libs])
 
