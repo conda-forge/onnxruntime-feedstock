@@ -110,13 +110,25 @@ rm -rf dist
 python $"($env.SRC_DIR)/setup.py" bdist_wheel ...$wheel_args ...$plat_args
 python -m pip install --no-deps --no-build-isolation ...(glob "dist/onnxruntime*.whl")
 
-# The wheel bundles libonnxruntime, which the statically linked Python bindings
-# don't use; onnxruntime-cpp ships it. onnxruntime-ep-tensorrt ships the
-# TensorRT provider.
+# The wheel bundles libonnxruntime and the provider libraries, which
+# onnxruntime-cpp ships. The Python bindings link libonnxruntime_internal, which
+# loads the providers from its own directory.
 # 'glob' would parse the backslashes of Windows paths as part of the pattern.
+let bundled = if $is_win {
+    '^onnxruntime_providers_'
+} else {
+    '^libonnxruntime'
+}
 let capi = $"($env.SP_DIR)/onnxruntime/capi"
-for f in (ls $capi | get name | where {|f| ($f | path basename) =~ '^libonnxruntime(_providers_tensorrt)?\.'}) {
+for f in (ls $capi | get name | where {|f| ($f | path basename) =~ $bundled}) {
     rm $f
+}
+if ($env.target_platform | str starts-with "osx") {
+    # Find libonnxruntime_internal in $PREFIX/lib from site-packages/onnxruntime/capi.
+    for f in (glob $"($capi)/onnxruntime_pybind11_state*.so") {
+        ^($env.INSTALL_NAME_TOOL? | default "install_name_tool") -add_rpath "@loader_path/../../../.." $f
+        codesign --force --sign - $f
+    }
 }
 
 # On conda-forge both variants are the onnxruntime package, so add an onnxruntime

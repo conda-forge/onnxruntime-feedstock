@@ -1,0 +1,523 @@
+From: conda-forge onnxruntime-feedstock
+Subject: [PATCH] Optionally split libonnxruntime into an internal and a public library
+
+The Python bindings link the static libraries, so they contain a second copy
+of everything in libonnxruntime, with its own global state.
+
+The new option onnxruntime_BUILD_INTERNAL_SHARED_LIB builds the
+implementation as onnxruntime_internal, which the Python bindings link ahead
+of the static libraries, so that the linker takes only what
+onnxruntime_internal lacks from them. libonnxruntime keeps exporting only
+the public API, which it forwards to onnxruntime_internal:
+
+- Linux: libonnxruntime_internal.so.<version> exports every symbol under
+  ORT_INTERNAL_<version> except the public API and the vendored cpuinfo
+  symbols. Each public function of libonnxruntime.so.1 is a GNU indirect
+  function that resolves to the implementation through
+  GetFunctionEntryByName.
+- macOS: libonnxruntime_internal.<version>.dylib is built with default
+  visibility and exports everything but the vendored cpuinfo symbols.
+  libonnxruntime.1.dylib re-exports the public API from it with
+  -reexported_symbols_list.
+- Windows (with the Python bindings): a DLL cannot export everything, so
+  gen_internal_def.py runs dumpbin over the objects of the Python bindings
+  and exports the public API plus every symbol they take from the static
+  libraries, except the protobuf classes of onnx. The bindings import the
+  data they use with __declspec(dllimport) (ORT_IMPORT_INTERNAL_DATA) and
+  rely on the DllMain of onnxruntime_internal.dll. The exports are only
+  rewritten when they change, so rebuilding the bindings does not relink
+  the DLL. onnxruntime.dll forwards the public API in its module-definition
+  file.
+---
+diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
+index 3a3bda1..c6cd55e 100644
+--- a/cmake/CMakeLists.txt
++++ b/cmake/CMakeLists.txt
+@@ -147,6 +147,7 @@ option(onnxruntime_USE_AVX2 "Use AVX2 instructions" OFF)
+ option(onnxruntime_USE_AVX512 "Use AVX512 instructions" OFF)
+ 
+ option(onnxruntime_BUILD_SHARED_LIB "Build a shared library" OFF)
++cmake_dependent_option(onnxruntime_BUILD_INTERNAL_SHARED_LIB "Build the implementation as libonnxruntime_internal, which exports the internal symbols for the Python bindings, and libonnxruntime as a library that forwards the public API to it (Linux, macOS, and Windows with the Python bindings)" OFF "onnxruntime_BUILD_SHARED_LIB;CMAKE_SYSTEM_NAME STREQUAL Linux OR CMAKE_SYSTEM_NAME STREQUAL Darwin OR (MSVC AND onnxruntime_ENABLE_PYTHON)" OFF)
+ option(onnxruntime_BUILD_APPLE_FRAMEWORK "Build a macOS/iOS framework" OFF)
+ option(onnxruntime_ENABLE_MICROSOFT_INTERNAL "Use this option to enable/disable microsoft internal only code" OFF)
+ 
+diff --git a/cmake/adjust_global_compile_flags.cmake b/cmake/adjust_global_compile_flags.cmake
+index 6e548ac..5f71fd8 100644
+--- a/cmake/adjust_global_compile_flags.cmake
++++ b/cmake/adjust_global_compile_flags.cmake
+@@ -206,7 +206,8 @@ endif()
+ 
+ # Mark symbols to be invisible, for macOS/iOS/visionOS/tvOS target only
+ # Due to many dependencies have different symbol visibility settings, set global compile flags here.
+-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin|iOS|visionOS|tvOS")
++# libonnxruntime_internal exports the internal symbols, so they must stay visible.
++if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin|iOS|visionOS|tvOS" AND NOT onnxruntime_BUILD_INTERNAL_SHARED_LIB)
+   foreach(flags CMAKE_CXX_FLAGS CMAKE_OBJC_FLAGS CMAKE_OBJCXX_FLAGS)
+     string(APPEND ${flags} " -fvisibility=hidden -fvisibility-inlines-hidden")
+   endforeach()
+diff --git a/cmake/onnxruntime.cmake b/cmake/onnxruntime.cmake
+index a977141..540cd3a 100644
+--- a/cmake/onnxruntime.cmake
++++ b/cmake/onnxruntime.cmake
+@@ -78,17 +78,74 @@ if(onnxruntime_BUILD_SHARED_LIB)
+     list(APPEND SYMBOL_FILES "${ANDROID_TELEMETRY_SYMBOL_FILE}")
+     set(ANDROID_TELEMETRY_SYMBOL_ARGS --extra_symbol_file "${ANDROID_TELEMETRY_SYMBOL_FILE}")
+   endif()
++  if(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    if(WIN32)
++      # onnxruntime_python.cmake generates the exports of onnxruntime_internal from the Python bindings.
++      set(INTERNAL_DEF_FILE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_internal.def)
++      set(FORWARDERS_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_forwarders.def)
++      set(INTERNAL_SHARED_LIB_ARGS --output_forwarders ${FORWARDERS_SOURCE})
++    else()
++      if(APPLE)
++        set(INTERNAL_SYMBOL_FILE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_internal_unexported.txt)
++      else()
++        set(INTERNAL_SYMBOL_FILE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_internal.lds)
++      endif()
++      set(FORWARDERS_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_forwarders.c)
++      set(INTERNAL_SHARED_LIB_ARGS --output_internal ${INTERNAL_SYMBOL_FILE} --output_forwarders ${FORWARDERS_SOURCE})
++    endif()
++  endif()
+ 
+-  add_custom_command(OUTPUT ${SYMBOL_FILE} ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c
++  add_custom_command(OUTPUT ${SYMBOL_FILE} ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c ${INTERNAL_SYMBOL_FILE} ${FORWARDERS_SOURCE}
+     COMMAND ${Python_EXECUTABLE} "${REPO_ROOT}/tools/ci_build/gen_def.py"
+       --version_file "${ONNXRUNTIME_ROOT}/../VERSION_NUMBER" --src_root "${ONNXRUNTIME_ROOT}"
+-      --config ${ONNXRUNTIME_PROVIDER_NAMES} ${ANDROID_TELEMETRY_SYMBOL_ARGS}
++      --config ${ONNXRUNTIME_PROVIDER_NAMES} ${ANDROID_TELEMETRY_SYMBOL_ARGS} ${INTERNAL_SHARED_LIB_ARGS}
+       --style=${OUTPUT_STYLE} --output ${SYMBOL_FILE}
+       --output_source ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c
+     DEPENDS ${SYMBOL_FILES}
+     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+ 
+-  add_custom_target(onnxruntime_generate_def ALL DEPENDS ${SYMBOL_FILE} ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c)
++  add_custom_target(onnxruntime_generate_def ALL DEPENDS ${SYMBOL_FILE} ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c ${INTERNAL_SYMBOL_FILE} ${FORWARDERS_SOURCE})
++  if(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    # onnxruntime_internal holds the implementation and exports the internal symbols; onnxruntime only forwards
++    # (Linux, Windows) or re-exports (macOS) the public symbols.
++    if(WIN32)
++      onnxruntime_add_shared_library(onnxruntime_internal
++        ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c
++        "${ONNXRUNTIME_ROOT}/core/dll/dllmain.cc"
++        "${ONNXRUNTIME_ROOT}/core/dll/delay_load_hook.cc"
++      )
++    else()
++      onnxruntime_add_shared_library(onnxruntime_internal ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c)
++    endif()
++    add_dependencies(onnxruntime_internal onnxruntime_generate_def ${onnxruntime_EXTERNAL_DEPENDENCIES})
++    target_include_directories(onnxruntime_internal PRIVATE ${ONNXRUNTIME_ROOT})
++    if(WIN32)
++      target_link_options(onnxruntime_internal PRIVATE "-DEF:${INTERNAL_DEF_FILE}")
++      set_target_properties(onnxruntime_internal PROPERTIES LINK_DEPENDS ${INTERNAL_DEF_FILE})
++    elseif(APPLE)
++      target_link_options(onnxruntime_internal PRIVATE "LINKER:-unexported_symbols_list,${INTERNAL_SYMBOL_FILE}" "LINKER:-dead_strip")
++      set_target_properties(onnxruntime_internal PROPERTIES
++        LINK_DEPENDS ${INTERNAL_SYMBOL_FILE}
++        MACOSX_RPATH TRUE
++        BUILD_WITH_INSTALL_RPATH TRUE
++        INSTALL_RPATH "@loader_path"
++        BUILD_WITH_INSTALL_NAME_DIR TRUE
++        INSTALL_NAME_DIR @rpath)
++    else()
++      target_link_options(onnxruntime_internal PRIVATE "LINKER:-rpath=\$ORIGIN"
++        "LINKER:--version-script=${INTERNAL_SYMBOL_FILE}" "LINKER:--no-undefined" "LINKER:--gc-sections" "LINKER:-z,noexecstack")
++      set_target_properties(onnxruntime_internal PROPERTIES LINK_DEPENDS ${INTERNAL_SYMBOL_FILE})
++    endif()
++    set_target_properties(onnxruntime_internal PROPERTIES
++      VERSION ${ORT_VERSION}
++      SOVERSION ${ORT_VERSION}
++      FOLDER "ONNXRuntime")
++    install(TARGETS onnxruntime_internal
++            EXPORT ${PROJECT_NAME}Targets
++            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
++  endif()
+   if(WIN32)
+     onnxruntime_add_shared_library(onnxruntime
+       ${SYMBOL_FILE}
+@@ -144,6 +201,14 @@ if(onnxruntime_BUILD_SHARED_LIB)
+       MACOSX_FRAMEWORK_INFO_PLIST ${INFO_PLIST_PATH}
+       # Note: The PUBLIC_HEADER and VERSION properties for the 'onnxruntime' target will be set later in this file.
+     )
++  elseif(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    onnxruntime_add_shared_library(onnxruntime ${FORWARDERS_SOURCE})
++    target_link_libraries(onnxruntime PRIVATE onnxruntime_internal)
++    if(APPLE)
++      target_link_options(onnxruntime PRIVATE "LINKER:-reexported_symbols_list,${SYMBOL_FILE}")
++    else()
++      target_link_options(onnxruntime PRIVATE "LINKER:-rpath=\$ORIGIN")
++    endif()
+   else()
+     onnxruntime_add_shared_library(onnxruntime ${CMAKE_CURRENT_BINARY_DIR}/generated_source.c)
+     if(NOT APPLE)
+@@ -154,6 +219,15 @@ if(onnxruntime_BUILD_SHARED_LIB)
+       endif()
+     endif()
+   endif()
++  if(WIN32 AND onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    # Only the version resource; the module-definition file forwards the public API to onnxruntime_internal.
++    file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_forwarders.c
++         CONTENT "typedef int onnxruntime_forwards_to_onnxruntime_internal;\n")
++    set_property(TARGET onnxruntime PROPERTY SOURCES
++      ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_forwarders.c
++      "${ONNXRUNTIME_ROOT}/core/dll/onnxruntime.rc")
++    target_link_libraries(onnxruntime PRIVATE onnxruntime_internal)
++  endif()
+ 
+   if(ANDROID AND onnxruntime_USE_TELEMETRY)
+     target_sources(onnxruntime PRIVATE
+@@ -176,13 +250,17 @@ if(onnxruntime_BUILD_SHARED_LIB)
+     else()
+       target_link_options(onnxruntime PRIVATE  "LINKER:--version-script=${SYMBOL_FILE}" "LINKER:--no-undefined" "LINKER:--gc-sections" "LINKER:-z,noexecstack")
+     endif()
++  elseif(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    target_link_options(onnxruntime PRIVATE  "-DEF:${FORWARDERS_SOURCE}")
+   else()
+     target_link_options(onnxruntime PRIVATE  "-DEF:${SYMBOL_FILE}")
+   endif()
+ 
+ 
+   if (APPLE)
+-    target_link_options(onnxruntime PRIVATE  "LINKER:-exported_symbols_list,${SYMBOL_FILE}")
++    if (NOT onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++      target_link_options(onnxruntime PRIVATE  "LINKER:-exported_symbols_list,${SYMBOL_FILE}")
++    endif()
+     set_target_properties(onnxruntime PROPERTIES
+       MACOSX_RPATH TRUE
+       BUILD_WITH_INSTALL_RPATH TRUE
+@@ -298,7 +376,12 @@ endif()
+ 
+ # If you are linking a new library, please add it to the list onnxruntime_INTERNAL_LIBRARIES or onnxruntime_EXTERNAL_LIBRARIES,
+ # Please do not add a library directly to the target_link_libraries command
+-if (onnxruntime_BUILD_SHARED_LIB)
++if (onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++  target_link_libraries(onnxruntime_internal PRIVATE
++      ${onnxruntime_INTERNAL_LIBRARIES}
++      ${onnxruntime_EXTERNAL_LIBRARIES}
++  )
++elseif (onnxruntime_BUILD_SHARED_LIB)
+   target_link_libraries(onnxruntime PRIVATE
+       ${onnxruntime_INTERNAL_LIBRARIES}
+       ${onnxruntime_EXTERNAL_LIBRARIES}
+@@ -314,7 +397,12 @@ endif()
+ # INTERFACE library, which rejects the PRIVATE keyword ("may only set INTERFACE properties on INTERFACE targets"),
+ # and delay-loading is meaningless for a static lib anyway. Consumers that need delay-load in a static build (e.g.
+ # the WebGPU plugin EP DLL) apply onnxruntime_DELAYLOAD_FLAGS to their own target.
+-if(WIN32 AND onnxruntime_BUILD_SHARED_LIB)
++if(WIN32 AND onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++  target_link_options(onnxruntime_internal PRIVATE ${onnxruntime_DELAYLOAD_FLAGS})
++  if(onnxruntime_DELAYLOAD_FLAGS)
++    target_link_libraries(onnxruntime_internal PRIVATE delayimp.lib)
++  endif()
++elseif(WIN32 AND onnxruntime_BUILD_SHARED_LIB)
+   target_link_options(onnxruntime PRIVATE ${onnxruntime_DELAYLOAD_FLAGS})
+   if(onnxruntime_DELAYLOAD_FLAGS)
+     target_link_libraries(onnxruntime PRIVATE delayimp.lib)
+@@ -352,6 +440,9 @@ if (WIN32 AND NOT CMAKE_CXX_STANDARD_LIBRARIES MATCHES kernel32.lib)
+   # The linker warns "LNK4199: /DELAYLOAD:api-ms-win-core-heapl2-1-0.dll ignored; no imports found from api-ms-win-core-heapl2-1-0.dll"
+   # when you're not using imports directly, even though the import exists in the STL and the DLL would have been linked without DELAYLOAD
+   target_link_options(onnxruntime PRIVATE /DELAYLOAD:api-ms-win-core-heapl2-1-0.dll /ignore:4199)
++  if(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    target_link_options(onnxruntime_internal PRIVATE /DELAYLOAD:api-ms-win-core-heapl2-1-0.dll /ignore:4199)
++  endif()
+ endif()
+ 
+ if (winml_is_inbox)
+diff --git a/cmake/onnxruntime_python.cmake b/cmake/onnxruntime_python.cmake
+index 5dfd004..5f96c8e 100644
+--- a/cmake/onnxruntime_python.cmake
++++ b/cmake/onnxruntime_python.cmake
+@@ -216,16 +216,69 @@ endif()
+ if(onnxruntime_WEBGPU_LINKED_INTO_HOST)
+   list(APPEND onnxruntime_pybind11_state_static_providers PRIVATE onnxruntime_providers_webgpu)
+ endif()
+-if(WIN32)
++if(WIN32 AND NOT onnxruntime_BUILD_INTERNAL_SHARED_LIB)
+   # onnxruntime_pybind11_state is a DLL
+   target_sources(onnxruntime_pybind11_state PRIVATE "${ONNXRUNTIME_ROOT}/core/dll/dllmain.cc")
+ endif()
++# libonnxruntime_internal exports the internal symbols, so listing it first resolves
++# them there instead of in the static libraries.
++if(onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++  target_link_libraries(onnxruntime_pybind11_state PRIVATE onnxruntime_internal)
++endif()
++set(onnxruntime_pybind11_state_providers_target ${onnxruntime_providers_target})
++if(WIN32 AND onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++  # The CPU provider is an object library with MSVC; its objects are in onnxruntime_internal.dll.
++  set(onnxruntime_pybind11_state_providers_target)
++  # onnxruntime_internal.dll exports what the objects of the Python bindings take from its libraries. The protobuf
++  # classes of onnx stay in the Python bindings, as they would need their data imported.
++  target_compile_definitions(onnxruntime_pybind11_state PRIVATE ORT_IMPORT_INTERNAL_DATA)
++  get_filename_component(_onnxruntime_linker_dir "${CMAKE_LINKER}" DIRECTORY)
++  find_program(onnxruntime_DUMPBIN dumpbin HINTS "${_onnxruntime_linker_dir}" REQUIRED)
++  set(_onnxruntime_internal_def_libraries)
++  set(_onnxruntime_internal_def_excluded_libraries)
++  foreach(_lib IN LISTS onnxruntime_INTERNAL_LIBRARIES onnxruntime_EXTERNAL_LIBRARIES)
++    if(TARGET ${_lib})
++      get_target_property(_type ${_lib} TYPE)
++      get_target_property(_imported ${_lib} IMPORTED)
++      if(_type STREQUAL "STATIC_LIBRARY" AND NOT _imported)
++        if(_lib STREQUAL "onnx_proto")
++          list(APPEND _onnxruntime_internal_def_excluded_libraries $<TARGET_FILE:${_lib}>)
++        else()
++          list(APPEND _onnxruntime_internal_def_libraries $<TARGET_FILE:${_lib}>)
++        endif()
++      elseif(_type STREQUAL "OBJECT_LIBRARY")
++        list(APPEND _onnxruntime_internal_def_libraries $<TARGET_OBJECTS:${_lib}>)
++      endif()
++    endif()
++  endforeach()
++  list(REMOVE_DUPLICATES _onnxruntime_internal_def_libraries)
++  # The object files exceed the length of a command line.
++  set(_onnxruntime_internal_def_inputs ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_internal_def_inputs)
++  file(GENERATE OUTPUT ${_onnxruntime_internal_def_inputs}/objects.txt
++       CONTENT "$<JOIN:$<TARGET_OBJECTS:onnxruntime_pybind11_state>,\n>\n")
++  file(GENERATE OUTPUT ${_onnxruntime_internal_def_inputs}/libraries.txt
++       CONTENT "$<JOIN:${_onnxruntime_internal_def_libraries},\n>\n")
++  file(GENERATE OUTPUT ${_onnxruntime_internal_def_inputs}/excluded_libraries.txt
++       CONTENT "$<JOIN:${_onnxruntime_internal_def_excluded_libraries},\n>\n")
++  add_custom_command(OUTPUT ${INTERNAL_DEF_FILE}
++    COMMAND ${Python_EXECUTABLE} "${REPO_ROOT}/tools/ci_build/gen_internal_def.py"
++      --dumpbin "${onnxruntime_DUMPBIN}" --public_def "${SYMBOL_FILE}" --output "${INTERNAL_DEF_FILE}"
++      --objects "@${_onnxruntime_internal_def_inputs}/objects.txt"
++      --libraries "@${_onnxruntime_internal_def_inputs}/libraries.txt"
++      --excluded_libraries "@${_onnxruntime_internal_def_inputs}/excluded_libraries.txt"
++    DEPENDS "$<TARGET_OBJECTS:onnxruntime_pybind11_state>" ${_onnxruntime_internal_def_libraries}
++      ${_onnxruntime_internal_def_excluded_libraries} "${SYMBOL_FILE}" "${REPO_ROOT}/tools/ci_build/gen_internal_def.py"
++    COMMENT "Generating the exports of onnxruntime_internal for onnxruntime_pybind11_state"
++    COMMAND_EXPAND_LISTS
++    VERBATIM)
++  add_custom_target(onnxruntime_internal_def ALL DEPENDS ${INTERNAL_DEF_FILE})
++endif()
+ target_link_libraries(onnxruntime_pybind11_state PRIVATE
+     onnxruntime_session
+     ${onnxruntime_libs}
+     ${onnxruntime_pybind11_state_static_providers}
+     onnxruntime_optimizer
+-    ${onnxruntime_providers_target}
++    ${onnxruntime_pybind11_state_providers_target}
+     onnxruntime_util
+     onnxruntime_lora
+     onnxruntime_framework
+@@ -854,10 +907,14 @@ add_custom_command(
+ )
+ 
+ if (onnxruntime_BUILD_SHARED_LIB)
++  set(onnxruntime_python_shared_libs $<TARGET_FILE:onnxruntime>)
++  if (onnxruntime_BUILD_INTERNAL_SHARED_LIB)
++    list(APPEND onnxruntime_python_shared_libs $<TARGET_FILE:onnxruntime_internal>)
++  endif()
+   add_custom_command(
+     TARGET onnxruntime_pybind11_state POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy
+-        $<TARGET_FILE:onnxruntime>
++        ${onnxruntime_python_shared_libs}
+         $<TARGET_FILE_DIR:${build_output_target}>/onnxruntime/capi/
+   )
+ endif()
+diff --git a/include/onnxruntime/core/common/logging/logging.h b/include/onnxruntime/core/common/logging/logging.h
+index c822d43..9c2eee2 100644
+--- a/include/onnxruntime/core/common/logging/logging.h
++++ b/include/onnxruntime/core/common/logging/logging.h
+@@ -13,6 +13,13 @@
+ 
+ #include "core/common/common.h"
+ #include "core/common/profiler_common.h"
++
++// Code linked to onnxruntime_internal.dll, such as the Python bindings, must import its data.
++#if defined(_WIN32) && defined(ORT_IMPORT_INTERNAL_DATA)
++#define ORT_INTERNAL_DATA __declspec(dllimport)
++#else
++#define ORT_INTERNAL_DATA
++#endif
+ #include "core/common/logging/capture.h"
+ #include "core/common/logging/macros.h"
+ #include "core/common/logging/severity.h"
+@@ -102,8 +109,8 @@ enum class DataType {
+ // Internal log categories.
+ // Logging interface takes const char* so arbitrary values can also be used.
+ struct Category {
+-  static const char* onnxruntime;  ///< General output
+-  static const char* System;       ///< Log output regarding interactions with the host system
++  static ORT_INTERNAL_DATA const char* onnxruntime;  ///< General output
++  static ORT_INTERNAL_DATA const char* System;       ///< Log output regarding interactions with the host system
+   // TODO: What other high level categories are meaningful? Model? Optimizer? Execution?
+ };
+ 
+@@ -260,7 +267,7 @@ class LoggingManager final {
+   const int default_max_vlog_level_;
+   bool owns_default_logger_;
+ 
+-  static Logger* s_default_logger_;
++  static ORT_INTERNAL_DATA Logger* s_default_logger_;
+ 
+   struct Epochs {
+     const std::chrono::time_point<std::chrono::high_resolution_clock> high_res;
+diff --git a/tools/ci_build/gen_def.py b/tools/ci_build/gen_def.py
+index 15965a1..5209d65 100755
+--- a/tools/ci_build/gen_def.py
++++ b/tools/ci_build/gen_def.py
+@@ -18,6 +18,14 @@ def parse_arguments():
+         default=[],
+         help="Additional symbols to export without adding them to GetFunctionEntryByName",
+     )
++    parser.add_argument(
++        "--output_internal",
++        help="gcc: version script for a library that exports everything but the public symbols; xcode: its unexported symbols list",
++    )
++    parser.add_argument(
++        "--output_forwarders",
++        help="gcc: C source that forwards the public symbols to GetFunctionEntryByName; xcode: an empty C source; vc: module-definition file that forwards the public symbols to onnxruntime_internal.dll",
++    )
+     return parser.parse_args()
+ 
+ 
+@@ -80,6 +88,38 @@ with open(args.output, "w") as file:
+         file.write("    *;\n")
+         file.write("};   \n")
+ 
++if args.output_internal and args.style == "xcode":
++    with open(args.output_internal, "w") as file:
++        file.write("_cpuinfo_*\n")
++elif args.output_internal:
++    with open(args.output_internal, "w") as file:
++        file.write(f"ORT_INTERNAL_{VERSION_STRING} {{\n")
++        file.write(" global:\n")
++        file.write("  *;\n")
++        file.write(" local:\n")
++        file.write("  cpuinfo_*;\n")
++        for symbol in symbols:
++            file.write(f"  {symbol};\n")
++        file.write("};\n")
++
++if args.output_forwarders and args.style == "vc":
++    with open(args.output_forwarders, "w") as file:
++        file.write("LIBRARY\n")
++        file.write("EXPORTS\n")
++        for symbol in symbols:
++            file.write(f" {symbol}=onnxruntime_internal.{symbol}\n")
++elif args.output_forwarders and args.style == "xcode":
++    with open(args.output_forwarders, "w") as file:
++        file.write("typedef int onnxruntime_reexports_libonnxruntime_internal;\n")
++elif args.output_forwarders:
++    with open(args.output_forwarders, "w") as file:
++        file.write("void* GetFunctionEntryByName(const char* name);\n")
++        for symbol in symbols:
++            if symbol == "OrtGetWinMLAdapter":
++                continue
++            file.write(f'static void* resolve_{symbol}(void) {{ return GetFunctionEntryByName("{symbol}"); }}\n')
++            file.write(f'void {symbol}(void) __attribute__((ifunc("resolve_{symbol}")));\n')
++
+ with open(args.output_source, "w") as file:
+     file.write("#include <onnxruntime_c_api.h>\n")
+     for c in args.config:
+diff --git a/tools/ci_build/gen_internal_def.py b/tools/ci_build/gen_internal_def.py
+new file mode 100644
+index 0000000..9253dea
+--- /dev/null
++++ b/tools/ci_build/gen_internal_def.py
+@@ -0,0 +1,102 @@
++#!/usr/bin/env python3
++# Copyright (c) Microsoft Corporation. All rights reserved.
++# Licensed under the MIT License.
++
++"""Writes the module-definition file of onnxruntime_internal.dll.
++
++It exports the public API and every symbol that the given objects (the Python bindings) take from the given static
++libraries. Data must be imported with __declspec(dllimport), so a data symbol that the objects reference directly is
++an error. The output is only rewritten when it changes, so that the DLL is not relinked when the objects are rebuilt.
++"""
++
++import argparse
++import os
++import re
++import subprocess
++import sys
++
++SYMBOL_RE = re.compile(r"^[0-9A-F]{3,} [0-9A-F]{8} (SECT[0-9A-F]+|UNDEF)\s+\w+\s*(\(\))?\s+External\s+\| (\S+)")
++
++
++def parse_arguments():
++    parser = argparse.ArgumentParser(fromfile_prefix_chars="@")
++    parser.convert_arg_line_to_args = lambda line: [line.strip()] if line.strip() else []
++    parser.add_argument("--dumpbin", required=True)
++    parser.add_argument("--public_def", required=True, help="module-definition file of the public API")
++    parser.add_argument("--output", required=True)
++    parser.add_argument("--objects", nargs="*", default=[])
++    parser.add_argument("--libraries", nargs="*", default=[], help="static libraries to export symbols from")
++    parser.add_argument("--excluded_libraries", nargs="*", default=[], help="static libraries not to export symbols from")
++    return parser.parse_args()
++
++
++def external_symbols(dumpbin, paths):
++    """Yields (name, defined, is_function) for the external symbols of object files or static libraries."""
++    for i in range(0, len(paths), 64):
++        out = subprocess.run(
++            [dumpbin, "/nologo", "/SYMBOLS", *paths[i : i + 64]],
++            capture_output=True,
++            text=True,
++            errors="replace",
++            check=True,
++        )
++        for line in out.stdout.splitlines():
++            m = SYMBOL_RE.match(line)
++            if m:
++                section, function, name = m.groups()
++                yield name, section != "UNDEF", function is not None
++
++
++args = parse_arguments()
++
++public = []
++with open(args.public_def) as file:
++    for line in file:
++        fields = line.split()
++        if len(fields) == 2 and fields[1].startswith("@"):
++            public.append(fields[0])
++
++defined = {}
++for name, is_defined, is_function in external_symbols(args.dumpbin, args.libraries):
++    if is_defined:
++        defined.setdefault(name, is_function)
++for name, is_defined, _ in external_symbols(args.dumpbin, args.excluded_libraries):
++    if is_defined:
++        defined.pop(name, None)
++
++referenced = set()
++imported = set()
++defined_in_objects = set()
++for name, is_defined, _ in external_symbols(args.dumpbin, args.objects):
++    if is_defined:
++        defined_in_objects.add(name)
++    elif name.startswith("__imp_"):
++        imported.add(name[len("__imp_") :])
++    else:
++        referenced.add(name)
++
++functions = []
++data = []
++errors = []
++for name in sorted((referenced | imported) - defined_in_objects - set(public)):
++    if name not in defined:
++        continue
++    if defined[name]:
++        functions.append(name)
++    elif name in imported:
++        data.append(name)
++    else:
++        errors.append(name)
++if errors:
++    sys.exit(
++        "These data symbols must be declared __declspec(dllimport) in the objects:\n"
++        + "\n".join(errors)
++    )
++
++lines = ["LIBRARY", "EXPORTS"]
++lines += [f" {name}" for name in public + functions]
++lines += [f" {name} DATA" for name in data]
++content = "\n".join(lines) + "\n"
++if not os.path.exists(args.output) or open(args.output).read() != content:
++    with open(args.output, "w") as file:
++        file.write(content)
