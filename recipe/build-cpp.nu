@@ -51,9 +51,7 @@ if $is_linux {
     $cmake_defines ++= ["CMAKE_LINK_DEPENDS_USE_LINKER=OFF"]
 }
 
-if not $is_win {
-    $cmake_defines ++= ["onnxruntime_BUILD_INTERNAL_SHARED_LIB=ON"]
-}
+$cmake_defines ++= ["onnxruntime_BUILD_INTERNAL_SHARED_LIB=ON"]
 
 # build.py ignores CMAKE_ARGS, so pass conda-forge's defines (toolchain, find
 # root, archiver for LTO, ...) through --cmake_extra_defines.
@@ -181,10 +179,6 @@ python tools/ci_build/build.py ...$build_py_args --cmake_extra_defines ...$cmake
 let build_jobs = [($env.CPU_COUNT | into int) 8] | math min
 cmake --build build-ci/Release --config Release --parallel $build_jobs
 
-if $is_win {
-    python $"($env.RECIPE_DIR)/win-symbol-survey.py" build-ci/Release
-}
-
 if $build_unit_tests == "ON" {
     ctest --test-dir build-ci/Release --build-config Release --output-on-failure --parallel $build_jobs
 }
@@ -201,9 +195,7 @@ mut libs = if $cuda_enabled {
 } else {
     ["onnxruntime"]
 }
-if not $is_win {
-    $libs ++= ["onnxruntime_internal"]
-}
+$libs ++= ["onnxruntime_internal"]
 if $is_win {
     mkdir $"($prefix)/bin"
     # The library is renamed by 0001-avoid-conflicting-with-onnxruntime.dll-in-system32.patch.
