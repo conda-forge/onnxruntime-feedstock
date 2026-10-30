@@ -93,6 +93,7 @@ outputs:
         - ninja
         - nushell
         # protoc must run on the build platform
+        - libabseil
         - libprotobuf
         - if: build_platform != target_platform
           then:
@@ -252,6 +253,7 @@ outputs:
         - cmake
         - ninja
         - nushell
+        - libabseil
         - libprotobuf
         - if: build_platform != target_platform
           then:
