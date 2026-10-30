@@ -8,8 +8,8 @@ context:
   cuda_enabled: ${{ cuda_compiler_version != "None" }}
   # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
   tensorrt_enabled: ${{ linux and cuda_compiler_version == "13.4" }}
-  build_number_base: 2
-  build_number: 0
+  build_number_base: 0
+  build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
   build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
 
 recipe:
