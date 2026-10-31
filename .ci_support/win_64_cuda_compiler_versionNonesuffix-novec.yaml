@@ -17,7 +17,7 @@ cxx_compiler:
 github_actions_labels:
 - namespace-profile-16cpu-on-win-64
 libabseil:
-- '20260526'
+- '20260817'
 libprotobuf:
 - 7.35.1
 numpy:
