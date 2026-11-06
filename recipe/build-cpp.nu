@@ -181,11 +181,17 @@ if $build_unit_tests == "ON" {
     ctest --test-dir build-ci/Release --build-config Release --output-on-failure --parallel $build_jobs
 }
 
-# Install the C++ library for onnxruntime-cpp. 'cmake --install' only provides
-# the exported CMake targets; the headers keep the source tree's layout.
+# Install the C++ library for onnxruntime-cpp. 'cmake --install' provides the
+# exported CMake targets and the public headers, flattened into
+# include/onnxruntime as in upstream's release archives. The exported
+# onnxruntime::onnxruntime target points at that directory, so consumers write
+# '#include <onnxruntime_cxx_api.h>'. The source tree's layout is installed as
+# well, for '#include <onnxruntime/core/session/onnxruntime_cxx_api.h>' and for
+# the provider headers that upstream does not flatten (e.g. CUDA).
 cmake --install build-ci/Release --prefix install-ci
 mkdir $"($prefix)/include" $"($prefix)/lib/cmake"
 cp -r include/onnxruntime $"($prefix)/include/"
+cp -r ...(glob install-ci/include/onnxruntime/*) $"($prefix)/include/onnxruntime/"
 cp -r install-ci/lib/cmake/onnxruntime $"($prefix)/lib/cmake/"
 
 let libs = if $cuda_enabled {
