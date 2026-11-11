@@ -8,7 +8,7 @@ context:
   cuda_enabled: ${{ cuda_compiler_version != "None" }}
   # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
   tensorrt_enabled: ${{ linux and cuda_compiler_version == "13.4" }}
-  build_number_base: 1
+  build_number_base: 2
   build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
   build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
 
@@ -189,6 +189,8 @@ outputs:
       - package_contents:
           include:
             - onnxruntime/core/session/onnxruntime_cxx_api.h
+            # flat public headers, where onnxruntime::onnxruntime points
+            - onnxruntime/onnxruntime_cxx_api.h
             - if: osx and arm64
               then:
                 - onnxruntime/core/providers/coreml/coreml_provider_factory.h
@@ -211,14 +213,30 @@ outputs:
             else:
               - call .\run_cpp_test.bat
           - cmake-package-check onnxruntime --targets onnxruntime::onnxruntime
+          # Build against the exported target only, using the flat include
+          - if: unix
+            then:
+              - cmake -S test_cmake -B build_test_cmake -G Ninja ${CMAKE_ARGS}
+              - cmake --build build_test_cmake
+              - ./build_test_cmake/test_cmake
+            else:
+              - cmake -S test_cmake -B build_test_cmake -G Ninja %CMAKE_ARGS%
+              - if %ERRORLEVEL% neq 0 exit 1
+              - cmake --build build_test_cmake
+              - if %ERRORLEVEL% neq 0 exit 1
+              - .\build_test_cmake\test_cmake.exe
+              - if %ERRORLEVEL% neq 0 exit 1
         requirements:
           run:
             - ${{ compiler('cxx') }}
             - ${{ stdlib('c') }}
             - cmake-package-check
+            - cmake
+            - ninja
         files:
           recipe:
             - test.cpp
+            - test_cmake/
             - if: win
               then:
                 - run_cpp_test.bat
