@@ -8,8 +8,8 @@ context:
   cuda_enabled: ${{ cuda_compiler_version != "None" }}
   # conda-forge's TensorRT needs glibc 2.28, which only the CUDA 13 builds target.
   tensorrt_enabled: ${{ linux and cuda_compiler_version == "13.4" }}
-  build_number_base: 2
-  build_number: 0
+  build_number_base: 0
+  build_number: ${{ build_number_base + (200 if cuda_enabled else 0) }}
   build_ext: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_enabled else "cpu" }}
 
 recipe:
@@ -31,27 +31,24 @@ source:
     - patches/0003-Add-_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH-for-cud.patch
     # Fix endian.h shadowing system header for glibc 2.17
     - patches/0004-Remove-redundant-include-paths-from-custom-op-test-t.patch
-    # New test in 1.28.0 lacks the skip guard its siblings have when onnx is absent
-    - patches/0006-Skip-adapter-string-tensor-test-without-onnx.patch
-    # autoep test gained a module-level onnx import in 1.28.0 but runs before
-    # build.py's "onnx is not installed" gate
-    - patches/0007-Guard-onnx-import-in-autoep-test.patch
-    - patches/0008-Copy-python-test-files-in-batches.patch
+    # build.py runs these python tests before its "onnx is not installed" gate
+    - patches/0005-Skip-onnx-dependent-python-tests-without-onnx.patch
+    - patches/0006-Copy-python-test-files-in-batches.patch
     # new onnxruntime_public_exports_test in 1.31.0 needs bare cc/ar/nm
-    - patches/0009-Use-CC-AR-NM-from-environment-in-test_gen_def.patch
+    - patches/0007-Use-CC-AR-NM-from-environment-in-test_gen_def.patch
     # abseil's CMake config only matches its exact version
-    - patches/0011-Accept-any-installed-abseil-version.patch
+    - patches/0008-Accept-any-installed-abseil-version.patch
     # protobuf deprecated RepeatedField::Resize; /sdl makes that an error on Windows
-    - patches/0012-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
+    - patches/0009-Use-RepeatedField-resize-instead-of-the-deprecated-R.patch
     # avoid loading both libprotobuf and libprotobuf-lite into one process
-    - patches/0013-Link-the-full-libprotobuf-runtime-when-protobuf-is-p.patch
+    - patches/0010-Link-the-full-libprotobuf-runtime-when-protobuf-is-p.patch
     # link conda-forge's libcoremltools instead of compiling the coremltools sources
     - if: osx and arm64
       then:
-        - patches/0014-Use-a-preinstalled-libcoremltools-for-the-CoreML-EP.patch
+        - patches/0011-Use-a-preinstalled-libcoremltools-for-the-CoreML-EP.patch
     # the onnxruntime output reconfigures the staging build tree, which must not
     # rebuild the CUDA provider on Windows
-    - patches/0015-Keep-the-timestamp-of-the-unchanged-CUDA-12.9-header.patch
+    - patches/0012-Keep-the-timestamp-of-the-unchanged-CUDA-12.9-header.patch
 
 build:
   number: ${{ build_number }}
