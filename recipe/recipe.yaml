@@ -186,12 +186,10 @@ outputs:
     tests:
       - package_contents:
           include:
-            - onnxruntime/core/session/onnxruntime_cxx_api.h
-            # flat public headers, where onnxruntime::onnxruntime points
             - onnxruntime/onnxruntime_cxx_api.h
             - if: osx and arm64
               then:
-                - onnxruntime/core/providers/coreml/coreml_provider_factory.h
+                - onnxruntime/coreml_provider_factory.h
           lib:
             - ${{ "onnxruntime_conda" if win else "onnxruntime" }}
             - if: cuda_enabled

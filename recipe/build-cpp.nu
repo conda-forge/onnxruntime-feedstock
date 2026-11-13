@@ -196,28 +196,7 @@ if $build_unit_tests == "ON" {
 cmake --install build-ci/Release --prefix install-ci
 mkdir $"($prefix)/include" $"($prefix)/lib/cmake"
 cp -r install-ci/lib/cmake/onnxruntime $"($prefix)/lib/cmake/"
-
-# The source tree's layout is installed as well, for
-# '#include <onnxruntime/core/session/onnxruntime_cxx_api.h>' and for the
-# provider headers that upstream does not flatten (e.g. CUDA). Its copies of
-# the flat headers become forwarding headers, so that each header exists only
-# once: the public headers rely on '#pragma once', which does not deduplicate
-# distinct files when a consumer mixes both include styles.
-# TODO: Remove the source tree's layout in the next minor release.
-let include_dir = $"($prefix)/include/onnxruntime"
-cp -r include/onnxruntime $"($prefix)/include/"
-for header in (ls install-ci/include/onnxruntime | where type == file | get name) {
-    let name = $header | path basename
-    let sources = glob $"include/onnxruntime/**/($name)"
-    if ($sources | length) != 1 {
-        error make {msg: $"expected one source file for public header `($name)`, found ($sources | length)"}
-    }
-    let forwarder = $sources.0 | path relative-to ($env.PWD | path join include onnxruntime)
-    let depth = ($forwarder | path split | length) - 1
-    let target = 1..$depth | each { ".." } | append $name | str join "/"
-    cp $header $include_dir
-    $"#include \"($target)\"\n" | save --force ($include_dir | path join $forwarder)
-}
+cp -r install-ci/include/onnxruntime $"($prefix)/include/"
 
 let libs = if $cuda_enabled {
     ["onnxruntime" "onnxruntime_providers_shared" "onnxruntime_providers_cuda"]
