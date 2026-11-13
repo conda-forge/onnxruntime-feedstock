@@ -140,6 +140,7 @@ outputs:
             - libcufft-dev
             - cuda-cudart-dev
             - cuda-nvrtc-dev
+            - cuda-nvtx-dev
         - if: tensorrt_enabled
           then:
             - libnvinfer-devel
@@ -152,6 +153,10 @@ outputs:
           - cross-python_${{ target_platform }}
           - numpy
           - pybind11
+          # NVTX is used header-only
+          - if: cuda_enabled
+            then:
+              - cuda-nvtx-dev
           - if: tensorrt_enabled
             then:
               - libnvinfer-devel
@@ -315,6 +320,7 @@ outputs:
             - libcufft-dev
             - cuda-cudart-dev
             - cuda-nvrtc-dev
+            - cuda-nvtx-dev
         - if: tensorrt_enabled
           then:
             - libnvinfer-devel
@@ -322,6 +328,10 @@ outputs:
       ignore_run_exports:
         from_package:
           - zlib
+          # NVTX is used header-only
+          - if: cuda_enabled
+            then:
+              - cuda-nvtx-dev
           - if: tensorrt_enabled
             then:
               - libnvinfer-devel
