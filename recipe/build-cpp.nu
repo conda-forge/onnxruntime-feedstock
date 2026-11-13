@@ -103,6 +103,10 @@ if $is_win {
 }
 
 if $is_osx {
+    # conda-forge's libcxx provides symbols that the macOS SDK marks unavailable
+    # for our deployment target, e.g. std::to_chars used by onnx.
+    # https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
+    $env.CXXFLAGS = $"($env.CXXFLAGS? | default '') -D_LIBCPP_DISABLE_AVAILABILITY"
     # Use CoreML for all osx builds
     $build_py_args ++= ["--osx_arch" "arm64" "--use_coreml"]
 }

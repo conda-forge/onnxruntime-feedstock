@@ -118,7 +118,8 @@ outputs:
         - libabseil
         - libprotobuf
         - re2
-        - gmock
+        # gmock 1.18 deprecates testing::Invoke, which /sdl turns into an error
+        - gmock <1.18
         - libdate
         - optional-lite
         - safeint
@@ -296,7 +297,8 @@ outputs:
         - libabseil
         - libprotobuf
         - re2
-        - gmock
+        # gmock 1.18 deprecates testing::Invoke, which /sdl turns into an error
+        - gmock <1.18
         - libdate
         - optional-lite
         - safeint
